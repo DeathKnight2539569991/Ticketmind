@@ -1,7 +1,9 @@
 from typing import NotRequired,TypedDict
 from ticketmind.agent.schemas import TicketUnderstanding
 from ticketmind.retrieval.dense import RetrievalHit
+from ticketmind.agent.proposals import Proposal
 class TicketAgentState(TypedDict):
+    proposal: NotRequired[Proposal]
     understanding: NotRequired[TicketUnderstanding]
     subject:str
     body:str

@@ -10,7 +10,10 @@ def generate_text(
         settings: QwenSettings,
         system_prompt: str,
         user_prompt: str,
-        json_mode:bool=False
+        json_mode:bool=False,
+        timeout:float=30,
+        generation_options:dict | None=None,
+        usage_callback=None,
 ):
     base_url = (
         f"https://{settings.workspace_id}.cn-beijing.maas.aliyuncs.com"
@@ -19,7 +22,7 @@ def generate_text(
     with OpenAI(
         api_key=settings.api_key.get_secret_value(),
         base_url=base_url,
-        timeout=30,
+        timeout=timeout,
         max_retries=0,
     ) as client:
         completion = client.chat.completions.create(
@@ -28,13 +31,15 @@ def generate_text(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            **GENERATION_OPTIONS,
+            **(GENERATION_OPTIONS if generation_options is None else generation_options),
             response_format=(
     {"type": "json_object"}
     if json_mode
     else {"type": "text"}
 ),
         )
+    if usage_callback is not None:
+        usage_callback(completion.usage.model_dump() if completion.usage is not None else None)
     if not completion.choices:
         raise ValueError("No choices returned from the API.")
     choice = completion.choices[0]

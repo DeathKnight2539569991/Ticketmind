@@ -30,3 +30,6 @@ dev = [
     "httpx>=0.27,<1.0",
     "pytest>=8.0,<9.0",
 ]
+
+[tool.pytest.ini_options]
+markers = ["integration: opt-in real PostgreSQL tests in temporary isolated schemas"]

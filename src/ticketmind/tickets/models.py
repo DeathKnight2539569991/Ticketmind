@@ -15,7 +15,8 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
     ForeignKeyConstraint,
-    and_
+    and_,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID,JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship,foreign
@@ -81,12 +82,17 @@ class Ticket(Base):
     __tablename__="tickets"
     __table_args__=(
         Index("ix_tickets_status_priority", "status", "priority"),
+        UniqueConstraint("actor_id", "idempotency_key", name="uq_tickets_actor_key"),
     )
     id : Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
     )
+    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1", default=1)
+    actor_id: Mapped[str | None] = mapped_column(String(64))
+    idempotency_key: Mapped[str | None] = mapped_column(String(128))
+    request_hash: Mapped[str | None] = mapped_column(String(64))
     ticket_number : Mapped[str] = mapped_column(
         String(64),
         unique=True,
@@ -143,6 +149,9 @@ class ProcessingResult(Base):
 
     __tablename__ = "processing_results"
     __table_args__ = (
+        UniqueConstraint("ticket_id", "actor_id", "idempotency_key", name="uq_runs_ticket_actor_key"),
+        Index("uq_runs_active_ticket", "ticket_id", unique=True,
+              postgresql_where=text("run_status IN ('running', 'waiting_review')")),
         ForeignKeyConstraint(
         ["trigger_message_id", "ticket_id"],
         ["ticket_messages.id", "ticket_messages.ticket_id"],
@@ -177,6 +186,20 @@ class ProcessingResult(Base):
         nullable=False,
     )
     run_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    actor_id: Mapped[str | None] = mapped_column(String(64))
+    idempotency_key: Mapped[str | None] = mapped_column(String(128))
+    request_hash: Mapped[str | None] = mapped_column(String(64))
+    ticket_version: Mapped[int | None] = mapped_column(Integer)
+    thread_id: Mapped[str | None] = mapped_column(String(128))
+    corpus_version: Mapped[str | None] = mapped_column(String(128))
+    retrieval_mode: Mapped[str | None] = mapped_column(String(16))
+    model_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    input_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    proposal: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    usage: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    error_code: Mapped[str | None] = mapped_column(String(64))
     run_status: Mapped[ProcessingRunStatus] = mapped_column(
         database_enum(ProcessingRunStatus, "processing_run_status"),
         default=ProcessingRunStatus.RUNNING,

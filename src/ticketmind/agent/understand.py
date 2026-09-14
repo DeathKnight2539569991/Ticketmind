@@ -27,6 +27,8 @@ def understand_ticket(
     settings: QwenSettings,
     subject: str,
     body: str,
+    timeout: float = 30,
+    usage_callback=None,
 ) -> TicketUnderstanding:
     schema_json = json.dumps(
         TicketUnderstanding.model_json_schema(),
@@ -42,6 +44,8 @@ def understand_ticket(
         system_prompt=f"{SYSTEM_PROMPT}\n\n结构定义：\n{schema_json}",
         user_prompt=ticket_json,
         json_mode=True,
+        timeout=timeout,
+        usage_callback=usage_callback,
     )
 
     return TicketUnderstanding.model_validate_json(raw_result)

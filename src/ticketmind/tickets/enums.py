@@ -23,6 +23,7 @@ class MessageAuthorType(StrEnum):
     SYSTEM="system"
 class ProcessingRunStatus(StrEnum):
     RUNNING="running"
+    WAITING_REVIEW="waiting_review"
     COMPLETED="completed"
     FAILED="failed"
 class AgentAction(StrEnum):

@@ -6,8 +6,9 @@ from ticketmind.core.config import QwenSettings
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from ticketmind.agent.understand import understand_ticket
-from pathlib import Path
-from ticketmind.agent.run_cache import UnderstandingCache, understanding_fingerprint,load_cache,save_cache
+from collections.abc import Callable
+from ticketmind.agent.schemas import TicketUnderstanding
+from ticketmind.agent.proposals import Proposal
 def build_ticket_graph(
         settings:QwenSettings,
         *,
@@ -15,37 +16,27 @@ def build_ticket_graph(
         client:MilvusClient,
         top_k:int,
         timeout:float,
-        understanding_cache_path:Path,
-        allow_understanding:bool=False
+        understanding_fn:Callable[..., TicketUnderstanding]=understand_ticket,
+        decision_fn:Callable[[TicketAgentState], Proposal] | None=None,
+        retrieval_timeout_fn:Callable[[], float] | None=None,
 ) ->CompiledStateGraph:
+    """业务图默认直接理解新工单；开发缓存通过可选适配器注入，客户端由调用方管理。"""
     def understand_node(
             state:TicketAgentState
-    ):
-        fingerprint = understanding_fingerprint(
-            settings=settings, subject=state["subject"], body=state["body"],
-        )
-        cache = load_cache(
-            understanding_cache_path,
-            UnderstandingCache,
-            expected_fingerprint=fingerprint,
-        )
-        if cache is not None:
-            return {"understanding": cache.understanding}
-        if not allow_understanding:
-            raise RuntimeError("理解缓存不存在，当前运行未开启理解模型调用")
-        understanding=understand_ticket(
+    )->UnderstandingUpdate:
+        understanding=understanding_fn(
             settings=settings,
             subject=state["subject"],
             body=state["body"],
         )
         return {"understanding":understanding}
-    def retrieve_node(state:TicketAgentState):
+    def retrieve_node(state:TicketAgentState)->RetrievalUpdate:
         retrieval=retrieve_ticket(
             state=state,
             embeddings=embeddings,
             client=client,
             top_k=top_k,
-            timeout=timeout
+            timeout=retrieval_timeout_fn if retrieval_timeout_fn else timeout
         )
         return retrieval
     builder=StateGraph(TicketAgentState)
@@ -53,6 +44,10 @@ def build_ticket_graph(
     builder.add_node("retrieve",retrieve_node)
     builder.add_edge(START,"understand")
     builder.add_edge("understand","retrieve")
-    builder.add_edge("retrieve",END)
+    if decision_fn is None:
+        builder.add_edge("retrieve",END)
+    else:
+        builder.add_node("decide", lambda state: {"proposal": decision_fn(state)})
+        builder.add_edge("retrieve", "decide")
+        builder.add_edge("decide", END)
     return builder.compile()
-    

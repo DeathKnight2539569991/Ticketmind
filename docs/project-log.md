@@ -1,90 +1,72 @@
-# TicketMind 当前进度交接
+# TicketMind 项目开发日志
 
-> 更新于 2026-09-13。保留当前进度、验证边界和后续入口。路径相对 `D:\AnalyzeAgent\app`；本次按用户要求只更新日志，未修改源码、测试或配置，未调用模型。用户明确要求先不做 graph.py，停在检索接图前。
+> 更新：2026-09-14。维护当前实现、关键决策、验证证据和待办，不再记录逐轮教学。
+> 仓库：`D:\AnalyzeAgent\app`。沿用最新源码；用户已授权将 M0/M1 成果提交并推送 GitHub，未部署。协作规范见上级 AGENTS.md。
 
-## 1. 协作与项目入口
+## 当前状态
 
-- 先读 `D:\AnalyzeAgent\AGENT.md`、根目录《TicketMind-TicketAgent-项目立项与技术基线-v1.0.md》，再核对源码。
-- 学习模式：每次推进一个可验证模块，先解释业务位置、原理和取舍，再逐段给代码，由用户手动写入；未经明确要求不直接修改源码、测试或配置。
-- 已确认的规则不重复询问；真正缺失的信息询问用户。不回到数据库规范优化，不重复已通过的付费模型调用。
-- 用户要求直接验证真实流程，不使用 Mock 或人工返回的案例。复用真实模型产生的缓存向量查询真实 Milvus 不属于模拟。
-- 用户需要基础概念解释：已讲解节点就是处理步骤对应的函数、state 是随流程传递的处理记录、边规定执行顺序、compile 与 invoke 的区别。后续继续先用直白语言解释，再分段给代码。
-- Python 3.12 + uv，项目为 src 布局。Python 命令从 `D:\AnalyzeAgent\app` 执行；模型与 Milvus 应用配置读取该目录 `.env`。
+- M0 已完成：真实理解 → Dense 检索，开发缓存与业务图分离。
+- M1 已实现并验证到待审核提案落库：Bearer 身份 → HTTP 工单/运行 → 数据库快照 → 理解/检索/决策 → waiting_review 或 failed。
+- 三类提案为 propose_resolution / ask_clarification / escalate，映射已有 AgentAction；不发布客户消息，不自动关闭工单。
+- 尚未实现 M2 人工审核、消息追加、关闭、interrupt/checkpointer、进程中断恢复；M3 才引入 BM25/Hybrid。
+- 运行边界：单实例、单 worker、一个团队、两个预置独立身份；不宣称多租户或可靠后台队列。
 
-## 2. 已完成：基础、工单与 Agent 理解
+## 关键实现与约束
 
-- FastAPI `GET /health`、`POST /tickets` 已实现；创建接口用户确认验证通过。
-- PostgreSQL + SQLAlchemy + Alembic 已落地；三表为 Ticket、TicketMessage、ProcessingResult。此前迁移验证为 `55ee2375ea43 (head)`，不是本次重新检查结果。
-- TicketCreate 只接收 subject、body、channel、requester_role；服务端生成 `TM-` + uuid4.hex，默认 open/P3；首条消息为 customer、序号 1。工单和首条消息同一事务，服务 flush，路由提交成功后返回 201。
-- MVP 无 tenant；仅保存脱敏文本与角色（自动脱敏尚未实现）。后续每次 Agent 处理新增 ProcessingResult，不覆盖历史；工单状态为 open/awaiting_customer/resolved/escalated。
-- `llm/client.py` 已接千问；`agent/understand.py` 返回 TicketUnderstanding（summary、error_codes、environment），JSON Object 输出后由 Pydantic 校验。
-- `agent/graph.py` 当前仍为 `START → understand → END`，build_ticket_graph 仍只接收 settings；两条理解样本和单节点图此前已由用户确认通过。状态已增加检索字段，见第 7 节；不代表检索已接入图。
-- HTTP 创建工单与脚本运行图仍未接通。检索函数已写入但未注册到图；无决策节点、业务工单读取、处理结果写库、多轮状态恢复或人工处理流程。
+| 模块 | 职责 / 决策 |
+| --- | --- |
+| core/auth.py、config.py | 独立 operator/reviewer Bearer 凭据映射可信 actor_id；requester_role 不参与授权 |
+| api/routes/{tickets,runs,sources}.py | 创建/分页/详情、运行创建/查询、版本化来源；写入要求 Idempotency-Key |
+| tickets/processing.py | 短事务保存 running 和输入快照，事务外调用 Agent，短事务保存提案/失败；相同请求先查幂等再查版本 |
+| tickets/models.py / 迁移 | Ticket.version、操作者/请求摘要、运行快照/版本/耗时/usage；行锁及部分唯一索引限制同工单一个 active run |
+| agent/graph.py、runtime.py | 理解 → Dense 检索 → 决策；M0 入口可不接决策；客户端由运行边界关闭 |
+| agent/proposals.py、decide.py | 区分三类结构，验证必要问题、实际来源引用和高风险标记；结构化 JSON，不宣称原生 Tool Calling |
+| knowledge/sources.py | 对完整历史案例计算内容版本；Milvus 命中文本必须与本次语料一致；旧版本不可用时明确 404 |
+| agent/dev_cache.py、dev_decision_cache.py | 仅验收脚本启用真实结果缓存，按输入/模型/配置/证据校验；成功立即原子保存，默认禁止新调用 |
+| retrieval/transport.py | 单次 HTTP send 保护，拦截锁定 DashScope SDK 的连接重发；不升级依赖 |
 
-## 3. 已完成：历史语料与模型
+- 同 key 同请求返回原记录（200），不同内容返回 409；首次运行的 201 只表示记录建立，必须检查 run_status。
+- trigger_message_id 必须属于本工单且为最新消息，正文与有序消息由数据库读取；客户端不能传入正文、actor_id 或 thread_id。
+- 提案、证据快照、来源版本、真实模型配置、可取得的 usage 持久化；confidence 保持 null，不把 COSINE 当概率。
+- 所有三类提案都进入 waiting_review，Ticket 仍 open；审核前不追加客户可见回复。
+- 模型/检索失败记录阶段和稳定错误码，返回信息不含原始异常/凭据；服务端日志仅记录 run_id/request_id、阶段和异常类型。
+- 当前预算为阶段间检查与 SDK 超时，非进程级硬截止。数据库持续故障或进程退出仍可能留下 running；恢复机制在 M2。
+- 正式 API 不复用开发缓存；旧 CSV 查询向量与图输入不同，始终保留但不混用。
 
-- `data/synthetic/v2/`：12 条 historical_cases、16 条 evaluation_cases、16 条独立 evaluation_labels；合成数据，不代表真实产品知识或稳定效果指标。
-- 历史案例字段为 source_id、synthetic、request、status=resolved、resolution；resolution 含 summary/root_cause/actions/verification。
-- `knowledge/corpus.py`：load_historical_cases 校验语料、重复 ID 和空输入；build_case_text 构造检索文本。已验证读取 12 条。
-- 评测标签禁止进入模型输入、检索索引或工具证据。历史语料目前未导入 PostgreSQL。
-- 已选定阿里云北京地域，DASHSCOPE_API_KEY、DASHSCOPE_WORKSPACE_ID 已配置，无需重复询问或输出值。
-- 文本模型配置默认 qwen3.7-flash；Embedding 已明确改用 text-embedding-v4（覆盖原基线的 Embedding 选型）。
-- `retrieval/embeddings.py` 使用 DashScopeEmbeddings：文档 embed_documents、查询 embed_query，1024 维；设置北京业务空间原生 API 地址。现有 max_retries=1，SDK 地址为进程全局配置。
+## 验证证据
 
-## 4. 已完成：Docker 与 Milvus 部署
+### M0（2026-09-14）
 
-- 已核对：Docker 程序 `D:\Docker\Desktop`；WSL 数据设置 `D:\Docker\Data`；实际存在 `disk\docker_data.vhdx` 和 `main\ext4.vhdx`。不再处于“迁移待确认”阶段。
-- 已验证 Docker Client/Engine 29.7.2、Desktop 4.90.0、Compose 5.5.1、WSL 2.6.1.0；当时 Engine 可用 4 CPU、约 11.7 GiB 内存。新会话不能据此假定服务此刻运行。
-- `infra/milvus/docker-compose.yml` 已落地：Milvus v3.0.1、etcd v3.5.25、MinIO RELEASE.2024-12-18T13-15-44Z，内嵌 Woodpecker。
-- `infra/milvus/.env` 指定 DOCKER_VOLUME_DIRECTORY，三服务数据绑定到 `infra/milvus/volumes/{etcd,minio,milvus}`，均在 D 盘。
-- 宿主机发布端口仅绑定 127.0.0.1：19530（客户端）、9091（健康/WebUI）、9000/9001（MinIO）；etcd 未发布。当前本地 Milvus 未启用鉴权。
-- 用户确认三个容器健康及 `/healthz` 返回 OK、HTTP 200。
-- 日常启动：先打开 Docker Desktop，待 Engine 就绪，在 `infra/milvus` 执行 `docker compose up -d`、`docker compose ps -a`；停止用 `docker compose stop`。保留挂载目录即可保留数据，不需每次 pull 或重建集合。
-- 找不到 dockerDesktopLinuxEngine 管道曾由 Docker Engine 未就绪引起；先检查 Desktop/Server，不修改 Milvus 配置。
+- 锁文件离线同步通过；当时 32 项逻辑测试通过。
+- 真实理解和 Embedding 各一次，Milvus 返回 SYN-HIST-V2-007 / 006 / 008，COSINE 约 0.6227 / 0.5854 / 0.5673。
+- 第二次理解/Embedding 调用均为 0，两份真实缓存各命中一次，重新查询真实 Milvus 结果一致。
+- 最初 Docker/Milvus 不可用和具体模型授权不足的阻塞，均已在用户准备环境并确认后解除。
 
-## 5. 已完成：Python 接入、集合与入库
+### M1（2026-09-14）
 
-- PyMilvus 固定 3.0.1。`core/config.py` 的 MilvusSettings 前缀已修正为 `TICKETMIND_MILVUS_`；uri 为 http://127.0.0.1:19530，timeout_seconds 默认 10。
-- `retrieval/milvus_client.py` 创建客户端；`scripts/check_milvus.py` 列集合验证已由用户确认通过。
-- `retrieval/case_collection.py` + `scripts/init_case_collection.py` 已落地，用户确认创建与检查通过。
-- 集合 historical_cases_v1：source_id 为 VARCHAR 主键（128 字节）、text 为 VARCHAR（16384 字节）、embedding 为 FLOAT_VECTOR（1024 维）；auto_id=False、动态字段关闭、Strong 一致性；索引 embedding_flat = FLAT + COSINE。
-- `knowledge/vector_cache.py`：VectorRecord/VectorCache；根据整批文本、模型等生成指纹，文档向量缓存到 `data/cache/embeddings/`。缺少缓存时仅在 --allow-embedding 下调用模型；先保存缓存，再入库。
-- 整批缓存是当前固定 12 条语料的开发辅助；一条文本改变会使整批缓存失效，未实现逐条增量向量化或分批断点续传。缓存无需永久保存，日常查询使用 Milvus 已存向量。
-- `scripts/ingest_historical_cases.py` 使用 upsert，随后 get 核对 ID/文本、query count(*) 核对 12 条。用户明确确认“入库成功”；未单独提供第二次幂等导入或重启后只读验证结果，不宣称这两项已验证。
-- upsert 不自动删除语料中移除的旧案例；没有更换模型或自动迁移集合逻辑。
+- `uv sync --locked` 通过，锁文件及依赖版本未变。首次离线同步缺少 uv-build 构建缓存，联网取得构建依赖后只重建本项目包。
+- `TICKETMIND_RUN_DB_TESTS=1 python -m pytest -q`：**58 passed**；45 项逻辑/合成替身测试、13 项真实 PostgreSQL 集成测试。2 条依赖弃用警告仍保留，未为消除警告升级。
+- 集成测试包括：真实迁移/旧数据保留、HTTP/数据库一致、三类提案、版本/归属校验、幂等、同工单并发与数据库唯一约束、失败保存、事务外网络边界、真实自有未监听端口连接失败。模型业务输出使用测试替身，单独标注。
+- 真实验收：`python scripts/check_ticket_flow.py --allow-decision` 退出码 0。使用实际 loopback HTTP、独立临时 PostgreSQL schema 和真实 Milvus；理解/向量复用 M0 缓存，只新增 **1 次决策调用**。
+- 验收结果：action=ask_clarification，run_status=waiting_review，工单=open；同请求重发 200、同 key 改内容 409；HTTP 提案/证据与数据库一致，来源查询成功。
+- 决策 usage：prompt_tokens=2039、completion_tokens=476、total_tokens=2515；模型/检索处理耗时 7500 ms（单例，不是性能基准）。本轮新增理解/Embedding 调用均为 0，不混同全新模型链路。
+- 原始验收报告和决策缓存保存在被忽略的 `data/cache/graph/api_timeout/{m1_verification,decision_m1}.json`；临时验收 schema 已清理，报告中的 UUID 不指向持久业务演示记录。
+- 开发库已由 55ee2375ea43 升级至 **6b31a12c9e01**；迁移前后原业务行数均为工单 1 / 消息 1 / 处理结果 0。没有重建或删除现有业务表/集合。
+- `.env` 已补缺失的两份随机本地身份凭据；未输出或提交凭据，既有数据库/模型配置保留。
+- 使用本机实际配置验证：未认证访问工单列表 401，operator 凭据访问 200，读取原有 1 张工单。临时测试 schema 剩余 0。
 
-## 6. 已完成：Dense 检索最小闭环
+### 已知质量问题与未验证项
 
-- `retrieval/dense.py`：RetrievalHit（source_id/text/score）；search_case_vectors 校验维度、有限数值、非零向量，然后搜索 Milvus，转换候选。实际参数名为 query_vectors（单条向量），top_k 范围 1～100，返回类型已补为 list[RetrievalHit]。
-- `scripts/check_dense_retrieval.py` 已落地：分号/逗号不匹配导致 CSV 导入只有一列的查询；embed_query 生成向量，缓存到 `data/cache/queries/csv_separator.json`，后续复用；top_k=3。
-- 用户明确确认相关案例 SYN-HIST-V2-002 进入前三且排第一；未提供具体分数。证明单样本最小闭环，不等于整体检索评测通过，也未确定业务相似度阈值。
-- **已修正**：client.search 的 `search_param` 已改为本地 SDK 正式参数 `search_params`，返回类型也已补齐；用户回复“完成”，助手已核对源码。未收到修正后的具体检索输出，不补写新的排名或分数结论。
-- 本轮只核对源码，未重跑数据库、模型、检索或 pytest。此前最新 pytest 记录为 12 passed（含一条 Starlette/httpx 弃用警告），不覆盖新检索链路或完整数据库/API 集成测试。
+- 真实草稿虽正确选择追问，但问题中附带“尝试停用本地代理”的操作建议，尚未确认环境。仅证明链路和结构有效，不能宣称回复可直接发布；M2 审核前应收紧追问规则并补负例验证。
+- 仅一条合成样本使用真实决策；建议/转人工分支有逻辑及数据库验证，没有新增真实模型演示，也未形成准确率指标。
+- 未验证全新理解 + Embedding + 决策的 M1 整链路；本次前两步为真实缓存复用。
+- 未实现/验证人工审核、发布、关闭、多轮恢复或崩溃恢复；不把 waiting_review 业务状态等同 LangGraph interrupt。
+- 锁定 Alembic 对 SQLAlchemy 非原生枚举的检查约束会产生“移除”误报；测试单独核验枚举允许值，其余字段/索引/约束差异仍检查。
 
-## 7. 已写入：检索状态与独立检索函数（尚未运行验证）
+## 运行入口与下一步
 
-- 用户已确认查询采用原始工单标题与正文，不使用理解结果构造查询；格式固定为 `f"标题：{subject}\n\n问题描述：{body}"`。这只是输入格式选择，尚无检索效果提升结论。
-- `agent/state.py` 已增加 `retrieval_query: NotRequired[str]`、`retrieval_hits: NotRequired[list[RetrievalHit]]`，并新增 RetrievalUpdate，要求同时返回 query 和 hits 两个对应字段；保留 UnderstandingUpdate。完整字段名为 retrieval_query、retrieval_hits。
-- 已解释：TypedDict 是类型契约，不自动执行 Pydantic 式运行时校验；NotRequired 允许字段暂不存在，不自动生成默认值。计划使用普通覆盖更新，不为证据列表配置追加 reducer。
-- `agent/retrieve.py` 已由用户写入，2026-09-13 核对：build_retrieval_query 拼接标题和正文；retrieve_ticket 接收 state，以及 embeddings、client、top_k、timeout，调用 embed_query 和已有 search_case_vectors，返回 RetrievalUpdate，不原地修改 state。
-- 已修正并核对：导入为 `from langchain_core.embeddings import Embeddings`；Dense 调用使用 `query_vectors=query_vector`；查询格式与已确认方案一致。
-- 检索函数只返回证据，不决定 resolve/ask_clarification/escalate，不设置业务分数阈值；空候选返回 []，外部调用异常向上传递。timeout 只传给 Milvus，不控制 Embedding 超时。
-- 已说明客户端生命周期：计划由运行脚本创建 Embedding/Milvus 客户端，传入图供节点复用，由脚本 finally 关闭 Milvus；当前检索函数不创建或关闭客户端。尚未新增运行入口。
-- 曾给出导入检查和 Mock 验证示例，但没有收到执行结果，助手也未执行；随后用户明确改为真实验证。因此不宣称该模块测试通过，不继续采用模拟验证方案。
-
-## 8. 已确认：真实验证与缓存要求（授权尚未使用）
-
-- 用户明确授权：本次为 `understand → retrieve` 完整流程调用一次理解模型、一次 Embedding，并保存结果供后续复用。无需重复询问这项授权；不是无限重试或反复付费运行的授权。本轮尚未执行这两次调用。
-- 现有查询缓存 `data/cache/queries/csv_separator.json` 保存 query、model、1024 维 vector，不保存理解结果或 Milvus 命中结果。原查询为：`上传 CSV 后，预览把姓名和邮箱挤在同一列。文件实际用分号分隔，导入选项目前选的是逗号。`
-- 原检查脚本缓存存在时核对查询文本和模型名称；不匹配则报错，匹配则复用向量并重新查询真实 Milvus；缓存不存在时会调用 Embedding。
-- 新查询包含标题、字段标签及换行，与旧缓存文本不一致，不能把旧向量当成新查询的真实向量。保留旧缓存，为新输入保存相应结果。
-- 新的理解结果缓存、查询向量缓存及复用入口尚未实现。计划理解结果成功后立即保存，Embedding 成功后立即保存，再查询 Milvus，避免后续失败导致重复付费；保存实际输入和模型信息并检查匹配关系。
-- 正式执行前先做无付费预检：导入/接口正确、Milvus 可用且集合存在、缓存保存位置可写；核对 Embedding SDK 的 max_retries=1 实际行为，避免超出一次调用授权的自动重试。不要为了预检调用模型。
-
-## 9. 暂停点、恢复入口与剩余范围
-
-1. **用户当前要求先不做 graph.py，仅保存进度。** 对话中已分段给出 graph.py 接图草案，但未写入源码；下次恢复从这里继续，不把草案当成已完成。
-2. 草案方向：build_ticket_graph 接收 settings 及 embeddings、client、top_k、timeout；保留 understand_node，新增调用 retrieve_ticket 的 retrieve_node；注册节点并连接 `START → understand → retrieve → END`。客户端仍由外层管理。
-3. 现有 `scripts/check_ticket_graph.py` 仍匹配旧图接口。接图后需同步准备真实验证入口和缓存机制，再执行已授权的一次理解模型和一次 Embedding，检查最终状态保留工单、理解结果和检索证据；尚未形成完整可执行方案，不直接运行旧脚本消耗调用。
-4. 此后推进 BM25、融合、重排序、证据决策与有限循环。未完成：检索系统评测、风险/置信度阈值、追问上限、工单实际 resolved 条件、HITL、多轮状态与结果持久化、HTTP 与图接通。
-5. 延后待办：独立测试库与完整接口/事务测试、查询/追加消息接口、幂等性、异常映射、自动脱敏。ProcessingResult.final_reply 与消息正文重复存储问题在接回复持久化前再处理，不阻塞当前检索主线。
+- 安装/配置/迁移/API 调用示例统一见 README.md，不在日志重复命令教程。
+- `scripts/configure_local_auth.py` 只补缺失本地凭据；`scripts/check_ticket_graph.py` 验证 M0；`scripts/check_ticket_flow.py` 验证 M1。
+- 真实模型额度：M0 的一次理解/Embedding 和 M1 的一次决策授权均已使用。后续先复用匹配缓存；新样本/新提示词产生的新调用需另行授权。
+- 下一批 M2：受限重检索/决策循环、审核表与审核 API、消息追加和关闭、持久化 interrupt/resume、版本失效与审核幂等、启动中断恢复。
+- 开始 M2 前明确新增真实模型验证预算；保持现有业务数据和缓存，不把未完成项计入简历能力。

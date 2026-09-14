@@ -1,0 +1,1 @@
+"""TicketMind application package."""

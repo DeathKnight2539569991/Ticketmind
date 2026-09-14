@@ -1,0 +1,32 @@
+[project]
+name = "ticketmind"
+version = "0.1.0"
+description = "An agent-based SaaS support ticket system."
+readme = "README.md"
+authors = [
+    { name = "derek", email = "2539569991@qq.com" }
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.18,<1.20",
+    "dashscope>=1.27.4",
+    "fastapi>=0.115,<1.0",
+    "langchain-community>=0.4.2",
+    "langgraph>=1.2.11",
+    "openai>=3.10.0",
+    "psycopg[binary]>=3.2,<4.0",
+    "pydantic-settings>=2.0,<3.0",
+    "pymilvus==3.0.1",
+    "sqlalchemy>=2.0,<2.1",
+    "uvicorn[standard]>=0.30,<1.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27,<1.0",
+    "pytest>=8.0,<9.0",
+]

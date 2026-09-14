@@ -9,6 +9,7 @@ from ticketmind.agent.understand import understand_ticket
 from collections.abc import Callable
 from ticketmind.agent.schemas import TicketUnderstanding
 from ticketmind.agent.proposals import Proposal
+from time import monotonic
 def build_ticket_graph(
         settings:QwenSettings,
         *,
@@ -19,6 +20,7 @@ def build_ticket_graph(
         understanding_fn:Callable[..., TicketUnderstanding]=understand_ticket,
         decision_fn:Callable[[TicketAgentState], Proposal] | None=None,
         retrieval_timeout_fn:Callable[[], float] | None=None,
+        retrieval_audit:list | None=None,
 ) ->CompiledStateGraph:
     """业务图默认直接理解新工单；开发缓存通过可选适配器注入，客户端由调用方管理。"""
     def understand_node(
@@ -31,14 +33,23 @@ def build_ticket_graph(
         )
         return {"understanding":understanding}
     def retrieve_node(state:TicketAgentState)->RetrievalUpdate:
-        retrieval=retrieve_ticket(
-            state=state,
-            embeddings=embeddings,
-            client=client,
-            top_k=top_k,
-            timeout=retrieval_timeout_fn if retrieval_timeout_fn else timeout
-        )
-        return retrieval
+        from ticketmind.agent.retrieve import build_retrieval_query
+        record = {"tool": "search_cases", "parameters": {"query": build_retrieval_query(subject=state["subject"], body=state["body"])},
+                  "reason": "首次检索原始工单", "status": "failed", "result_source_ids": []}
+        started = monotonic()
+        if retrieval_audit is not None:
+            retrieval_audit.append(record)
+        try:
+            retrieval=retrieve_ticket(state=state, embeddings=embeddings, client=client, top_k=top_k,
+                timeout=retrieval_timeout_fn if retrieval_timeout_fn else timeout)
+            record.update(status="succeeded", result_source_ids=[hit.source_id for hit in retrieval["retrieval_hits"]],
+                          result_summary=f"返回 {len(retrieval['retrieval_hits'])} 条候选")
+            return retrieval
+        except Exception:
+            record["error"] = "tool_execution_failed"
+            raise
+        finally:
+            record["duration_ms"] = round((monotonic() - started) * 1000)
     builder=StateGraph(TicketAgentState)
     builder.add_node( "understand",understand_node)
     builder.add_node("retrieve",retrieve_node)

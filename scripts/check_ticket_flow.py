@@ -26,6 +26,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--allow-decision", action="store_true", help="已获授权时最多新增一次决策调用")
     parser.add_argument("--check-only", action="store_true", help="仅校验配置和匹配的 M0 缓存，不访问网络/数据库")
+    parser.add_argument("--decision-cache", type=Path, default=Path("data/cache/graph/api_timeout/decision_m2.json"),
+                        help="独立 M2 决策缓存；旧 M1 缓存不覆盖、不修改指纹")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     qwen, milvus, config = QwenSettings(), MilvusSettings(), ProcessingSettings()
@@ -35,7 +37,7 @@ def main():
                                       factory=lambda: (_ for _ in ()).throw(RuntimeError("禁止新 Embedding 调用")))
     if understanding.read(settings=qwen, **initial) is None or embedding.read(build_retrieval_query(**initial)) is None:
         raise RuntimeError("缺少匹配的 M0 真实缓存，禁止自动补调模型")
-    decision = CachedDecision(qwen, root / "data/cache/graph/api_timeout/decision_m1.json", allow_call=args.allow_decision)
+    decision = CachedDecision(qwen, args.decision_cache, allow_call=args.allow_decision)
     runner = AgentRunner(qwen, milvus, config, understanding_fn=understanding,
                          embedding_factory=lambda remaining: embedding, decision_fn=decision)
     if args.check_only:
@@ -107,7 +109,7 @@ def main():
         print(json.dumps(counts))
         if report is not None:
             report.update(counts)
-            path = root / "data/cache/graph/api_timeout/m1_verification.json"
+            path = root / "data/cache/graph/api_timeout/m2_flow_verification.json"
             path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
 

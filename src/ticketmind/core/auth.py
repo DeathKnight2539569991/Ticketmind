@@ -36,3 +36,12 @@ def current_actor(request: Request, credentials: Annotated[HTTPAuthorizationCred
 
 
 ActorDependency = Annotated[Actor, Depends(current_actor)]
+
+
+def require_reviewer(actor: ActorDependency) -> Actor:
+    if actor.role != "reviewer":
+        raise AppError(403, "reviewer_required", "此操作需要 reviewer 权限")
+    return actor
+
+
+ReviewerDependency = Annotated[Actor, Depends(require_reviewer)]

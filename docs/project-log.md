@@ -1,72 +1,81 @@
-# TicketMind 项目开发日志
+# TicketMind 开发日志
 
-> 更新：2026-09-14。维护当前实现、关键决策、验证证据和待办，不再记录逐轮教学。
-> 仓库：`D:\AnalyzeAgent\app`。沿用最新源码；用户已授权将 M0/M1 成果提交并推送 GitHub，未部署。协作规范见上级 AGENTS.md。
+> 更新：2026-09-14。仅维护当前能力、关键决策、验证证据与待办。
+> 当前 HEAD main / 467ace9e7ecb5c2134de60f9bbab12e2a3d58c02；本次收尾从已有未提交 M2 改动接续，保留原数据与缓存；未提交、推送或部署。
 
-## 当前状态
+## 当前能力
 
-- M0 已完成：真实理解 → Dense 检索，开发缓存与业务图分离。
-- M1 已实现并验证到待审核提案落库：Bearer 身份 → HTTP 工单/运行 → 数据库快照 → 理解/检索/决策 → waiting_review 或 failed。
-- 三类提案为 propose_resolution / ask_clarification / escalate，映射已有 AgentAction；不发布客户消息，不自动关闭工单。
-- 尚未实现 M2 人工审核、消息追加、关闭、interrupt/checkpointer、进程中断恢复；M3 才引入 BM25/Hybrid。
-- 运行边界：单实例、单 worker、一个团队、两个预置独立身份；不宣称多租户或可靠后台队列。
+- M0：真实理解 → Dense 检索；理解/向量成功立即缓存，按输入、模型和配置校验；开发缓存与业务图分离。
+- M1：Bearer → 工单 → 数据库快照 → 理解/检索/决策 → waiting_review/failed；请求幂等、同工单并发约束和版本化证据保留。
+- M2 本轮约定验收收尾已完成：历史三类真实提案/审核、当前GLM补充后真实重检索/建议、用户批准编辑后的业务应用均有证据；不代表当前单模型三路径完整回归或生产质量保证。
+- 三类提案均先 waiting_review，工单保持 open。批准后分别 open / awaiting_customer / escalated；只有 reviewer 明确关闭才 resolved。
+- 单实例单 worker、单团队、两份独立预置凭据；未接外部消息发送、可靠队列、多租户或分布式接管。
+- M3 BM25/Hybrid、M4 正式评测、M5 工作台与部署交付尚未开展。
 
 ## 关键实现与约束
 
-| 模块 | 职责 / 决策 |
+| 模块 | 职责 |
 | --- | --- |
-| core/auth.py、config.py | 独立 operator/reviewer Bearer 凭据映射可信 actor_id；requester_role 不参与授权 |
-| api/routes/{tickets,runs,sources}.py | 创建/分页/详情、运行创建/查询、版本化来源；写入要求 Idempotency-Key |
-| tickets/processing.py | 短事务保存 running 和输入快照，事务外调用 Agent，短事务保存提案/失败；相同请求先查幂等再查版本 |
-| tickets/models.py / 迁移 | Ticket.version、操作者/请求摘要、运行快照/版本/耗时/usage；行锁及部分唯一索引限制同工单一个 active run |
-| agent/graph.py、runtime.py | 理解 → Dense 检索 → 决策；M0 入口可不接决策；客户端由运行边界关闭 |
-| agent/proposals.py、decide.py | 区分三类结构，验证必要问题、实际来源引用和高风险标记；结构化 JSON，不宣称原生 Tool Calling |
-| knowledge/sources.py | 对完整历史案例计算内容版本；Milvus 命中文本必须与本次语料一致；旧版本不可用时明确 404 |
-| agent/dev_cache.py、dev_decision_cache.py | 仅验收脚本启用真实结果缓存，按输入/模型/配置/证据校验；成功立即原子保存，默认禁止新调用 |
-| retrieval/transport.py | 单次 HTTP send 保护，拦截锁定 DashScope SDK 的连接重发；不升级依赖 |
+| agent/proposals.py、decide.py、policy.py、tools.py | 结构化 JSON；仅 search_cases/get_case_detail 两个只读工具；查询、来源、风险和次数约束 |
+| agent/runtime.py、graph.py | 理解/首次 Dense 检索后有界循环；记录实际参数、来源、状态、耗时、稳定错误及逐次可取得的 usage |
+| agent/review.py、db/checkpoints.py | 持久化 compute → review(interrupt)；独立连接池、单实例锁；恢复只使用业务层读出的审核 |
+| tickets/processing.py | 短事务快照/running，事务外计算，再保存待审或失败；新运行从最新客户消息触发 |
+| tickets/reviews.py | 不可变审核、领取恢复执行权、事务外 resume、原子幂等应用消息/状态/applied/completed |
+| tickets/writes.py | 客户补充、人工回复、关闭审计、版本递增和旧方案失效；running 期间拒绝写入 |
+| models.py / 9c42d71ab203 | ProcessingReview、消息身份/幂等字段、published_message_id、cancelled CHECK，保留旧数据 |
+| agent/dev_acceptance.py、scripts/check_m2_acceptance.py | 独立验收适配器；四类累计尝试台账、精确缓存、校验前原始决策留存、绑定提案摘要的人工审核回放 |
 
-- 同 key 同请求返回原记录（200），不同内容返回 409；首次运行的 201 只表示记录建立，必须检查 run_status。
-- trigger_message_id 必须属于本工单且为最新消息，正文与有序消息由数据库读取；客户端不能传入正文、actor_id 或 thread_id。
-- 提案、证据快照、来源版本、真实模型配置、可取得的 usage 持久化；confidence 保持 null，不把 COSINE 当概率。
-- 所有三类提案都进入 waiting_review，Ticket 仍 open；审核前不追加客户可见回复。
-- 模型/检索失败记录阶段和稳定错误码，返回信息不含原始异常/凭据；服务端日志仅记录 run_id/request_id、阶段和异常类型。
-- 当前预算为阶段间检查与 SDK 超时，非进程级硬截止。数据库持续故障或进程退出仍可能留下 running；恢复机制在 M2。
-- 正式 API 不复用开发缓存；旧 CSV 查询向量与图输入不同，始终保留但不混用。
+- 原始 proposal/final_reply、人工 edited_reply 和实际发布消息分别保存。生成不等于发布，发布不等于关闭。
+- 同幂等请求先返回已有结果；同一运行只接受一份不可变审核，并发请求仅一个领取 running。
+- 新消息/关闭使 waiting_review 和 failed 且有未应用审核的旧方案 cancelled。escalated 接收客户补充后仍留在人工队列。
+- 获得数据库/schema 会话级单实例锁后，启动将遗留 running 标记 execution_interrupted 或 review_interrupted；waiting_review 保留。
+- 图已结束、业务未提交时仅补业务应用；检查点缺失/不一致时失败，不自动重算。旧 M1 待审记录不具有 M2 检查点。
+- 检索含首次最多 2 轮、不同详情最多 2 个、计算最多 8 步、已应用主动澄清最多 2 轮；没有步骤完成工具和后续决策时转人工。
+- 追问拒绝“尝试停用代理”等操作指令；风险规则独立于模型自报。这是有误拒绝/漏检边界的启发式，不是业务可靠性保证。
+- 90 秒仍为阶段检查/SDK 超时，非进程硬截止。计算中断识别为失败，不承诺每个工具/模型调用无重算恢复；持续数据库故障可能延迟失败状态落库。
+- 仅新增 langgraph-checkpoint-postgres 3.1.2、psycopg-pool 3.3.1；保留 LangGraph 1.2.11 和其他既有版本。检查点表由 saver.setup 管理，业务迁移由 Alembic 管理。
 
 ## 验证证据
 
-### M0（2026-09-14）
+### M0 / M1 历史基线
 
-- 锁文件离线同步通过；当时 32 项逻辑测试通过。
-- 真实理解和 Embedding 各一次，Milvus 返回 SYN-HIST-V2-007 / 006 / 008，COSINE 约 0.6227 / 0.5854 / 0.5673。
-- 第二次理解/Embedding 调用均为 0，两份真实缓存各命中一次，重新查询真实 Milvus 结果一致。
-- 最初 Docker/Milvus 不可用和具体模型授权不足的阻塞，均已在用户准备环境并确认后解除。
+- M0 真实理解、Embedding 各 1 次，Milvus 命中 SYN-HIST-V2-007/006/008；随后真实缓存回放，两类模型调用均 0。
+- M1：58 passed（45 逻辑/替身、13 真实 PostgreSQL）。实际 loopback HTTP + 隔离 PostgreSQL + 真实 Milvus，复用 M0 理解/向量，只新增 1 次决策。
+- 真实决策 ask_clarification / waiting_review，工单 open；幂等 200、冲突 409、HTTP/数据库一致。usage 为 prompt 2039、completion 476、total 2515；单例模型/检索耗时 7500 ms，不作为性能基准。
+- 草稿曾附带未经环境确认的停用代理建议，M2 因此收紧规则并补负例；结构合法不能代表建议安全。
+- 原 data/cache/graph/api_timeout/{decision_m1,m1_verification}.json 保留且被 Git 忽略；旧验收 UUID 不指向现有业务记录。
 
-### M1（2026-09-14）
+### M2 前次验收证据（2026-09-14，保留）
 
-- `uv sync --locked` 通过，锁文件及依赖版本未变。首次离线同步缺少 uv-build 构建缓存，联网取得构建依赖后只重建本项目包。
-- `TICKETMIND_RUN_DB_TESTS=1 python -m pytest -q`：**58 passed**；45 项逻辑/合成替身测试、13 项真实 PostgreSQL 集成测试。2 条依赖弃用警告仍保留，未为消除警告升级。
-- 集成测试包括：真实迁移/旧数据保留、HTTP/数据库一致、三类提案、版本/归属校验、幂等、同工单并发与数据库唯一约束、失败保存、事务外网络边界、真实自有未监听端口连接失败。模型业务输出使用测试替身，单独标注。
-- 真实验收：`python scripts/check_ticket_flow.py --allow-decision` 退出码 0。使用实际 loopback HTTP、独立临时 PostgreSQL schema 和真实 Milvus；理解/向量复用 M0 缓存，只新增 **1 次决策调用**。
-- 验收结果：action=ask_clarification，run_status=waiting_review，工单=open；同请求重发 200、同 key 改内容 409；HTTP 提案/证据与数据库一致，来源查询成功。
-- 决策 usage：prompt_tokens=2039、completion_tokens=476、total_tokens=2515；模型/检索处理耗时 7500 ms（单例，不是性能基准）。本轮新增理解/Embedding 调用均为 0，不混同全新模型链路。
-- 原始验收报告和决策缓存保存在被忽略的 `data/cache/graph/api_timeout/{m1_verification,decision_m1}.json`；临时验收 schema 已清理，报告中的 UUID 不指向持久业务演示记录。
-- 开发库已由 55ee2375ea43 升级至 **6b31a12c9e01**；迁移前后原业务行数均为工单 1 / 消息 1 / 处理结果 0。没有重建或删除现有业务表/集合。
-- `.env` 已补缺失的两份随机本地身份凭据；未输出或提交凭据，既有数据库/模型配置保留。
-- 使用本机实际配置验证：未认证访问工单列表 401，operator 凭据访问 200，读取原有 1 张工单。临时测试 schema 剩余 0。
+- uv sync --locked、语料检查、M0/M1 无外部调用预检通过。
+- 最终 **96 passed：67 项逻辑/替身测试 + 29 项真实 PostgreSQL 集成测试**。默认离线运行为 67 passed / 29 skipped；覆盖策略、审核、事务、权限、并发、持久化恢复。Agent 为合成替身，真实数据库仅用随机 schema；原有两条依赖弃用警告保留。
+- scripts/check_m2_recovery.py：**4/4 实际进程终止/重启场景通过**。独立隐藏 Uvicorn 进程、真实 loopback HTTP、真实 PostgreSQL/checkpointer，Agent 明确为合成替身。
+- 等待审核时终止进程：重启仍 waiting_review，同一运行批准成功，重复批准不增加消息。
+- 计算中断：重启 failed / execution_interrupted，客户原消息仍 1 条，无回复发布。
+- 审核保存后中断、图结束但业务应用前中断：重启 failed / review_interrupted；同一审核重试 completed，仅新增 1 条消息（总数 2）。
+- 事务故障注入：消息 flush 后抛错，消息、版本、applied/completed 一起回滚；重试只补已结束图的业务应用，不重复 Agent 计算。
+- 并发审核、同 key 重放、内容冲突、过时审核、operator 提权失败、客户补充失效、建议保持 open 后明确关闭等通过。
+- M0 再次回放：两份真实缓存各命中 1 次，理解/Embedding attempts 均 0，真实 Milvus 仍命中 007/006/008。仅证明既有理解/检索兼容，不是新 M2 模型决策验证。
+- 开发库由 6b31a12c9e01 升级至 **9c42d71ab203**；迁移前后工单 1 / 消息 1 / 运行 0，原数据保留，临时测试 schema 剩余 0；未修改 Milvus 集合。
+- 前次 M2 工程验证新增真实模型调用 **0**。实际进程报告位于被忽略的 data/cache/m2/process_recovery.json；未把替身验证称为真实模型链路。
+- 实际读取 M1 缓存验证：M2 指纹拒绝旧决策缓存，调用数 0；原始真实追问草稿被新增操作建议规则拒绝。未修改缓存或指纹。
+- 本地真实配置启动通过并初始化检查点表；health 200、未认证工单查询 401、实际 operator 查询 200，仍读取原有 1 张工单，没有新增业务记录。
 
-### 已知质量问题与未验证项
+### 本次 M2 收尾
 
-- 真实草稿虽正确选择追问，但问题中附带“尝试停用本地代理”的操作建议，尚未确认环境。仅证明链路和结构有效，不能宣称回复可直接发布；M2 审核前应收紧追问规则并补负例验证。
-- 仅一条合成样本使用真实决策；建议/转人工分支有逻辑及数据库验证，没有新增真实模型演示，也未形成准确率指标。
-- 未验证全新理解 + Embedding + 决策的 M1 整链路；本次前两步为真实缓存复用。
-- 未实现/验证人工审核、发布、关闭、多轮恢复或崩溃恢复；不把 waiting_review 业务状态等同 LangGraph interrupt。
-- 锁定 Alembic 对 SQLAlchemy 非原生枚举的检查约束会产生“移除”误报；测试单独核验枚举允许值，其余字段/索引/约束差异仍检查。
+- 已复核计划、审核/状态/事务和未提交实现。修复实际执行上限未传给模型、重检索审计缺失、证据原文约束和追问操作词漏检；当前协议m2-action-boundaries-v2区分客户事实与案例证据。原文引用只保证来源，语义仍需审核；未改审核事务、迁移与依赖。
+- 定向测试各批通过：61项预算/缓存/审核、44项证据约束、34项追问防护、17项失败诊断、最近6项模型身份/数组拒绝。批次有重叠不累加，模型/Milvus为替身，数据库集成是真实PostgreSQL；详细分类见验收文档。保留此前96项与4个进程场景证据，未机械重跑。两条既有依赖弃用警告仍在。
+- 早期M2三例新增7次真实调用：追问、CSV解决建议、部署政策转人工。用户批准原文/编辑稿后，零调用精确缓存审核回放均completed，工单分别awaiting_customer/open/escalated，版本1→2、消息1→2，重复审核幂等。它们属于证据原文协议加入前的历史验证，见[验收方案](m2-acceptance.md)与[审核单](m2-acceptance-review.md)。
+- 后续受控首检漏掉006：flash出现错误引证/操作型追问/缺动作字段，27b返回数组，Max提前转人工；原始响应和失败诊断均保留，没有伪造通过或发布失败草稿。不是自然召回率或模型排名实验，详见[补充验收](m2-followup.md)。
+- 用户要求GLM5.2后，glm5.2名称NotFound；只读列表确认glm-5.2，在同一预算内修正，失败请求仍计次。GLM以相同提示词/输入主动search_cases，真实新向量经Milvus命中006，第二轮引用006原文提出解决建议并保存waiting_review。实际有效调用决策2＋重检索向量1，理解/首次向量缓存；报告followup-execute-c73b730d88bc4f399e538a0ab0b5738d.json。
+- 用户批准[补充审核稿](m2-followup-review.md)，删去“并非接口本身异常”及内部审核说明。五份精确缓存回放新增0次，经真实ASGI HTTP/PostgreSQL/checkpointer完成edit：completed，工单open，版本3→4、消息3→4；原提案保留，发布编辑稿，重复审核200且不重复追加。报告followup-execute-3d38b3f07b534411b5f43d553a992a7b.json。
+- 累计21次请求尝试：理解3、首次向量3、重检索向量1、决策14（含1次NotFound），20次有返回。请求返回不等于业务成功，尝试数不等于计费账单。台账、usage、供应商响应ID、指纹与原文均在被忽略的data/cache/m2/acceptance/；不清空、不改指纹。
+- 最终开发库仍为9c42d71ab203、工单1/消息1/运行0，临时schema0；保留原缓存与Milvus集合。默认配置未改，验收用--decision-model单独切换决策并记录真实理解模型身份。未提交、推送、部署或扩展M3。
 
-## 运行入口与下一步
+## 验证边界与后续
 
-- 安装/配置/迁移/API 调用示例统一见 README.md，不在日志重复命令教程。
-- `scripts/configure_local_auth.py` 只补缺失本地凭据；`scripts/check_ticket_graph.py` 验证 M0；`scripts/check_ticket_flow.py` 验证 M1。
-- 真实模型额度：M0 的一次理解/Embedding 和 M1 的一次决策授权均已使用。后续先复用匹配缓存；新样本/新提示词产生的新调用需另行授权。
-- 下一批 M2：受限重检索/决策循环、审核表与审核 API、消息追加和关闭、持久化 interrupt/resume、版本失效与审核幂等、启动中断恢复。
-- 开始 M2 前明确新增真实模型验证预算；保持现有业务数据和缓存，不把未完成项计入简历能力。
+- 用户明确后续模型选择：代码正确性优先替身/缓存＋真实数据库，确需真实集成调用用原qwen3.7-flash；模型决策、工具选择、证据或输出稳定性问题直接优先glm-5.2。在现有授权预算内执行，不把模型未通过当成代码未验证。已写入根AGENTS.md，默认配置不变。
+- 本轮验收证据来自不同阶段/模型的合成开发样本，GLM仅完成当前协议的补充后重检索解决路径；未宣称同一模型/提示词重测所有三类路径，尚无准确率、安全性或业务收益指标。
+- 客户补充、新快照/线程、主动重检索、证据建议和人工编辑应用均已覆盖；原始提案质量与审核后的业务结果分开评价。旧待审结果不伪装成当前协议模型输出。
+- 真实模型阶段与缓存审核回放分开记录。现有授权按约定执行完毕，新输入/模型/提示词缺缓存时不自动补调。M3及部署需后续任务明确推进，本轮不提前开展。
+- 启动、配置、接口与复现命令见README；不恢复逐轮教学日志。

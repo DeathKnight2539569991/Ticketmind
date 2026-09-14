@@ -7,6 +7,7 @@ def test_ticket_models_are_registered_in_metadata() -> None:
         "tickets",
         "ticket_messages",
         "processing_results",
+        "processing_reviews",
     }
 
 

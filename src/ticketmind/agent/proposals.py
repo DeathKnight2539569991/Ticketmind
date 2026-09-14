@@ -24,6 +24,9 @@ class Resolution(ProposalBase):
     next_step: Literal["propose_resolution"]
     evidence_ids: list[SourceId] = Field(min_length=1, max_length=100)
     questions: list[Text] = Field(default_factory=list, max_length=0)
+    # Optional for reading historical M1/M2 rows; new model responses must provide
+    # one verbatim support excerpt per citation (validated with actual hit text).
+    evidence_quotes: dict[SourceId, Annotated[str, StringConstraints(strip_whitespace=True, min_length=12, max_length=2000)]] = Field(default_factory=dict)
 
 
 class Clarification(ProposalBase):
@@ -40,8 +43,42 @@ Proposal = Annotated[Resolution | Clarification | Escalation, Field(discriminato
 proposal_adapter = TypeAdapter(Proposal)
 
 
+class SearchCases(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    next_step: Literal["search_cases"]
+    reason: Text
+    query: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
+    missing_evidence: Text
+
+
+class GetCaseDetail(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    next_step: Literal["get_case_detail"]
+    reason: Text
+    source_id: SourceId
+
+
+Decision = Annotated[Resolution | Clarification | Escalation | SearchCases | GetCaseDetail, Field(discriminator="next_step")]
+decision_adapter = TypeAdapter(Decision)
+
+
 def validate_proposal(proposal: Proposal, source_ids: set[str]) -> None:
     if not set(proposal.evidence_ids) <= source_ids:
         raise ValueError("提案引用了本次检索中不存在的来源")
     if proposal.risk_flags and proposal.next_step != "escalate":
         raise ValueError("存在高风险标记时必须提出转人工建议")
+    if proposal.next_step == "ask_clarification":
+        from ticketmind.agent.policy import validate_questions
+        validate_questions(proposal)
+
+
+def validate_decision_evidence(decision, hits):
+    """Verbatim provenance check, not a semantic entailment/safety guarantee."""
+    if decision.next_step != "propose_resolution":
+        return
+    if set(decision.evidence_quotes) != set(decision.evidence_ids):
+        raise ValueError("新的解决提案必须为每个引用提供实际来源原文")
+    sources = {hit.source_id: hit.text for hit in hits}
+    if any(source_id not in sources or quote not in sources[source_id]
+           for source_id, quote in decision.evidence_quotes.items()):
+        raise ValueError("解决提案引用原文不在对应的实际证据中")

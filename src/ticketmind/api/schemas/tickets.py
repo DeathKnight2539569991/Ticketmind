@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
-from pydantic import BaseModel,ConfigDict, StringConstraints, field_serializer
+from pydantic import BaseModel,ConfigDict, StringConstraints, field_serializer, Field
+from ticketmind.agent.proposals import Text
 from ticketmind.tickets.enums import TicketChannel,TicketStatus, TicketPriority
 from ticketmind.api.schemas.runs import RunRead
 class TicketCreate(BaseModel):
@@ -40,6 +41,8 @@ class MessageRead(BaseModel):
     author_type: str
     body: str
     created_at: datetime
+    actor_id: str | None = None
+    operation: str | None = None
 
     @field_serializer("created_at")
     def utc_timestamp(self, value):
@@ -49,3 +52,16 @@ class MessageRead(BaseModel):
 class TicketDetail(TicketRead):
     messages: list[MessageRead]
     latest_run: RunRead | None = None
+
+
+class MessageCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["customer_update", "human_reply"]
+    body: Text
+    expected_version: int = Field(ge=1)
+
+
+class TicketClose(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reason: Text
+    expected_version: int = Field(ge=1)

@@ -6,8 +6,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ticketmind.api.dependencies import IdempotencyKey, get_runner, get_session
-from ticketmind.api.schemas.runs import RunCreate, RunRead
-from ticketmind.core.auth import ActorDependency
+from ticketmind.api.schemas.runs import RunCreate, RunRead, ReviewCreate
+from ticketmind.core.auth import ActorDependency, ReviewerDependency
+from ticketmind.tickets.reviews import review_run
 from ticketmind.core.errors import AppError
 from ticketmind.tickets.models import ProcessingResult
 from ticketmind.tickets.processing import create_run, require_ticket
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/tickets/{ticket_id}/runs", tags=["runs"])
 def start_run(ticket_id: UUID, payload: RunCreate, actor: ActorDependency, key: IdempotencyKey,
               request: Request, response: Response):
     result, created = create_run(request.app.state.session_factory, lambda: get_runner(request),
-                                 ticket_id, payload, actor.actor_id, key)
+                                 ticket_id, payload, actor.actor_id, key, workflow=request.app.state.workflow)
     response.status_code = 201 if created else 200
     return result
 
@@ -40,3 +41,12 @@ def get_run(ticket_id: UUID, run_id: UUID, actor: ActorDependency,
     if run is None:
         raise AppError(404, "run_not_found", "该工单下不存在指定运行")
     return run
+
+
+@router.post("/{run_id}/review", response_model=RunRead, status_code=201)
+def review_endpoint(ticket_id: UUID, run_id: UUID, payload: ReviewCreate, actor: ReviewerDependency,
+                    key: IdempotencyKey, request: Request, response: Response):
+    result, created = review_run(request.app.state.session_factory, request.app.state.workflow,
+                                ticket_id, run_id, payload, actor.actor_id, key)
+    response.status_code = 201 if created else 200
+    return result

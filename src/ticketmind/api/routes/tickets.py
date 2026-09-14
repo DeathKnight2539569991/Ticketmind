@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 from ticketmind.api.schemas.tickets import TicketCreate, TicketRead, TicketDetail
 from ticketmind.api.schemas.runs import RunRead
 from ticketmind.api.dependencies import get_session, IdempotencyKey
-from ticketmind.core.auth import ActorDependency
+from ticketmind.core.auth import ActorDependency, ReviewerDependency
+from ticketmind.api.schemas.tickets import MessageCreate, MessageRead, TicketClose
+from ticketmind.tickets.writes import write_ticket
 from ticketmind.tickets.processing import create_ticket_once, require_ticket
 from ticketmind.tickets.models import Ticket, ProcessingResult
 from ticketmind.tickets.enums import TicketStatus
@@ -26,6 +28,21 @@ def create_ticket_endpoint(
 )->TicketRead:
     result, created = create_ticket_once(session, payload, actor.actor_id, key)
     response.status_code = 201 if created else 200
+    return result
+
+
+@router.post("/{ticket_id}/messages", response_model=MessageRead, status_code=201)
+def append_message_endpoint(ticket_id: UUID, payload: MessageCreate, actor: ActorDependency,
+                            key: IdempotencyKey, session: Annotated[Session, Depends(get_session)], response: Response):
+    result, created = write_ticket(session, ticket_id, payload, actor, key)
+    response.status_code = 201 if created else 200
+    return result
+
+
+@router.post("/{ticket_id}/close", response_model=TicketRead)
+def close_ticket_endpoint(ticket_id: UUID, payload: TicketClose, actor: ReviewerDependency,
+                          key: IdempotencyKey, session: Annotated[Session, Depends(get_session)]):
+    result, _ = write_ticket(session, ticket_id, payload, actor, key, close=True)
     return result
 
 

@@ -14,6 +14,7 @@ def generate_text(
         timeout:float=30,
         generation_options:dict | None=None,
         usage_callback=None,
+        response_callback=None,
 ):
     base_url = (
         f"https://{settings.workspace_id}.cn-beijing.maas.aliyuncs.com"
@@ -38,6 +39,11 @@ def generate_text(
     else {"type": "text"}
 ),
         )
+    if response_callback is not None:
+        response_callback({"request_id": completion.id,
+                           "usage": completion.usage.model_dump() if completion.usage is not None else None,
+                           "choices": [{"content": choice.message.content, "finish_reason": choice.finish_reason}
+                                       for choice in completion.choices]})
     if usage_callback is not None:
         usage_callback(completion.usage.model_dump() if completion.usage is not None else None)
     if not completion.choices:

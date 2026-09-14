@@ -34,6 +34,7 @@ from ticketmind.tickets.enums import (
 class TicketMessage(Base):
     __tablename__="ticket_messages"
     __table_args__=(
+        UniqueConstraint("ticket_id", "actor_id", "operation", "idempotency_key", name="uq_messages_request"),
         UniqueConstraint("ticket_id","sequence_number",name="uq_ticket_messages_ticket_sequence"),
         UniqueConstraint(
         "id",
@@ -69,6 +70,10 @@ class TicketMessage(Base):
         server_default=func.now(),
         nullable=False,
     )
+    actor_id: Mapped[str | None] = mapped_column(String(64))
+    operation: Mapped[str | None] = mapped_column(String(32))
+    idempotency_key: Mapped[str | None] = mapped_column(String(128))
+    request_hash: Mapped[str | None] = mapped_column(String(64))
     ticket : Mapped[Ticket] = relationship(back_populates="messages")
     processing_results: Mapped[list[ProcessingResult]] = relationship(
     primaryjoin=lambda: and_(
@@ -200,6 +205,8 @@ class ProcessingResult(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     duration_ms: Mapped[int | None] = mapped_column(Integer)
     error_code: Mapped[str | None] = mapped_column(String(64))
+    published_message_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("ticket_messages.id"), unique=True)
+    review: Mapped[ProcessingReview | None] = relationship(back_populates="run", uselist=False)
     run_status: Mapped[ProcessingRunStatus] = mapped_column(
         database_enum(ProcessingRunStatus, "processing_run_status"),
         default=ProcessingRunStatus.RUNNING,
@@ -242,3 +249,23 @@ class ProcessingResult(Base):
         TicketMessage.ticket_id == ProcessingResult.ticket_id,
     ),
 )
+
+
+class ProcessingReview(Base):
+    """One immutable reviewer decision per run; only applied_at is updated."""
+    __tablename__ = "processing_reviews"
+    __table_args__ = (
+        CheckConstraint("decision IN ('approve', 'edit', 'escalate')", name="ck_review_decision"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("processing_results.id"), nullable=False, unique=True)
+    reviewer_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    edited_reply: Mapped[str | None] = mapped_column(Text)
+    comment: Mapped[str | None] = mapped_column(Text)
+    expected_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    run: Mapped[ProcessingResult] = relationship(back_populates="review")

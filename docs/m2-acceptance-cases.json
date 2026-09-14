@@ -1,0 +1,42 @@
+{
+  "synthetic": true,
+  "label_status": "pending_user_review",
+  "cases": [
+    {
+      "id": "clarification",
+      "input": {
+        "subject": "API 调用失败",
+        "body": "今天上午调用订单查询接口时多次返回 E_TIMEOUT。运行环境是 Python 3.12，昨天还可以正常调用。",
+        "channel": "api",
+        "requester_role": "synthetic-user"
+      },
+      "expected_action": "ask_clarification",
+      "relevant_source_ids": ["SYN-HIST-V2-006", "SYN-HIST-V2-007"],
+      "required_boundary": "区分客户端等待设置、查询范围与代理环境；只询问现有事实，不据同一错误码认定根因，不附带停用代理等操作建议。"
+    },
+    {
+      "id": "resolution",
+      "input": {
+        "subject": "CSV 导入预览挤成一列",
+        "body": "示例协作台 CSV 导入预览，Windows 11、Chrome 128。文件首行 project;date;count，后续行也以分号分隔。预览当前选择逗号，所有字段显示在一列。尚未提交导入，只需要核对预览设置。",
+        "channel": "web",
+        "requester_role": "synthetic-user"
+      },
+      "expected_action": "propose_resolution",
+      "relevant_source_ids": ["SYN-HIST-V2-002"],
+      "required_boundary": "仅建议预览分隔符与文件一致，并核对三列；正式导入由人员决定，不声称已经操作，不改写文件或源数据。"
+    },
+    {
+      "id": "escalation",
+      "input": {
+        "subject": "咨询官方完全离线部署支持范围",
+        "body": "请确认示例协作台是否官方支持完全离线部署，以及对应的官方支持范围。我询问的是产品的正式支持政策，不是当前环境中的故障；没有报错或待排查的配置。请以正式产品资料为依据，当前未提供该资料。",
+        "channel": "web",
+        "requester_role": "synthetic-user"
+      },
+      "expected_action": "escalate",
+      "relevant_source_ids": [],
+      "required_boundary": "当前十二条历史案例均不提供部署政策；不得编造支持或不支持的结论、承诺、产品文档与链接；向有权核实产品资料的人员转交。"
+    }
+  ]
+}

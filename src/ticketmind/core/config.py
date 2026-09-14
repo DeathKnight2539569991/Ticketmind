@@ -69,8 +69,12 @@ class AuthSettings(BaseSettings):
 class ProcessingSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8",
                                       env_prefix="TICKETMIND_", extra="ignore")
-    agent_version: str = "ticketmind-m1"
+    agent_version: str = "ticketmind-m2"
     retrieval_mode: Literal["dense"] = "dense"
     retrieval_top_k: int = Field(default=3, ge=1, le=100)
     processing_timeout_seconds: float = Field(default=90, gt=0, le=300)
+    max_search_rounds: int = Field(default=2, ge=1, le=2)
+    max_case_details: int = Field(default=2, ge=0, le=2)
+    max_agent_steps: int = Field(default=8, ge=3, le=8)
+    max_clarification_rounds: int = Field(default=2, ge=0, le=2)
     corpus_path: Path = Path(__file__).resolve().parents[3] / "data/synthetic/v2/historical_cases.jsonl"

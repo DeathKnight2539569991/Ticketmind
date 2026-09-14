@@ -1,8 +1,9 @@
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
+from ticketmind.agent.proposals import Text
 
 from ticketmind.tickets.enums import AgentAction, ProcessingRunStatus
 
@@ -11,6 +12,37 @@ class RunCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     trigger_message_id: UUID
     expected_version: int = Field(ge=1)
+
+
+class ReviewCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    decision: Literal["approve", "edit", "escalate"]
+    expected_version: int = Field(ge=1)
+    edited_reply: Text | None = None
+    comment: Text | None = None
+
+    @model_validator(mode="after")
+    def decision_fields(self):
+        if self.decision == "edit" and (not self.edited_reply or not self.comment):
+            raise ValueError("编辑审核需要修改文本和理由")
+        if self.decision != "edit" and self.edited_reply is not None:
+            raise ValueError("仅 edit 可携带修改文本")
+        if self.decision == "escalate" and not self.comment:
+            raise ValueError("转人工需要理由")
+        return self
+
+
+class ReviewRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    run_id: UUID
+    reviewer_id: str
+    decision: str
+    edited_reply: str | None
+    comment: str | None
+    expected_version: int
+    created_at: datetime
+    applied_at: datetime | None
 
 
 class RunRead(BaseModel):
@@ -40,6 +72,9 @@ class RunRead(BaseModel):
     created_at: datetime
     completed_at: datetime | None
     duration_ms: int | None
+    tool_calls: list[dict[str, Any]] = Field(default_factory=list)
+    published_message_id: UUID | None = None
+    review: ReviewRead | None = None
 
     @field_serializer("created_at", "completed_at")
     def utc_timestamp(self, value):

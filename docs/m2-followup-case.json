@@ -1,0 +1,13 @@
+{
+  "synthetic": true,
+  "base_case": "clarification",
+  "approved_base_report": "data/cache/m2/acceptance/reports/clarification-4e284f9b4f2043c283345bc99e0f5b91.json",
+  "customer_update": "补充准确接口信息：之前简称订单查询，实际是示例协作台的只读全年聚合报表查询。运行环境为 Python 3.12，没有使用本机开发代理。客户端等待上限是 2 秒；单日查询约 0.4 秒，全年查询总在 2 秒返回 E_TIMEOUT。同一网络下，维护人员已经做过只读诊断：允许等待 10 秒时，全年查询约 4 秒返回完整结果。我们只需要这次只读查询的处理建议。",
+  "initial_search_fixture": {
+    "type": "omit_source_on_first_search",
+    "source_id": "SYN-HIST-V2-006"
+  },
+  "expected_action": "propose_resolution",
+  "required_source_id": "SYN-HIST-V2-006",
+  "required_behavior": "根据客户补充事实区分代理问题与客户端等待阈值；首次缺少适用案例时由模型自行选择新查询，经真实 Embedding 和 Milvus 获得 006 后继续决策。不能伪称已经改配置，不把本次只读诊断的 10 秒推广到写入或支付请求。"
+}

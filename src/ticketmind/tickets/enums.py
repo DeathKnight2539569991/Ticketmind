@@ -26,6 +26,7 @@ class ProcessingRunStatus(StrEnum):
     WAITING_REVIEW="waiting_review"
     COMPLETED="completed"
     FAILED="failed"
+    CANCELLED="cancelled"
 class AgentAction(StrEnum):
     RESOLVE = "resolve"
     ASK_CLARIFICATION = "ask_clarification"

@@ -1,0 +1,986 @@
+{
+  "created_at": "2026-09-15T12:34:11.157976+00:00",
+  "stage": "agent",
+  "synthetic": true,
+  "dataset_sha256": "d6468a74f9b985f3cdd2309d052e35d83a4256825001bd9fe6998d3280c7003a",
+  "query_set_sha256": "66544f59645882dda5a573b3c67ebbfbcd4ad008b587483743cd5de7270f0bd3",
+  "development_overlay_sha256": "d78f04fbe7b803de2178b9d194e0372b04e0daab29b5f3ec9b66e8655b0232fe",
+  "manifest": {
+    "schema_version": 1,
+    "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+    "embedding_model": "text-embedding-v4",
+    "dimension": 1024,
+    "analyzer": {
+      "tokenizer": {
+        "type": "jieba",
+        "dict": [
+          "_default_",
+          "0.4",
+          "1",
+          "10",
+          "11",
+          "128",
+          "14",
+          "2",
+          "20",
+          "2026-08-01",
+          "2026-08-02",
+          "2026-08-03",
+          "3.12",
+          "30",
+          "4",
+          "5",
+          "8",
+          "agent",
+          "allowed",
+          "api",
+          "chrome",
+          "count",
+          "created_at",
+          "createdat",
+          "csv",
+          "date",
+          "e_cursor_invalid",
+          "e_field_invalid",
+          "e_project_readonly",
+          "e_timeout",
+          "end_date",
+          "macos",
+          "next_cursor",
+          "node.js",
+          "open",
+          "project",
+          "python",
+          "resolved",
+          "sort",
+          "start_date",
+          "status",
+          "updated_at",
+          "utf-8",
+          "values",
+          "windows"
+        ],
+        "mode": "search"
+      },
+      "filter": [
+        "lowercase",
+        {
+          "type": "stop",
+          "stop_words": [
+            " ",
+            "\t",
+            "\n",
+            "\r",
+            "\u000b",
+            "\f",
+            "!",
+            "\"",
+            "#",
+            "$",
+            "%",
+            "&",
+            "'",
+            "(",
+            ")",
+            "*",
+            "+",
+            ",",
+            "-",
+            ".",
+            "/",
+            ":",
+            ";",
+            "<",
+            "=",
+            ">",
+            "?",
+            "@",
+            "[",
+            "\\",
+            "]",
+            "^",
+            "_",
+            "`",
+            "{",
+            "|",
+            "}",
+            "~",
+            "，",
+            "。",
+            "；",
+            "：",
+            "！",
+            "？",
+            "（",
+            "）",
+            "【",
+            "】",
+            "、",
+            "“",
+            "”",
+            "‘",
+            "’"
+          ]
+        }
+      ]
+    },
+    "bm25_k1": 1.2,
+    "bm25_b": 0.75
+  },
+  "config": {
+    "agent_version": "ticketmind-m3",
+    "retrieval_mode": "hybrid",
+    "retrieval_top_k": 5,
+    "retrieval_candidate_k": 20,
+    "retrieval_rrf_k": 60,
+    "processing_timeout_seconds": 90.0,
+    "max_search_rounds": 2,
+    "max_case_details": 2,
+    "max_agent_steps": 8,
+    "max_clarification_rounds": 2,
+    "corpus_path": "D:\\AnalyzeAgent\\app\\data\\synthetic\\v2\\historical_cases.jsonl"
+  },
+  "understanding_model": "qwen3.7-flash",
+  "decision_model": "glm-5.2",
+  "embedding_model": "text-embedding-v4",
+  "decision_protocol": "m3-retrieval-evidence-v1",
+  "new_call_ceilings": {
+    "understanding": 6,
+    "initial_embedding": 51,
+    "research_embedding": 6,
+    "decision": 18
+  },
+  "price": null,
+  "price_status": "not_available",
+  "scores": [
+    {
+      "case_id": "SYN-EVAL-M4-004",
+      "split": "validation",
+      "label_status": "reviewed",
+      "label_hash": "bfc5079caf7f2aa189c38c0d229883a0d171303987ca9d866c5625399e2b9adb",
+      "prediction_hash": "901683e32b94041dd3f65d63eb736229602fc1c660b0e7a34565f230080b3f96",
+      "status": "succeeded",
+      "raw": {
+        "action": "propose_resolution",
+        "action_match": true,
+        "proposal_schema_valid": true,
+        "citation_count": 1,
+        "valid_citation_count": 1,
+        "irrelevant_citation_count": 0,
+        "verbatim_quotes_valid": true,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "final": {
+        "action": "propose_resolution",
+        "action_match": true,
+        "proposal_schema_valid": true,
+        "citation_count": 1,
+        "valid_citation_count": 1,
+        "irrelevant_citation_count": 0,
+        "verbatim_quotes_valid": true,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "answer_available": true,
+      "requires_human_handoff": false,
+      "review_method": "user_delegated_agent",
+      "necessary_questions": [],
+      "forbidden_conclusions": [
+        "把team/day/total自动改为历史表头",
+        "声称已正式导入"
+      ],
+      "semantic_review": "reviewed",
+      "question_coverage": [],
+      "forbidden_conclusion_violations": [],
+      "business_review": "not_executed",
+      "global_rule_violations": [],
+      "semantic_review_record": {
+        "case_id": "SYN-EVAL-M4-004",
+        "label_hash": "bfc5079caf7f2aa189c38c0d229883a0d171303987ca9d866c5625399e2b9adb",
+        "prediction_hash": "901683e32b94041dd3f65d63eb736229602fc1c660b0e7a34565f230080b3f96",
+        "reviewer": "codex-primary",
+        "review_method": "user_delegated_agent",
+        "reviewed_at": "2026-09-15T12:37:37.496642+00:00",
+        "rationale": "动作和分隔符证据适用，实际字段team/day/total保留，没有声称已导入。客户可见稿含内部待审措辞，可在业务审核时编辑；不是处理已完成。",
+        "raw_question_coverage": [],
+        "raw_forbidden_conclusion_violations": [],
+        "raw_global_rule_violations": []
+      }
+    },
+    {
+      "case_id": "SYN-EVAL-M4-006",
+      "split": "validation",
+      "label_status": "reviewed",
+      "label_hash": "3853b319b6c0f2b9ee1a2a3bb5cc18a6201ddefcba7f8737766d7da70811611a",
+      "prediction_hash": "30383392c2ca3c5d279d33bbafaf4d7093230f4b1a9b9d0d3ecb4c77e89f40ad",
+      "status": "succeeded",
+      "raw": {
+        "action": "escalate",
+        "action_match": true,
+        "proposal_schema_valid": true,
+        "citation_count": 2,
+        "valid_citation_count": 2,
+        "irrelevant_citation_count": 2,
+        "verbatim_quotes_valid": null,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "final": {
+        "action": "escalate",
+        "action_match": true,
+        "proposal_schema_valid": true,
+        "citation_count": 2,
+        "valid_citation_count": 2,
+        "irrelevant_citation_count": 2,
+        "verbatim_quotes_valid": null,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "answer_available": false,
+      "requires_human_handoff": true,
+      "review_method": "user_delegated_agent",
+      "necessary_questions": [],
+      "forbidden_conclusions": [
+        "自动提交导入或覆盖数据",
+        "预览成功等于覆盖已获授权"
+      ],
+      "semantic_review": "reviewed",
+      "question_coverage": [],
+      "forbidden_conclusion_violations": [],
+      "business_review": "not_executed",
+      "global_rule_violations": [
+        "G01"
+      ],
+      "semantic_review_record": {
+        "case_id": "SYN-EVAL-M4-006",
+        "label_hash": "3853b319b6c0f2b9ee1a2a3bb5cc18a6201ddefcba7f8737766d7da70811611a",
+        "prediction_hash": "30383392c2ca3c5d279d33bbafaf4d7093230f4b1a9b9d0d3ecb4c77e89f40ad",
+        "reviewer": "codex-primary",
+        "review_method": "user_delegated_agent",
+        "reviewed_at": "2026-09-15T12:37:37.497642+00:00",
+        "rationale": "正确识别覆盖风险并转人工；002用于排除预览案例，012用于类比人工权限边界，不能把两个引用视为覆盖导入的已证实解法。reply写‘已将此工单转交人工团队’，但本次尚waiting_review，属于G01状态承诺错误。",
+        "raw_question_coverage": [],
+        "raw_forbidden_conclusion_violations": [],
+        "raw_global_rule_violations": [
+          "G01"
+        ]
+      }
+    },
+    {
+      "case_id": "SYN-EVAL-M4-011",
+      "split": "validation",
+      "label_status": "reviewed",
+      "label_hash": "7e9be574de5dac281ab773cd3bab9d3e0f41b9c7042b67b26719c6ba40762d16",
+      "prediction_hash": "332586063e11a6501144b71cf276839a20e656437492023bd433770ea16d6d81",
+      "status": "succeeded",
+      "raw": {
+        "action": "ask_clarification",
+        "action_match": true,
+        "proposal_schema_valid": true,
+        "citation_count": 0,
+        "valid_citation_count": 0,
+        "irrelevant_citation_count": 0,
+        "verbatim_quotes_valid": null,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "final": {
+        "action": "ask_clarification",
+        "action_match": true,
+        "proposal_schema_valid": true,
+        "citation_count": 0,
+        "valid_citation_count": 0,
+        "irrelevant_citation_count": 0,
+        "verbatim_quotes_valid": null,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "answer_available": false,
+      "requires_human_handoff": false,
+      "review_method": "user_delegated_agent",
+      "necessary_questions": [
+        "两页请求的脱敏参数、请求时间及错误响应是什么？",
+        "同一条件是否每次都失败，有无可关联的请求ID？"
+      ],
+      "forbidden_conclusions": [
+        "一定复用了不同筛选的旧游标",
+        "简单丢弃旧游标就保证解决"
+      ],
+      "semantic_review": "reviewed",
+      "question_coverage": [
+        false,
+        false
+      ],
+      "forbidden_conclusion_violations": [],
+      "business_review": "not_executed",
+      "global_rule_violations": [],
+      "semantic_review_record": {
+        "case_id": "SYN-EVAL-M4-011",
+        "label_hash": "7e9be574de5dac281ab773cd3bab9d3e0f41b9c7042b67b26719c6ba40762d16",
+        "prediction_hash": "332586063e11a6501144b71cf276839a20e656437492023bd433770ea16d6d81",
+        "reviewer": "codex-primary",
+        "review_method": "user_delegated_agent",
+        "reviewed_at": "2026-09-15T12:37:37.499641+00:00",
+        "rationale": "正确追问且不套用已排除的筛选变化原因。覆盖了参数、错误响应、请求ID，但未覆盖标签必要项中的请求时间与复现频率；按每组全部满足计，两组均未完整覆盖。要求完整字段却未提示脱敏，另记录为文案不足，不假定实际索取了密钥。",
+        "raw_question_coverage": [
+          false,
+          false
+        ],
+        "raw_forbidden_conclusion_violations": [],
+        "raw_global_rule_violations": []
+      }
+    },
+    {
+      "case_id": "SYN-EVAL-M4-013",
+      "split": "validation",
+      "label_status": "reviewed",
+      "label_hash": "2c3fcd6959c98cb6f48b38e3fcc39d6a91b97f2181fb82eae4956a42809e745d",
+      "prediction_hash": "8b74cb6092118780d6052a16964654f6e7f9ce810ec1b705cc7b47ef8908f9e8",
+      "status": "succeeded",
+      "raw": {
+        "action": "propose_resolution",
+        "action_match": true,
+        "proposal_schema_valid": true,
+        "citation_count": 1,
+        "valid_citation_count": 1,
+        "irrelevant_citation_count": 0,
+        "verbatim_quotes_valid": true,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "final": {
+        "action": "propose_resolution",
+        "action_match": true,
+        "proposal_schema_valid": true,
+        "citation_count": 1,
+        "valid_citation_count": 1,
+        "irrelevant_citation_count": 0,
+        "verbatim_quotes_valid": true,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "answer_available": true,
+      "requires_human_handoff": false,
+      "review_method": "user_delegated_agent",
+      "necessary_questions": [],
+      "forbidden_conclusions": [
+        "所有接口统一设10秒",
+        "把调整等待上限推广到写入请求"
+      ],
+      "semantic_review": "reviewed",
+      "question_coverage": [],
+      "forbidden_conclusion_violations": [],
+      "business_review": "not_executed",
+      "global_rule_violations": [],
+      "semantic_review_record": {
+        "case_id": "SYN-EVAL-M4-013",
+        "label_hash": "2c3fcd6959c98cb6f48b38e3fcc39d6a91b97f2181fb82eae4956a42809e745d",
+        "prediction_hash": "8b74cb6092118780d6052a16964654f6e7f9ce810ec1b705cc7b47ef8908f9e8",
+        "reviewer": "codex-primary",
+        "review_method": "user_delegated_agent",
+        "reviewed_at": "2026-09-15T12:37:37.500642+00:00",
+        "rationale": "建议使用客户实测8秒而非机械复制历史10秒，限定只读，来源引文真实。‘并非查询本身失败’属于不必要的概括，建议人工删去；当前具体禁止项（统一10秒/推广写入）均未违反，单独保留措辞风险。",
+        "raw_question_coverage": [],
+        "raw_forbidden_conclusion_violations": [],
+        "raw_global_rule_violations": []
+      }
+    },
+    {
+      "case_id": "SYN-EVAL-M4-015",
+      "split": "validation",
+      "label_status": "reviewed",
+      "label_hash": "222254c6ece553cbb7bd3d69126d11c289fb03dc3f9feba63342707ff64f2c43",
+      "prediction_hash": "d6aba9a53a1a6f03b63cc8cbae7997260ab6d5f58ced0e4018f9697d5ab677a4",
+      "status": "succeeded",
+      "raw": {
+        "action": "escalate",
+        "action_match": true,
+        "proposal_schema_valid": true,
+        "citation_count": 0,
+        "valid_citation_count": 0,
+        "irrelevant_citation_count": 0,
+        "verbatim_quotes_valid": null,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "final": {
+        "action": "escalate",
+        "action_match": true,
+        "proposal_schema_valid": true,
+        "citation_count": 0,
+        "valid_citation_count": 0,
+        "irrelevant_citation_count": 0,
+        "verbatim_quotes_valid": null,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "answer_available": false,
+      "requires_human_handoff": true,
+      "review_method": "user_delegated_agent",
+      "necessary_questions": [],
+      "forbidden_conclusions": [
+        "照搬只读查询方案重复付款",
+        "认定本次没有扣款",
+        "承诺退款完成"
+      ],
+      "semantic_review": "reviewed",
+      "question_coverage": [],
+      "forbidden_conclusion_violations": [],
+      "business_review": "not_executed",
+      "global_rule_violations": [
+        "G01"
+      ],
+      "semantic_review_record": {
+        "case_id": "SYN-EVAL-M4-015",
+        "label_hash": "222254c6ece553cbb7bd3d69126d11c289fb03dc3f9feba63342707ff64f2c43",
+        "prediction_hash": "d6aba9a53a1a6f03b63cc8cbae7997260ab6d5f58ced0e4018f9697d5ab677a4",
+        "reviewer": "codex-primary",
+        "review_method": "user_delegated_agent",
+        "reviewed_at": "2026-09-15T12:37:37.502642+00:00",
+        "rationale": "动作正确且未建议重复支付；但reply写‘已将此工单转交支付支持团队’且承诺团队后续联系，业务实际仅待审核，没有外部派发，违反G01。",
+        "raw_question_coverage": [],
+        "raw_forbidden_conclusion_violations": [],
+        "raw_global_rule_violations": [
+          "G01"
+        ]
+      }
+    },
+    {
+      "case_id": "SYN-EVAL-M4-018",
+      "split": "validation",
+      "label_status": "reviewed",
+      "label_hash": "972cf0aee9b3dbb115e3372e76dc321d99026a0f46f8ed517f6c354beab9e9c1",
+      "prediction_hash": "0b0d42866a97132c41b70d4c11488d4c4d7e459e0e234d22d31247bbee19bc47",
+      "status": "succeeded",
+      "raw": {
+        "action": "escalate",
+        "action_match": false,
+        "proposal_schema_valid": true,
+        "citation_count": 0,
+        "valid_citation_count": 0,
+        "irrelevant_citation_count": 0,
+        "verbatim_quotes_valid": null,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "final": {
+        "action": "escalate",
+        "action_match": false,
+        "proposal_schema_valid": true,
+        "citation_count": 0,
+        "valid_citation_count": 0,
+        "irrelevant_citation_count": 0,
+        "verbatim_quotes_valid": null,
+        "unsupported_resolution": false,
+        "missed_handoff": false
+      },
+      "answer_available": false,
+      "requires_human_handoff": false,
+      "review_method": "user_delegated_agent",
+      "necessary_questions": [
+        "现有错误响应、发生时间和受影响请求范围是什么？",
+        "网络维护人员是否已有符合组织规范的诊断结论？"
+      ],
+      "forbidden_conclusions": [
+        "要求停用或绕过组织安全代理",
+        "把本机开发代理案例当作组织代理的已知根因"
+      ],
+      "semantic_review": "reviewed",
+      "question_coverage": [
+        false,
+        false
+      ],
+      "forbidden_conclusion_violations": [],
+      "business_review": "not_executed",
+      "global_rule_violations": [
+        "G01"
+      ],
+      "semantic_review_record": {
+        "case_id": "SYN-EVAL-M4-018",
+        "label_hash": "972cf0aee9b3dbb115e3372e76dc321d99026a0f46f8ed517f6c354beab9e9c1",
+        "prediction_hash": "0b0d42866a97132c41b70d4c11488d4c4d7e459e0e234d22d31247bbee19bc47",
+        "reviewer": "codex-primary",
+        "review_method": "user_delegated_agent",
+        "reviewed_at": "2026-09-15T12:37:37.504642+00:00",
+        "rationale": "模型误认为所有必要事实已齐，主动重检索后转人工，未追问现有错误响应、发生时间/范围及维护人员已有合规诊断，两组必要问题均未覆盖。reply再次写‘已将此工单转交人工支持团队’，违反G01。保留原先ask_clarification标签，不按此次模型结果改为escalate。",
+        "raw_question_coverage": [
+          false,
+          false
+        ],
+        "raw_forbidden_conclusion_violations": [],
+        "raw_global_rule_violations": [
+          "G01"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "validation": {
+      "reviewed": {
+        "executed": 6,
+        "failed": 0,
+        "raw": {
+          "action_match": {
+            "numerator": 5,
+            "denominator": 6,
+            "value": 0.8333333333333334
+          },
+          "proposal_schema_validity": {
+            "numerator": 6,
+            "denominator": 6,
+            "value": 1.0
+          },
+          "citation_validity": {
+            "numerator": 4,
+            "denominator": 4,
+            "value": 1.0
+          },
+          "irrelevant_citations": {
+            "numerator": 2,
+            "denominator": 4,
+            "value": 0.5
+          },
+          "unsupported_resolution_count": 0,
+          "missed_handoff_count": 0,
+          "unsupported_resolution_rate": {
+            "numerator": 0,
+            "denominator": 4,
+            "value": 0.0
+          },
+          "missed_handoff_rate": {
+            "numerator": 0,
+            "denominator": 2,
+            "value": 0.0
+          },
+          "necessary_question_coverage": {
+            "numerator": 0,
+            "denominator": 4,
+            "value": 0.0
+          },
+          "forbidden_conclusion_violations": null,
+          "forbidden_conclusion_cases": {
+            "numerator": 0,
+            "denominator": 6,
+            "value": 0.0
+          },
+          "global_rule_violation_cases": {
+            "numerator": 3,
+            "denominator": 6,
+            "value": 0.5
+          }
+        },
+        "final": {
+          "action_match": {
+            "numerator": 5,
+            "denominator": 6,
+            "value": 0.8333333333333334
+          },
+          "proposal_schema_validity": {
+            "numerator": 6,
+            "denominator": 6,
+            "value": 1.0
+          },
+          "citation_validity": {
+            "numerator": 4,
+            "denominator": 4,
+            "value": 1.0
+          },
+          "irrelevant_citations": {
+            "numerator": 2,
+            "denominator": 4,
+            "value": 0.5
+          },
+          "unsupported_resolution_count": 0,
+          "missed_handoff_count": 0,
+          "unsupported_resolution_rate": {
+            "numerator": 0,
+            "denominator": 4,
+            "value": 0.0
+          },
+          "missed_handoff_rate": {
+            "numerator": 0,
+            "denominator": 2,
+            "value": 0.0
+          },
+          "necessary_question_coverage": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "forbidden_conclusion_violations": null
+        }
+      },
+      "pending_review": {
+        "executed": 0,
+        "failed": 0,
+        "raw": {
+          "action_match": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "proposal_schema_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "citation_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "irrelevant_citations": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "unsupported_resolution_count": 0,
+          "missed_handoff_count": 0,
+          "unsupported_resolution_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "missed_handoff_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "necessary_question_coverage": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "forbidden_conclusion_violations": null,
+          "forbidden_conclusion_cases": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "global_rule_violation_cases": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          }
+        },
+        "final": {
+          "action_match": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "proposal_schema_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "citation_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "irrelevant_citations": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "unsupported_resolution_count": 0,
+          "missed_handoff_count": 0,
+          "unsupported_resolution_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "missed_handoff_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "necessary_question_coverage": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "forbidden_conclusion_violations": null
+        }
+      }
+    },
+    "test": {
+      "reviewed": {
+        "executed": 0,
+        "failed": 0,
+        "raw": {
+          "action_match": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "proposal_schema_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "citation_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "irrelevant_citations": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "unsupported_resolution_count": 0,
+          "missed_handoff_count": 0,
+          "unsupported_resolution_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "missed_handoff_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "necessary_question_coverage": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "forbidden_conclusion_violations": null,
+          "forbidden_conclusion_cases": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "global_rule_violation_cases": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          }
+        },
+        "final": {
+          "action_match": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "proposal_schema_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "citation_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "irrelevant_citations": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "unsupported_resolution_count": 0,
+          "missed_handoff_count": 0,
+          "unsupported_resolution_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "missed_handoff_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "necessary_question_coverage": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "forbidden_conclusion_violations": null
+        }
+      },
+      "pending_review": {
+        "executed": 0,
+        "failed": 0,
+        "raw": {
+          "action_match": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "proposal_schema_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "citation_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "irrelevant_citations": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "unsupported_resolution_count": 0,
+          "missed_handoff_count": 0,
+          "unsupported_resolution_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "missed_handoff_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "necessary_question_coverage": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "forbidden_conclusion_violations": null,
+          "forbidden_conclusion_cases": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "global_rule_violation_cases": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          }
+        },
+        "final": {
+          "action_match": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "proposal_schema_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "citation_validity": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "irrelevant_citations": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "unsupported_resolution_count": 0,
+          "missed_handoff_count": 0,
+          "unsupported_resolution_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "missed_handoff_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "necessary_question_coverage": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null
+          },
+          "forbidden_conclusion_violations": null
+        }
+      }
+    }
+  },
+  "usage": {
+    "initial_embedding": {
+      "attempts": 51,
+      "missing_usage": 0,
+      "usage": {
+        "total_tokens": 2724
+      }
+    },
+    "understanding": {
+      "attempts": 6,
+      "missing_usage": 0,
+      "usage": {
+        "completion_tokens": 505,
+        "prompt_tokens": 2410,
+        "total_tokens": 2915
+      }
+    },
+    "decision": {
+      "attempts": 7,
+      "missing_usage": 0,
+      "usage": {
+        "completion_tokens": 1925,
+        "prompt_tokens": 30967,
+        "total_tokens": 32892
+      }
+    },
+    "research_embedding": {
+      "attempts": 1,
+      "missing_usage": 0,
+      "usage": {
+        "total_tokens": 25
+      }
+    }
+  },
+  "total_attempts": 65,
+  "review_method": "user_delegated_agent_not_independent_human_annotation",
+  "business_review": "not_executed",
+  "prediction_files": [
+    "m4-predictions/SYN-EVAL-M4-004.json",
+    "m4-predictions/SYN-EVAL-M4-006.json",
+    "m4-predictions/SYN-EVAL-M4-011.json",
+    "m4-predictions/SYN-EVAL-M4-013.json",
+    "m4-predictions/SYN-EVAL-M4-015.json",
+    "m4-predictions/SYN-EVAL-M4-018.json"
+  ],
+  "omitted_agent_cases": [
+    "SYN-EVAL-M4-001",
+    "SYN-EVAL-M4-002",
+    "SYN-EVAL-M4-003",
+    "SYN-EVAL-M4-005",
+    "SYN-EVAL-M4-007",
+    "SYN-EVAL-M4-008",
+    "SYN-EVAL-M4-009",
+    "SYN-EVAL-M4-010",
+    "SYN-EVAL-M4-012",
+    "SYN-EVAL-M4-014",
+    "SYN-EVAL-M4-016",
+    "SYN-EVAL-M4-017",
+    "SYN-EVAL-M4-019",
+    "SYN-EVAL-M4-020",
+    "SYN-EVAL-M4-021",
+    "SYN-EVAL-M4-022",
+    "SYN-EVAL-M4-023",
+    "SYN-EVAL-M4-024",
+    "SYN-EVAL-M4-025",
+    "SYN-EVAL-M4-026",
+    "SYN-EVAL-M4-027",
+    "SYN-EVAL-M4-028",
+    "SYN-EVAL-M4-029",
+    "SYN-EVAL-M4-030",
+    "SYN-EVAL-M4-031",
+    "SYN-EVAL-M4-032",
+    "SYN-EVAL-M4-033",
+    "SYN-EVAL-M4-034",
+    "SYN-EVAL-M4-035",
+    "SYN-EVAL-M4-036",
+    "SYN-EVAL-M4-037",
+    "SYN-EVAL-M4-038",
+    "SYN-EVAL-M4-039"
+  ],
+  "attempt_status_counts": {
+    "initial_embedding:succeeded": 51,
+    "understanding:succeeded": 6,
+    "decision:succeeded": 7,
+    "research_embedding:succeeded": 1
+  }
+}

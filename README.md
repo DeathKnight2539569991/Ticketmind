@@ -6,7 +6,9 @@
 
 语料为 data/synthetic/v2/ 中的 12 条历史案例和 16 条开发输入，均为合成场景，不代表真实客户效果。M3 已实现 BM25、Dense/BM25/Hybrid 模式与 RRF；首次和再次检索均接入工单处理。真实检索对比、8 个 HTTP/数据库场景及限制见 [M3 交付报告](docs/m3-retrieval.md)。
 
-当前决策协议 `m2-action-boundaries-v2` 下，glm-5.2用真实新查询向量在Milvus召回006并生成建议，随后精确缓存回放应用用户批准的编辑稿：completed、工单open、版本3→4、消息3→4，重复审核幂等。草稿中过度结论已由人工编辑删除；此前失败样本均保留。实际证据见 [补充验收](docs/m2-followup.md)及[审核单](docs/m2-followup-review.md)。这些是不同阶段/模型的合成样本证据，不代表当前单模型三路径完整回归或总体准确率。
+此前 M2 决策协议 `m2-action-boundaries-v2` 下，glm-5.2用真实新查询向量在Milvus召回006并生成建议，随后精确缓存回放应用用户批准的编辑稿：completed、工单open、版本3→4、消息3→4，重复审核幂等。草稿中过度结论已由人工编辑删除；此前失败样本均保留。实际证据见 [补充验收](docs/m2-followup.md)及[审核单](docs/m2-followup-review.md)。这些是不同阶段/模型的合成样本证据，不代表当前单模型三路径完整回归或总体准确率。
+
+M4 A档已完成：39条新评测输入、33条开发标签补全；51条查询完成Dense/BM25/Hybrid真实对比，6条validation Agent样本动作匹配5/6，3条草稿错误声称已转交。实际新增调用65次，152项分层测试通过。标签和语义结果由用户委托Agent审查，不是独立人工标注；剩余33条Agent输入尚未运行。M5工作台未实现，本次不推进。见[M4报告](docs/m4-evaluation.md)、[标签审阅清单](docs/m4-label-review.md)与[调用记录](docs/m4-call-budget.md)。
 
 验收入口通过 `--decision-model` 只切换决策模型，理解缓存保留真实模型身份；全局默认配置未改。当前端点模型名是 `glm-5.2`，`glm5.2`返回NotFoundError；同一预算内修正名称，失败请求仍计入台账。
 
@@ -229,3 +231,16 @@ uv run --no-sync python scripts/check_m3_flow.py
 M3 使用 m3-retrieval-evidence-v1 决策输入协议；旧决策缓存保留，但不能冒充当前证据结构的匹配缓存。M0 理解/向量缓存仍可复用。历史 M2 缓存审核命令属于历史协议证据；本轮未申请、执行任何新付费模型调用，也未重验真实模型对 Hybrid 证据的决策质量。
 
 实际证据见 [开发日志](docs/project-log.md)。恢复设计参考 [LangGraph interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts) 和 [PostgreSQL persistence](https://docs.langchain.com/oss/python/langgraph/add-memory)，以锁定依赖和本仓库测试为准。
+
+## M4 评测入口
+
+```powershell
+# 离线校验输入、候选标签与精确缓存；不调用任何模型
+uv run --no-sync python scripts/evaluate_m4.py
+# 真实只读检索；缺向量的 Dense/Hybrid 单独记录 not_run
+uv run --no-sync python scripts/evaluate_m4.py --stage retrieval --include-m3-diagnostics
+```
+
+新数据在 `data/synthetic/m4/`，validation/test按问题组隔离；v2和M3仍是开发数据。`human_review_required`（发布需审核）、`requires_human_handoff`（业务须转人工）、相关来源和可作答性分开标注。候选文件保持pending_review；用户委托完成的72条审核保存于独立`label_reviews.jsonl`及`development_label_reviews.jsonl`，入口默认加载相邻审核文件并校验输入、标签和语料版本hash。审查方法明确记为user_delegated_agent。
+
+`--stage vectors/agent --execute`可能发生付费调用，默认各项累计上限为0；先按[预算方案](docs/m4-call-budget.md)获得授权。台账固定在`data/cache/m4/attempts.json`，失败计次、不自动重试。Agent入口只保存待审结果；原始模型响应、代码最终提案和人工业务结果分别保留。评分器支持动作、引用、无依据建议和人工语义判断，详见[M4报告](docs/m4-evaluation.md)。

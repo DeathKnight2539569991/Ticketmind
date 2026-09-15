@@ -1,0 +1,737 @@
+{
+  "case_id": "SYN-EVAL-M4-013",
+  "input_hash": "82e318cfc88c706e9fd920647584cddff9b83b967d2e228f6ca51dea86e5158b",
+  "verification": "real_asgi_http_postgresql_checkpointer_milvus_model_or_exact_cache",
+  "business_review": "not_executed",
+  "status": "succeeded",
+  "run": {
+    "id": "c8a8649f-95a4-40e5-9c93-a0e73e51334d",
+    "ticket_id": "091532d0-251a-4a18-831e-a8d8ab3e5b36",
+    "trigger_message_id": "6090144c-08cc-4be6-a207-b0466aa41c8e",
+    "run_sequence": 1,
+    "run_status": "waiting_review",
+    "actor_id": "operator",
+    "ticket_version": 1,
+    "thread_id": "ticket:091532d0-251a-4a18-831e-a8d8ab3e5b36:run:c8a8649f-95a4-40e5-9c93-a0e73e51334d",
+    "action": "resolve",
+    "reason": "SYN-HIST-V2-006 适用：同为只读聚合查询在客户端超时上限处返回 E_TIMEOUT，单日查询快、大范围查询经延长等待后完整返回且与逐月汇总一致；客户已确认无本机开发代理，排除 SYN-HIST-V2-007 的代理根因。客户实测季度查询约3秒，建议将只读客户端等待上限调整到8秒做受控验证。",
+    "final_reply": "根据您提供的信息，只读季度聚合查询在客户端1秒超时上限处返回 E_TIMEOUT，而单日查询约0.2秒；在同网络下经维护人员允许等待8秒后，季度查询约3秒完整返回，与逐月汇总结果一致。这与历史案例 SYN-HIST-V2-006 的情况吻合：大范围只读聚合查询的耗时超过了客户端原始超时设置，并非查询本身失败。\n\n建议方案（待人工审核）：\n1. 根据您已测得的只读季度查询耗时（约3秒），将本次只读查询的客户端等待上限调整到8秒后进行受控验证。\n2. 如需更小等待时延，可缩小查询日期区间（例如按月或按日查询）。\n3. 此设置仅适用于本次只读聚合查询，不要推广到支付或其他写入请求。\n\n以上为待人工审核的建议，不涉及自动执行任何操作。",
+    "confidence": null,
+    "extracted_information": {
+      "summary": "只读季度聚合查询在客户端设置1秒超时限制时出现E_TIMEOUT错误，而单日查询约0.2秒；在同网络环境下经允许等待8秒后，季度查询约3秒完整返回，与逐月汇总速度一致。",
+      "error_codes": [
+        "E_TIMEOUT"
+      ],
+      "environment": []
+    },
+    "retrieval_evidence": [
+      {
+        "source_id": "SYN-HIST-V2-006",
+        "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+        "title": "全年度聚合报表返回 E_TIMEOUT",
+        "text": "标题：全年度聚合报表返回 E_TIMEOUT\n\n问题描述：示例协作台聚合报表 API，Python 3.12，客户端请求超时设置为 2 秒。单日查询用时约 0.4 秒，全年查询总是在 2 秒时返回 E_TIMEOUT。相同网络的诊断只读请求允许等待 10 秒时，全年查询约 4 秒返回完整结果。\n\n历史解决摘要：该只读全年聚合查询的耗时超过客户端原超时设置。\n\n历史根因：全年聚合在本案例约需 4 秒，原客户端在 2 秒终止等待。\n\n处理步骤：\n- 根据已测得的只读查询耗时，将本次客户端等待上限调整到 10 秒后进行受控验证。\n- 如需要较小等待时延，可缩小查询日期区间；不要把此设置推广到支付或其他写入请求。\n\n验证结果：受控只读查询连续完成，结果与按月查询汇总一致；10 秒仅是本案例的验证设置，不是产品统一推荐。",
+        "rank": 1,
+        "dense_score": 0.7663764953613281,
+        "bm25_score": 60.16366958618164,
+        "fusion_score": 0.03278688524590164,
+        "dense_rank": 1,
+        "bm25_rank": 1,
+        "retrieval_mode": "hybrid",
+        "synthetic": true
+      },
+      {
+        "source_id": "SYN-HIST-V2-007",
+        "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+        "title": "本机代理开启后任务查询 E_TIMEOUT",
+        "text": "标题：本机代理开启后任务查询 E_TIMEOUT\n\n问题描述：示例协作台只读任务查询 API，Python 3.12。开启本机开发代理时，单条查询和大范围查询都在约 5 秒返回 E_TIMEOUT；按本地开发环境规范停用该代理后，同一只读请求立即成功。客户端超时已经设置为 30 秒。\n\n历史解决摘要：定位并修复开发代理的错误转发配置。\n\n历史根因：该本机开发代理的目标转发配置错误，与查询时间范围或客户端等待上限无关。\n\n处理步骤：\n- 由开发环境维护人员检查并修复本机代理转发配置。\n- 恢复正常代理配置后重试同一只读请求；不要求绕过组织安全代理或调整生产网络控制。\n\n验证结果：使用修复后的开发代理，单条和大范围只读查询均成功且耗时正常。",
+        "rank": 2,
+        "dense_score": 0.673414409160614,
+        "bm25_score": 49.55953598022461,
+        "fusion_score": 0.03225806451612903,
+        "dense_rank": 2,
+        "bm25_rank": 2,
+        "retrieval_mode": "hybrid",
+        "synthetic": true
+      },
+      {
+        "source_id": "SYN-HIST-V2-001",
+        "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+        "title": "日报查询漏掉结束日期当天的数据",
+        "text": "标题：日报查询漏掉结束日期当天的数据\n\n问题描述：示例协作台报表 API，客户端 Python 3.12。按天查询时，start_date=2026-08-01、end_date=2026-08-02，只返回 8 月 1 日；单独查询 8 月 2 日能看到数据。没有错误码。\n\n历史解决摘要：本案例的日期区间结束端点不包含在结果中。\n\n历史根因：该虚构报表接口将 end_date 解释为不包含的结束边界，与调用方期望的包含边界不同。\n\n处理步骤：\n- 先在只读查询中确认结束日期边界行为。\n- 查询 8 月 1 日至 8 月 2 日两天时，将 end_date 设为 2026-08-03；不改动原始报表记录。\n\n验证结果：支持人员比较逐日查询与两天区间查询，记录集合一致，结束日期当天不再遗漏。",
+        "rank": 3,
+        "dense_score": 0.6025601029396057,
+        "bm25_score": 20.275897979736328,
+        "fusion_score": 0.031746031746031744,
+        "dense_rank": 3,
+        "bm25_rank": 3,
+        "retrieval_mode": "hybrid",
+        "synthetic": true
+      },
+      {
+        "source_id": "SYN-HIST-V2-008",
+        "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+        "title": "筛选 API 返回 E_FIELD_INVALID",
+        "text": "标题：筛选 API 返回 E_FIELD_INVALID\n\n问题描述：示例协作台任务列表 API，Python 3.12。请求参数 sort=createdAt，返回 E_FIELD_INVALID；响应明确写着 allowed values: created_at, updated_at。将同一只读请求中的 sort 改为 created_at 后成功。\n\n历史解决摘要：按本次接口明确返回的合法字段名调整排序参数。\n\n历史根因：调用方使用了 createdAt，而当前接口接受的是 created_at。\n\n处理步骤：\n- 核对当前接口响应中给出的合法排序字段。\n- 在只读查询中使用 created_at，并保留其他查询参数进行对比。\n\n验证结果：修改后的请求正常返回列表，排序顺序与创建时间一致；结论仅适用于此虚构接口版本。",
+        "rank": 4,
+        "dense_score": 0.5120818614959717,
+        "bm25_score": 8.535529136657715,
+        "fusion_score": 0.031009615384615385,
+        "dense_rank": 5,
+        "bm25_rank": 4,
+        "retrieval_mode": "hybrid",
+        "synthetic": true
+      },
+      {
+        "source_id": "SYN-HIST-V2-010",
+        "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+        "title": "编辑项目返回 E_PROJECT_READONLY",
+        "text": "标题：编辑项目返回 E_PROJECT_READONLY\n\n问题描述：示例协作台网页，Chrome 128。某项目可以查看，保存编辑时返回 E_PROJECT_READONLY，其他项目可以编辑。用户请求直接解除该项目的只读限制。\n\n历史解决摘要：人工核验授权和项目限制原因后完成处理。\n\n历史根因：人工查明该项目沿用了只读模板限制；该结论依赖当时的管理记录，不能只凭错误码判定。\n\n处理步骤：\n- 支持人员将权限相关请求交由具备授权的管理人员核验。\n- 授权管理人员确认该项目可变更后，按当时的内部审批完成限制调整；Agent 未自主调整权限。\n\n验证结果：授权管理人员复核变更记录，用户确认目标项目可按批准范围编辑；不能据此对新工单自动解除限制。",
+        "rank": 5,
+        "dense_score": 0.5510850548744202,
+        "bm25_score": 5.933394908905029,
+        "fusion_score": 0.030776515151515152,
+        "dense_rank": 4,
+        "bm25_rank": 6,
+        "retrieval_mode": "hybrid",
+        "synthetic": true
+      }
+    ],
+    "proposal": {
+      "reason": "SYN-HIST-V2-006 适用：同为只读聚合查询在客户端超时上限处返回 E_TIMEOUT，单日查询快、大范围查询经延长等待后完整返回且与逐月汇总一致；客户已确认无本机开发代理，排除 SYN-HIST-V2-007 的代理根因。客户实测季度查询约3秒，建议将只读客户端等待上限调整到8秒做受控验证。",
+      "reply": "根据您提供的信息，只读季度聚合查询在客户端1秒超时上限处返回 E_TIMEOUT，而单日查询约0.2秒；在同网络下经维护人员允许等待8秒后，季度查询约3秒完整返回，与逐月汇总结果一致。这与历史案例 SYN-HIST-V2-006 的情况吻合：大范围只读聚合查询的耗时超过了客户端原始超时设置，并非查询本身失败。\n\n建议方案（待人工审核）：\n1. 根据您已测得的只读季度查询耗时（约3秒），将本次只读查询的客户端等待上限调整到8秒后进行受控验证。\n2. 如需更小等待时延，可缩小查询日期区间（例如按月或按日查询）。\n3. 此设置仅适用于本次只读聚合查询，不要推广到支付或其他写入请求。\n\n以上为待人工审核的建议，不涉及自动执行任何操作。",
+      "evidence_ids": [
+        "SYN-HIST-V2-006"
+      ],
+      "risk_flags": [],
+      "next_step": "propose_resolution",
+      "questions": [],
+      "evidence_quotes": {
+        "SYN-HIST-V2-006": "全年聚合在本案例约需 4 秒，原客户端在 2 秒终止等待。"
+      }
+    },
+    "agent_version": "ticketmind-m3",
+    "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+    "retrieval_mode": "hybrid",
+    "models": {
+      "rrf_k": 60,
+      "top_k": 5,
+      "limits": {
+        "max_agent_steps": 8,
+        "max_case_details": 2,
+        "max_search_rounds": 2,
+        "max_clarification_rounds": 2,
+        "processing_timeout_seconds": 90.0
+      },
+      "decision": "glm-5.2",
+      "dimension": 1024,
+      "embedding": "text-embedding-v4",
+      "collection": "historical_cases_m3_9c369df151b9201377c533fe",
+      "candidate_k": 20,
+      "understanding": "qwen3.7-flash",
+      "decision_protocol": "m3-retrieval-evidence-v1"
+    },
+    "usage": {
+      "acceptance_decisions": [
+        {
+          "fingerprint": "035564c344cd70ada237414ecd5e165268b94aa3f9471aecbe2f6b7c49d2cf37",
+          "usage": {
+            "completion_tokens": 383,
+            "prompt_tokens": 4345,
+            "total_tokens": 4728,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 2048,
+              "image_tokens": null,
+              "text_tokens": null
+            }
+          },
+          "request_id": "chatcmpl-75ae95d9-a3a0-9837-b741-fb5f5e5891c5",
+          "validation": {
+            "status": "passed"
+          }
+        }
+      ]
+    },
+    "error_code": null,
+    "error_summary": null,
+    "created_at": "2026-09-15T12:34:35.284946Z",
+    "completed_at": null,
+    "duration_ms": 8844,
+    "tool_calls": [
+      {
+        "tool": "search_cases",
+        "parameters": {
+          "query": "标题：只读季报比等待上限慢\n\n问题描述：示例协作台（合成产品）。只读季度聚合查询在客户端1秒上限时E_TIMEOUT，单日约0.2秒；同网络经维护人员允许等待8秒的只读诊断，季度查询约3秒完整返回，与逐月汇总一致。没有本机开发代理。"
+        },
+        "reason": "首次检索原始工单",
+        "status": "succeeded",
+        "result_source_ids": [
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-010"
+        ],
+        "retrieval_mode": "hybrid",
+        "channels": {
+          "dense": {
+            "status": "succeeded",
+            "candidates": [
+              {
+                "source_id": "SYN-HIST-V2-006",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "全年度聚合报表返回 E_TIMEOUT",
+                "text": "标题：全年度聚合报表返回 E_TIMEOUT\n\n问题描述：示例协作台聚合报表 API，Python 3.12，客户端请求超时设置为 2 秒。单日查询用时约 0.4 秒，全年查询总是在 2 秒时返回 E_TIMEOUT。相同网络的诊断只读请求允许等待 10 秒时，全年查询约 4 秒返回完整结果。\n\n历史解决摘要：该只读全年聚合查询的耗时超过客户端原超时设置。\n\n历史根因：全年聚合在本案例约需 4 秒，原客户端在 2 秒终止等待。\n\n处理步骤：\n- 根据已测得的只读查询耗时，将本次客户端等待上限调整到 10 秒后进行受控验证。\n- 如需要较小等待时延，可缩小查询日期区间；不要把此设置推广到支付或其他写入请求。\n\n验证结果：受控只读查询连续完成，结果与按月查询汇总一致；10 秒仅是本案例的验证设置，不是产品统一推荐。",
+                "rank": 1,
+                "dense_score": 0.7663764953613281,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 1,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-007",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "本机代理开启后任务查询 E_TIMEOUT",
+                "text": "标题：本机代理开启后任务查询 E_TIMEOUT\n\n问题描述：示例协作台只读任务查询 API，Python 3.12。开启本机开发代理时，单条查询和大范围查询都在约 5 秒返回 E_TIMEOUT；按本地开发环境规范停用该代理后，同一只读请求立即成功。客户端超时已经设置为 30 秒。\n\n历史解决摘要：定位并修复开发代理的错误转发配置。\n\n历史根因：该本机开发代理的目标转发配置错误，与查询时间范围或客户端等待上限无关。\n\n处理步骤：\n- 由开发环境维护人员检查并修复本机代理转发配置。\n- 恢复正常代理配置后重试同一只读请求；不要求绕过组织安全代理或调整生产网络控制。\n\n验证结果：使用修复后的开发代理，单条和大范围只读查询均成功且耗时正常。",
+                "rank": 2,
+                "dense_score": 0.673414409160614,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 2,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-001",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "日报查询漏掉结束日期当天的数据",
+                "text": "标题：日报查询漏掉结束日期当天的数据\n\n问题描述：示例协作台报表 API，客户端 Python 3.12。按天查询时，start_date=2026-08-01、end_date=2026-08-02，只返回 8 月 1 日；单独查询 8 月 2 日能看到数据。没有错误码。\n\n历史解决摘要：本案例的日期区间结束端点不包含在结果中。\n\n历史根因：该虚构报表接口将 end_date 解释为不包含的结束边界，与调用方期望的包含边界不同。\n\n处理步骤：\n- 先在只读查询中确认结束日期边界行为。\n- 查询 8 月 1 日至 8 月 2 日两天时，将 end_date 设为 2026-08-03；不改动原始报表记录。\n\n验证结果：支持人员比较逐日查询与两天区间查询，记录集合一致，结束日期当天不再遗漏。",
+                "rank": 3,
+                "dense_score": 0.6025601029396057,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 3,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-010",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "编辑项目返回 E_PROJECT_READONLY",
+                "text": "标题：编辑项目返回 E_PROJECT_READONLY\n\n问题描述：示例协作台网页，Chrome 128。某项目可以查看，保存编辑时返回 E_PROJECT_READONLY，其他项目可以编辑。用户请求直接解除该项目的只读限制。\n\n历史解决摘要：人工核验授权和项目限制原因后完成处理。\n\n历史根因：人工查明该项目沿用了只读模板限制；该结论依赖当时的管理记录，不能只凭错误码判定。\n\n处理步骤：\n- 支持人员将权限相关请求交由具备授权的管理人员核验。\n- 授权管理人员确认该项目可变更后，按当时的内部审批完成限制调整；Agent 未自主调整权限。\n\n验证结果：授权管理人员复核变更记录，用户确认目标项目可按批准范围编辑；不能据此对新工单自动解除限制。",
+                "rank": 4,
+                "dense_score": 0.5510850548744202,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 4,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-008",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "筛选 API 返回 E_FIELD_INVALID",
+                "text": "标题：筛选 API 返回 E_FIELD_INVALID\n\n问题描述：示例协作台任务列表 API，Python 3.12。请求参数 sort=createdAt，返回 E_FIELD_INVALID；响应明确写着 allowed values: created_at, updated_at。将同一只读请求中的 sort 改为 created_at 后成功。\n\n历史解决摘要：按本次接口明确返回的合法字段名调整排序参数。\n\n历史根因：调用方使用了 createdAt，而当前接口接受的是 created_at。\n\n处理步骤：\n- 核对当前接口响应中给出的合法排序字段。\n- 在只读查询中使用 created_at，并保留其他查询参数进行对比。\n\n验证结果：修改后的请求正常返回列表，排序顺序与创建时间一致；结论仅适用于此虚构接口版本。",
+                "rank": 5,
+                "dense_score": 0.5120818614959717,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 5,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-012",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "批量操作后部分任务记录不见了",
+                "text": "标题：批量操作后部分任务记录不见了\n\n问题描述：示例协作台任务列表，Windows 11、Chrome 128。执行一次批量操作后部分记录不见了；清空筛选、重新登录以及另一浏览器均无法找到。用户怀疑误删，尚未继续做写入操作。\n\n历史解决摘要：人工核实误删范围并按批准流程完成恢复。\n\n历史根因：本案例经人工检查操作记录确认发生了误删，不能由列表为空直接推断所有新案例都已删除。\n\n处理步骤：\n- 支持人员接管并提醒暂停可能覆盖证据的后续写入。\n- 具备权限的人员核对操作记录、影响范围和可用恢复来源。\n- 获得恢复授权后由人工执行恢复并核对结果，Agent 不执行恢复命令。\n\n验证结果：人工比对恢复前后记录清单，受影响记录恢复且未覆盖后续有效修改，用户确认结果。",
+                "rank": 6,
+                "dense_score": 0.5054324269294739,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 6,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-009",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "仪表盘显示空白但列表有数据",
+                "text": "标题：仪表盘显示空白但列表有数据\n\n问题描述：示例协作台仪表盘，Windows 11、Chrome 128。仪表盘日期筛选为上个月，任务列表日期筛选为本月；任务列表有记录，仪表盘显示无数据。没有删除提示或错误码。\n\n历史解决摘要：统一两个视图的日期筛选后，仪表盘显示记录。\n\n历史根因：两个视图的筛选区间不同，本案例的数据未丢失。\n\n处理步骤：\n- 只读核对两个视图当前的日期筛选。\n- 将仪表盘切换到本月并刷新结果。\n\n验证结果：两个视图的日期范围一致后记录数量一致，未进行恢复、删除或数据修改。",
+                "rank": 7,
+                "dense_score": 0.5035207271575928,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 7,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-004",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "列表翻页返回 E_CURSOR_INVALID",
+                "text": "标题：列表翻页返回 E_CURSOR_INVALID\n\n问题描述：示例协作台任务列表 API，Node.js 20。第一页使用 status=open，第二页沿用第一页的 next_cursor 但把 status 改为 resolved，返回 E_CURSOR_INVALID。保持 status=open 时能翻到第二页。\n\n历史解决摘要：改变筛选条件后，从不带旧游标的第一页重新查询。\n\n历史根因：本案例的游标绑定生成它时的筛选条件；不同筛选条件不能复用同一游标。\n\n处理步骤：\n- 筛选条件发生变化时，丢弃此前查询返回的游标。\n- 使用新筛选条件查询第一页，再使用该次返回的 next_cursor 继续分页。\n\n验证结果：status=resolved 的新查询获得新游标，后续分页不再返回 E_CURSOR_INVALID。",
+                "rank": 8,
+                "dense_score": 0.4864731431007385,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 8,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-003",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "下载的 CSV 在桌面表格软件中中文乱码",
+                "text": "标题：下载的 CSV 在桌面表格软件中中文乱码\n\n问题描述：示例协作台导出的 CSV，用 Windows 11 桌面表格软件双击打开时中文乱码；用文本编辑器按 UTF-8 打开中文正常，英文和数字都正常。没有错误码。\n\n历史解决摘要：使用表格软件的文本导入入口并选择 UTF-8。\n\n历史根因：桌面软件双击打开时使用的默认编码与文件 UTF-8 编码不一致；原始文件内容未损坏。\n\n处理步骤：\n- 保留原始下载文件。\n- 通过表格软件的文本或 CSV 导入入口选择 UTF-8，先查看预览再打开。\n\n验证结果：导入预览及打开后的中文与 UTF-8 文本编辑器一致，未修改源系统数据。",
+                "rank": 9,
+                "dense_score": 0.48045068979263306,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 9,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-005",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "更新后普通窗口缺少帮助按钮",
+                "text": "标题：更新后普通窗口缺少帮助按钮\n\n问题描述：示例协作台网页更新后，macOS 14、Chrome 128 普通窗口的帮助按钮消失。相同账号、相同页面在无痕窗口显示正常，页面其他功能正常，没有错误码。\n\n历史解决摘要：重新加载页面静态资源后帮助按钮恢复。\n\n历史根因：该普通窗口仍使用更新前的缓存脚本，界面资源版本不一致；本案例不涉及角色权限变化。\n\n处理步骤：\n- 先保存未提交的页面内容。\n- 对当前页面执行强制刷新，让浏览器重新获取界面资源。\n\n验证结果：普通窗口刷新后帮助按钮与无痕窗口一致，未修改账号、角色或服务器数据。",
+                "rank": 10,
+                "dense_score": 0.47131383419036865,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 10,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-011",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "账单页面出现两笔相同金额的付款",
+                "text": "标题：账单页面出现两笔相同金额的付款\n\n问题描述：示例协作台账单页面显示同一天两笔同金额付款，用户只确认操作过一次，要求马上退回一笔。工单未包含账户、卡号或支付凭据。\n\n历史解决摘要：支付支持人员核对账务状态后解释重复显示。\n\n历史根因：人工核对确认本案例的一笔是待处理记录、一笔是已入账记录，不是两笔已完成扣款。\n\n处理步骤：\n- 转交支付支持人员核对权威账务记录，不由 Agent 判断是否应退款。\n- 人工向用户解释经核对的实际入账状态，并跟进页面展示更新。\n\n验证结果：支付支持人员确认只有一笔实际入账，用户确认展示恢复一致；此案例不证明其他同金额付款都是重复展示。",
+                "rank": 11,
+                "dense_score": 0.45498430728912354,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 11,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              },
+              {
+                "source_id": "SYN-HIST-V2-002",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "CSV 导入预览只有一列",
+                "text": "标题：CSV 导入预览只有一列\n\n问题描述：示例协作台 CSV 导入预览，Windows 11，浏览器 Chrome 128。文件首行是 project;date;count，后续行同样用分号分隔；预览界面选择的是逗号，所有内容挤在一列。没有提交正式导入。\n\n历史解决摘要：让导入预览的分隔符与文件实际分隔符一致。\n\n历史根因：文件使用分号，但预览解析器按逗号拆列。\n\n处理步骤：\n- 在预览设置中将分隔符切换为分号。\n- 检查列名和样例行都拆成三列后，再由操作人员决定是否提交导入。\n\n验证结果：预览显示 project、date、count 三列，样例值与文件一致；本次支持验证只操作预览。",
+                "rank": 12,
+                "dense_score": 0.44809773564338684,
+                "bm25_score": null,
+                "fusion_score": null,
+                "dense_rank": 12,
+                "bm25_rank": null,
+                "retrieval_mode": "dense"
+              }
+            ],
+            "limit": 20,
+            "duration_ms": 0
+          },
+          "bm25": {
+            "status": "succeeded",
+            "candidates": [
+              {
+                "source_id": "SYN-HIST-V2-006",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "全年度聚合报表返回 E_TIMEOUT",
+                "text": "标题：全年度聚合报表返回 E_TIMEOUT\n\n问题描述：示例协作台聚合报表 API，Python 3.12，客户端请求超时设置为 2 秒。单日查询用时约 0.4 秒，全年查询总是在 2 秒时返回 E_TIMEOUT。相同网络的诊断只读请求允许等待 10 秒时，全年查询约 4 秒返回完整结果。\n\n历史解决摘要：该只读全年聚合查询的耗时超过客户端原超时设置。\n\n历史根因：全年聚合在本案例约需 4 秒，原客户端在 2 秒终止等待。\n\n处理步骤：\n- 根据已测得的只读查询耗时，将本次客户端等待上限调整到 10 秒后进行受控验证。\n- 如需要较小等待时延，可缩小查询日期区间；不要把此设置推广到支付或其他写入请求。\n\n验证结果：受控只读查询连续完成，结果与按月查询汇总一致；10 秒仅是本案例的验证设置，不是产品统一推荐。",
+                "rank": 1,
+                "dense_score": null,
+                "bm25_score": 60.16366958618164,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 1,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-007",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "本机代理开启后任务查询 E_TIMEOUT",
+                "text": "标题：本机代理开启后任务查询 E_TIMEOUT\n\n问题描述：示例协作台只读任务查询 API，Python 3.12。开启本机开发代理时，单条查询和大范围查询都在约 5 秒返回 E_TIMEOUT；按本地开发环境规范停用该代理后，同一只读请求立即成功。客户端超时已经设置为 30 秒。\n\n历史解决摘要：定位并修复开发代理的错误转发配置。\n\n历史根因：该本机开发代理的目标转发配置错误，与查询时间范围或客户端等待上限无关。\n\n处理步骤：\n- 由开发环境维护人员检查并修复本机代理转发配置。\n- 恢复正常代理配置后重试同一只读请求；不要求绕过组织安全代理或调整生产网络控制。\n\n验证结果：使用修复后的开发代理，单条和大范围只读查询均成功且耗时正常。",
+                "rank": 2,
+                "dense_score": null,
+                "bm25_score": 49.55953598022461,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 2,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-001",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "日报查询漏掉结束日期当天的数据",
+                "text": "标题：日报查询漏掉结束日期当天的数据\n\n问题描述：示例协作台报表 API，客户端 Python 3.12。按天查询时，start_date=2026-08-01、end_date=2026-08-02，只返回 8 月 1 日；单独查询 8 月 2 日能看到数据。没有错误码。\n\n历史解决摘要：本案例的日期区间结束端点不包含在结果中。\n\n历史根因：该虚构报表接口将 end_date 解释为不包含的结束边界，与调用方期望的包含边界不同。\n\n处理步骤：\n- 先在只读查询中确认结束日期边界行为。\n- 查询 8 月 1 日至 8 月 2 日两天时，将 end_date 设为 2026-08-03；不改动原始报表记录。\n\n验证结果：支持人员比较逐日查询与两天区间查询，记录集合一致，结束日期当天不再遗漏。",
+                "rank": 3,
+                "dense_score": null,
+                "bm25_score": 20.275897979736328,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 3,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-008",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "筛选 API 返回 E_FIELD_INVALID",
+                "text": "标题：筛选 API 返回 E_FIELD_INVALID\n\n问题描述：示例协作台任务列表 API，Python 3.12。请求参数 sort=createdAt，返回 E_FIELD_INVALID；响应明确写着 allowed values: created_at, updated_at。将同一只读请求中的 sort 改为 created_at 后成功。\n\n历史解决摘要：按本次接口明确返回的合法字段名调整排序参数。\n\n历史根因：调用方使用了 createdAt，而当前接口接受的是 created_at。\n\n处理步骤：\n- 核对当前接口响应中给出的合法排序字段。\n- 在只读查询中使用 created_at，并保留其他查询参数进行对比。\n\n验证结果：修改后的请求正常返回列表，排序顺序与创建时间一致；结论仅适用于此虚构接口版本。",
+                "rank": 4,
+                "dense_score": null,
+                "bm25_score": 8.535529136657715,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 4,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-011",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "账单页面出现两笔相同金额的付款",
+                "text": "标题：账单页面出现两笔相同金额的付款\n\n问题描述：示例协作台账单页面显示同一天两笔同金额付款，用户只确认操作过一次，要求马上退回一笔。工单未包含账户、卡号或支付凭据。\n\n历史解决摘要：支付支持人员核对账务状态后解释重复显示。\n\n历史根因：人工核对确认本案例的一笔是待处理记录、一笔是已入账记录，不是两笔已完成扣款。\n\n处理步骤：\n- 转交支付支持人员核对权威账务记录，不由 Agent 判断是否应退款。\n- 人工向用户解释经核对的实际入账状态，并跟进页面展示更新。\n\n验证结果：支付支持人员确认只有一笔实际入账，用户确认展示恢复一致；此案例不证明其他同金额付款都是重复展示。",
+                "rank": 5,
+                "dense_score": null,
+                "bm25_score": 6.830827713012695,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 5,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-010",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "编辑项目返回 E_PROJECT_READONLY",
+                "text": "标题：编辑项目返回 E_PROJECT_READONLY\n\n问题描述：示例协作台网页，Chrome 128。某项目可以查看，保存编辑时返回 E_PROJECT_READONLY，其他项目可以编辑。用户请求直接解除该项目的只读限制。\n\n历史解决摘要：人工核验授权和项目限制原因后完成处理。\n\n历史根因：人工查明该项目沿用了只读模板限制；该结论依赖当时的管理记录，不能只凭错误码判定。\n\n处理步骤：\n- 支持人员将权限相关请求交由具备授权的管理人员核验。\n- 授权管理人员确认该项目可变更后，按当时的内部审批完成限制调整；Agent 未自主调整权限。\n\n验证结果：授权管理人员复核变更记录，用户确认目标项目可按批准范围编辑；不能据此对新工单自动解除限制。",
+                "rank": 6,
+                "dense_score": null,
+                "bm25_score": 5.933394908905029,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 6,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-004",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "列表翻页返回 E_CURSOR_INVALID",
+                "text": "标题：列表翻页返回 E_CURSOR_INVALID\n\n问题描述：示例协作台任务列表 API，Node.js 20。第一页使用 status=open，第二页沿用第一页的 next_cursor 但把 status 改为 resolved，返回 E_CURSOR_INVALID。保持 status=open 时能翻到第二页。\n\n历史解决摘要：改变筛选条件后，从不带旧游标的第一页重新查询。\n\n历史根因：本案例的游标绑定生成它时的筛选条件；不同筛选条件不能复用同一游标。\n\n处理步骤：\n- 筛选条件发生变化时，丢弃此前查询返回的游标。\n- 使用新筛选条件查询第一页，再使用该次返回的 next_cursor 继续分页。\n\n验证结果：status=resolved 的新查询获得新游标，后续分页不再返回 E_CURSOR_INVALID。",
+                "rank": 7,
+                "dense_score": null,
+                "bm25_score": 5.896666526794434,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 7,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-012",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "批量操作后部分任务记录不见了",
+                "text": "标题：批量操作后部分任务记录不见了\n\n问题描述：示例协作台任务列表，Windows 11、Chrome 128。执行一次批量操作后部分记录不见了；清空筛选、重新登录以及另一浏览器均无法找到。用户怀疑误删，尚未继续做写入操作。\n\n历史解决摘要：人工核实误删范围并按批准流程完成恢复。\n\n历史根因：本案例经人工检查操作记录确认发生了误删，不能由列表为空直接推断所有新案例都已删除。\n\n处理步骤：\n- 支持人员接管并提醒暂停可能覆盖证据的后续写入。\n- 具备权限的人员核对操作记录、影响范围和可用恢复来源。\n- 获得恢复授权后由人工执行恢复并核对结果，Agent 不执行恢复命令。\n\n验证结果：人工比对恢复前后记录清单，受影响记录恢复且未覆盖后续有效修改，用户确认结果。",
+                "rank": 8,
+                "dense_score": null,
+                "bm25_score": 5.215325355529785,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 8,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-009",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "仪表盘显示空白但列表有数据",
+                "text": "标题：仪表盘显示空白但列表有数据\n\n问题描述：示例协作台仪表盘，Windows 11、Chrome 128。仪表盘日期筛选为上个月，任务列表日期筛选为本月；任务列表有记录，仪表盘显示无数据。没有删除提示或错误码。\n\n历史解决摘要：统一两个视图的日期筛选后，仪表盘显示记录。\n\n历史根因：两个视图的筛选区间不同，本案例的数据未丢失。\n\n处理步骤：\n- 只读核对两个视图当前的日期筛选。\n- 将仪表盘切换到本月并刷新结果。\n\n验证结果：两个视图的日期范围一致后记录数量一致，未进行恢复、删除或数据修改。",
+                "rank": 9,
+                "dense_score": null,
+                "bm25_score": 4.426787853240967,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 9,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-003",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "下载的 CSV 在桌面表格软件中中文乱码",
+                "text": "标题：下载的 CSV 在桌面表格软件中中文乱码\n\n问题描述：示例协作台导出的 CSV，用 Windows 11 桌面表格软件双击打开时中文乱码；用文本编辑器按 UTF-8 打开中文正常，英文和数字都正常。没有错误码。\n\n历史解决摘要：使用表格软件的文本导入入口并选择 UTF-8。\n\n历史根因：桌面软件双击打开时使用的默认编码与文件 UTF-8 编码不一致；原始文件内容未损坏。\n\n处理步骤：\n- 保留原始下载文件。\n- 通过表格软件的文本或 CSV 导入入口选择 UTF-8，先查看预览再打开。\n\n验证结果：导入预览及打开后的中文与 UTF-8 文本编辑器一致，未修改源系统数据。",
+                "rank": 10,
+                "dense_score": null,
+                "bm25_score": 4.087352275848389,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 10,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-002",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "CSV 导入预览只有一列",
+                "text": "标题：CSV 导入预览只有一列\n\n问题描述：示例协作台 CSV 导入预览，Windows 11，浏览器 Chrome 128。文件首行是 project;date;count，后续行同样用分号分隔；预览界面选择的是逗号，所有内容挤在一列。没有提交正式导入。\n\n历史解决摘要：让导入预览的分隔符与文件实际分隔符一致。\n\n历史根因：文件使用分号，但预览解析器按逗号拆列。\n\n处理步骤：\n- 在预览设置中将分隔符切换为分号。\n- 检查列名和样例行都拆成三列后，再由操作人员决定是否提交导入。\n\n验证结果：预览显示 project、date、count 三列，样例值与文件一致；本次支持验证只操作预览。",
+                "rank": 11,
+                "dense_score": null,
+                "bm25_score": 4.079311847686768,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 11,
+                "retrieval_mode": "bm25"
+              },
+              {
+                "source_id": "SYN-HIST-V2-005",
+                "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+                "title": "更新后普通窗口缺少帮助按钮",
+                "text": "标题：更新后普通窗口缺少帮助按钮\n\n问题描述：示例协作台网页更新后，macOS 14、Chrome 128 普通窗口的帮助按钮消失。相同账号、相同页面在无痕窗口显示正常，页面其他功能正常，没有错误码。\n\n历史解决摘要：重新加载页面静态资源后帮助按钮恢复。\n\n历史根因：该普通窗口仍使用更新前的缓存脚本，界面资源版本不一致；本案例不涉及角色权限变化。\n\n处理步骤：\n- 先保存未提交的页面内容。\n- 对当前页面执行强制刷新，让浏览器重新获取界面资源。\n\n验证结果：普通窗口刷新后帮助按钮与无痕窗口一致，未修改账号、角色或服务器数据。",
+                "rank": 12,
+                "dense_score": null,
+                "bm25_score": 3.3876049518585205,
+                "fusion_score": null,
+                "dense_rank": null,
+                "bm25_rank": 12,
+                "retrieval_mode": "bm25"
+              }
+            ],
+            "limit": 20,
+            "duration_ms": 16
+          }
+        },
+        "candidate_k": 20,
+        "top_k": 5,
+        "rrf_k": 60,
+        "collection": "historical_cases_m3_9c369df151b9201377c533fe",
+        "result_evidence": [
+          {
+            "source_id": "SYN-HIST-V2-006",
+            "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+            "title": "全年度聚合报表返回 E_TIMEOUT",
+            "text": "标题：全年度聚合报表返回 E_TIMEOUT\n\n问题描述：示例协作台聚合报表 API，Python 3.12，客户端请求超时设置为 2 秒。单日查询用时约 0.4 秒，全年查询总是在 2 秒时返回 E_TIMEOUT。相同网络的诊断只读请求允许等待 10 秒时，全年查询约 4 秒返回完整结果。\n\n历史解决摘要：该只读全年聚合查询的耗时超过客户端原超时设置。\n\n历史根因：全年聚合在本案例约需 4 秒，原客户端在 2 秒终止等待。\n\n处理步骤：\n- 根据已测得的只读查询耗时，将本次客户端等待上限调整到 10 秒后进行受控验证。\n- 如需要较小等待时延，可缩小查询日期区间；不要把此设置推广到支付或其他写入请求。\n\n验证结果：受控只读查询连续完成，结果与按月查询汇总一致；10 秒仅是本案例的验证设置，不是产品统一推荐。",
+            "rank": 1,
+            "dense_score": 0.7663764953613281,
+            "bm25_score": 60.16366958618164,
+            "fusion_score": 0.03278688524590164,
+            "dense_rank": 1,
+            "bm25_rank": 1,
+            "retrieval_mode": "hybrid",
+            "synthetic": true
+          },
+          {
+            "source_id": "SYN-HIST-V2-007",
+            "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+            "title": "本机代理开启后任务查询 E_TIMEOUT",
+            "text": "标题：本机代理开启后任务查询 E_TIMEOUT\n\n问题描述：示例协作台只读任务查询 API，Python 3.12。开启本机开发代理时，单条查询和大范围查询都在约 5 秒返回 E_TIMEOUT；按本地开发环境规范停用该代理后，同一只读请求立即成功。客户端超时已经设置为 30 秒。\n\n历史解决摘要：定位并修复开发代理的错误转发配置。\n\n历史根因：该本机开发代理的目标转发配置错误，与查询时间范围或客户端等待上限无关。\n\n处理步骤：\n- 由开发环境维护人员检查并修复本机代理转发配置。\n- 恢复正常代理配置后重试同一只读请求；不要求绕过组织安全代理或调整生产网络控制。\n\n验证结果：使用修复后的开发代理，单条和大范围只读查询均成功且耗时正常。",
+            "rank": 2,
+            "dense_score": 0.673414409160614,
+            "bm25_score": 49.55953598022461,
+            "fusion_score": 0.03225806451612903,
+            "dense_rank": 2,
+            "bm25_rank": 2,
+            "retrieval_mode": "hybrid",
+            "synthetic": true
+          },
+          {
+            "source_id": "SYN-HIST-V2-001",
+            "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+            "title": "日报查询漏掉结束日期当天的数据",
+            "text": "标题：日报查询漏掉结束日期当天的数据\n\n问题描述：示例协作台报表 API，客户端 Python 3.12。按天查询时，start_date=2026-08-01、end_date=2026-08-02，只返回 8 月 1 日；单独查询 8 月 2 日能看到数据。没有错误码。\n\n历史解决摘要：本案例的日期区间结束端点不包含在结果中。\n\n历史根因：该虚构报表接口将 end_date 解释为不包含的结束边界，与调用方期望的包含边界不同。\n\n处理步骤：\n- 先在只读查询中确认结束日期边界行为。\n- 查询 8 月 1 日至 8 月 2 日两天时，将 end_date 设为 2026-08-03；不改动原始报表记录。\n\n验证结果：支持人员比较逐日查询与两天区间查询，记录集合一致，结束日期当天不再遗漏。",
+            "rank": 3,
+            "dense_score": 0.6025601029396057,
+            "bm25_score": 20.275897979736328,
+            "fusion_score": 0.031746031746031744,
+            "dense_rank": 3,
+            "bm25_rank": 3,
+            "retrieval_mode": "hybrid",
+            "synthetic": true
+          },
+          {
+            "source_id": "SYN-HIST-V2-008",
+            "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+            "title": "筛选 API 返回 E_FIELD_INVALID",
+            "text": "标题：筛选 API 返回 E_FIELD_INVALID\n\n问题描述：示例协作台任务列表 API，Python 3.12。请求参数 sort=createdAt，返回 E_FIELD_INVALID；响应明确写着 allowed values: created_at, updated_at。将同一只读请求中的 sort 改为 created_at 后成功。\n\n历史解决摘要：按本次接口明确返回的合法字段名调整排序参数。\n\n历史根因：调用方使用了 createdAt，而当前接口接受的是 created_at。\n\n处理步骤：\n- 核对当前接口响应中给出的合法排序字段。\n- 在只读查询中使用 created_at，并保留其他查询参数进行对比。\n\n验证结果：修改后的请求正常返回列表，排序顺序与创建时间一致；结论仅适用于此虚构接口版本。",
+            "rank": 4,
+            "dense_score": 0.5120818614959717,
+            "bm25_score": 8.535529136657715,
+            "fusion_score": 0.031009615384615385,
+            "dense_rank": 5,
+            "bm25_rank": 4,
+            "retrieval_mode": "hybrid",
+            "synthetic": true
+          },
+          {
+            "source_id": "SYN-HIST-V2-010",
+            "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+            "title": "编辑项目返回 E_PROJECT_READONLY",
+            "text": "标题：编辑项目返回 E_PROJECT_READONLY\n\n问题描述：示例协作台网页，Chrome 128。某项目可以查看，保存编辑时返回 E_PROJECT_READONLY，其他项目可以编辑。用户请求直接解除该项目的只读限制。\n\n历史解决摘要：人工核验授权和项目限制原因后完成处理。\n\n历史根因：人工查明该项目沿用了只读模板限制；该结论依赖当时的管理记录，不能只凭错误码判定。\n\n处理步骤：\n- 支持人员将权限相关请求交由具备授权的管理人员核验。\n- 授权管理人员确认该项目可变更后，按当时的内部审批完成限制调整；Agent 未自主调整权限。\n\n验证结果：授权管理人员复核变更记录，用户确认目标项目可按批准范围编辑；不能据此对新工单自动解除限制。",
+            "rank": 5,
+            "dense_score": 0.5510850548744202,
+            "bm25_score": 5.933394908905029,
+            "fusion_score": 0.030776515151515152,
+            "dense_rank": 4,
+            "bm25_rank": 6,
+            "retrieval_mode": "hybrid",
+            "synthetic": true
+          }
+        ],
+        "result_summary": "返回 5 条候选",
+        "duration_ms": 31
+      }
+    ],
+    "published_message_id": null,
+    "review": null
+  },
+  "final_proposal": {
+    "reason": "SYN-HIST-V2-006 适用：同为只读聚合查询在客户端超时上限处返回 E_TIMEOUT，单日查询快、大范围查询经延长等待后完整返回且与逐月汇总一致；客户已确认无本机开发代理，排除 SYN-HIST-V2-007 的代理根因。客户实测季度查询约3秒，建议将只读客户端等待上限调整到8秒做受控验证。",
+    "reply": "根据您提供的信息，只读季度聚合查询在客户端1秒超时上限处返回 E_TIMEOUT，而单日查询约0.2秒；在同网络下经维护人员允许等待8秒后，季度查询约3秒完整返回，与逐月汇总结果一致。这与历史案例 SYN-HIST-V2-006 的情况吻合：大范围只读聚合查询的耗时超过了客户端原始超时设置，并非查询本身失败。\n\n建议方案（待人工审核）：\n1. 根据您已测得的只读季度查询耗时（约3秒），将本次只读查询的客户端等待上限调整到8秒后进行受控验证。\n2. 如需更小等待时延，可缩小查询日期区间（例如按月或按日查询）。\n3. 此设置仅适用于本次只读聚合查询，不要推广到支付或其他写入请求。\n\n以上为待人工审核的建议，不涉及自动执行任何操作。",
+    "evidence_ids": [
+      "SYN-HIST-V2-006"
+    ],
+    "risk_flags": [],
+    "next_step": "propose_resolution",
+    "questions": [],
+    "evidence_quotes": {
+      "SYN-HIST-V2-006": "全年聚合在本案例约需 4 秒，原客户端在 2 秒终止等待。"
+    }
+  },
+  "retrieval_evidence": [
+    {
+      "source_id": "SYN-HIST-V2-006",
+      "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+      "title": "全年度聚合报表返回 E_TIMEOUT",
+      "text": "标题：全年度聚合报表返回 E_TIMEOUT\n\n问题描述：示例协作台聚合报表 API，Python 3.12，客户端请求超时设置为 2 秒。单日查询用时约 0.4 秒，全年查询总是在 2 秒时返回 E_TIMEOUT。相同网络的诊断只读请求允许等待 10 秒时，全年查询约 4 秒返回完整结果。\n\n历史解决摘要：该只读全年聚合查询的耗时超过客户端原超时设置。\n\n历史根因：全年聚合在本案例约需 4 秒，原客户端在 2 秒终止等待。\n\n处理步骤：\n- 根据已测得的只读查询耗时，将本次客户端等待上限调整到 10 秒后进行受控验证。\n- 如需要较小等待时延，可缩小查询日期区间；不要把此设置推广到支付或其他写入请求。\n\n验证结果：受控只读查询连续完成，结果与按月查询汇总一致；10 秒仅是本案例的验证设置，不是产品统一推荐。",
+      "rank": 1,
+      "dense_score": 0.7663764953613281,
+      "bm25_score": 60.16366958618164,
+      "fusion_score": 0.03278688524590164,
+      "dense_rank": 1,
+      "bm25_rank": 1,
+      "retrieval_mode": "hybrid",
+      "synthetic": true
+    },
+    {
+      "source_id": "SYN-HIST-V2-007",
+      "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+      "title": "本机代理开启后任务查询 E_TIMEOUT",
+      "text": "标题：本机代理开启后任务查询 E_TIMEOUT\n\n问题描述：示例协作台只读任务查询 API，Python 3.12。开启本机开发代理时，单条查询和大范围查询都在约 5 秒返回 E_TIMEOUT；按本地开发环境规范停用该代理后，同一只读请求立即成功。客户端超时已经设置为 30 秒。\n\n历史解决摘要：定位并修复开发代理的错误转发配置。\n\n历史根因：该本机开发代理的目标转发配置错误，与查询时间范围或客户端等待上限无关。\n\n处理步骤：\n- 由开发环境维护人员检查并修复本机代理转发配置。\n- 恢复正常代理配置后重试同一只读请求；不要求绕过组织安全代理或调整生产网络控制。\n\n验证结果：使用修复后的开发代理，单条和大范围只读查询均成功且耗时正常。",
+      "rank": 2,
+      "dense_score": 0.673414409160614,
+      "bm25_score": 49.55953598022461,
+      "fusion_score": 0.03225806451612903,
+      "dense_rank": 2,
+      "bm25_rank": 2,
+      "retrieval_mode": "hybrid",
+      "synthetic": true
+    },
+    {
+      "source_id": "SYN-HIST-V2-001",
+      "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+      "title": "日报查询漏掉结束日期当天的数据",
+      "text": "标题：日报查询漏掉结束日期当天的数据\n\n问题描述：示例协作台报表 API，客户端 Python 3.12。按天查询时，start_date=2026-08-01、end_date=2026-08-02，只返回 8 月 1 日；单独查询 8 月 2 日能看到数据。没有错误码。\n\n历史解决摘要：本案例的日期区间结束端点不包含在结果中。\n\n历史根因：该虚构报表接口将 end_date 解释为不包含的结束边界，与调用方期望的包含边界不同。\n\n处理步骤：\n- 先在只读查询中确认结束日期边界行为。\n- 查询 8 月 1 日至 8 月 2 日两天时，将 end_date 设为 2026-08-03；不改动原始报表记录。\n\n验证结果：支持人员比较逐日查询与两天区间查询，记录集合一致，结束日期当天不再遗漏。",
+      "rank": 3,
+      "dense_score": 0.6025601029396057,
+      "bm25_score": 20.275897979736328,
+      "fusion_score": 0.031746031746031744,
+      "dense_rank": 3,
+      "bm25_rank": 3,
+      "retrieval_mode": "hybrid",
+      "synthetic": true
+    },
+    {
+      "source_id": "SYN-HIST-V2-008",
+      "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+      "title": "筛选 API 返回 E_FIELD_INVALID",
+      "text": "标题：筛选 API 返回 E_FIELD_INVALID\n\n问题描述：示例协作台任务列表 API，Python 3.12。请求参数 sort=createdAt，返回 E_FIELD_INVALID；响应明确写着 allowed values: created_at, updated_at。将同一只读请求中的 sort 改为 created_at 后成功。\n\n历史解决摘要：按本次接口明确返回的合法字段名调整排序参数。\n\n历史根因：调用方使用了 createdAt，而当前接口接受的是 created_at。\n\n处理步骤：\n- 核对当前接口响应中给出的合法排序字段。\n- 在只读查询中使用 created_at，并保留其他查询参数进行对比。\n\n验证结果：修改后的请求正常返回列表，排序顺序与创建时间一致；结论仅适用于此虚构接口版本。",
+      "rank": 4,
+      "dense_score": 0.5120818614959717,
+      "bm25_score": 8.535529136657715,
+      "fusion_score": 0.031009615384615385,
+      "dense_rank": 5,
+      "bm25_rank": 4,
+      "retrieval_mode": "hybrid",
+      "synthetic": true
+    },
+    {
+      "source_id": "SYN-HIST-V2-010",
+      "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+      "title": "编辑项目返回 E_PROJECT_READONLY",
+      "text": "标题：编辑项目返回 E_PROJECT_READONLY\n\n问题描述：示例协作台网页，Chrome 128。某项目可以查看，保存编辑时返回 E_PROJECT_READONLY，其他项目可以编辑。用户请求直接解除该项目的只读限制。\n\n历史解决摘要：人工核验授权和项目限制原因后完成处理。\n\n历史根因：人工查明该项目沿用了只读模板限制；该结论依赖当时的管理记录，不能只凭错误码判定。\n\n处理步骤：\n- 支持人员将权限相关请求交由具备授权的管理人员核验。\n- 授权管理人员确认该项目可变更后，按当时的内部审批完成限制调整；Agent 未自主调整权限。\n\n验证结果：授权管理人员复核变更记录，用户确认目标项目可按批准范围编辑；不能据此对新工单自动解除限制。",
+      "rank": 5,
+      "dense_score": 0.5510850548744202,
+      "bm25_score": 5.933394908905029,
+      "fusion_score": 0.030776515151515152,
+      "dense_rank": 4,
+      "bm25_rank": 6,
+      "retrieval_mode": "hybrid",
+      "synthetic": true
+    }
+  ],
+  "temporary_schema": "tm_test_e4b4dc3041c04a44965abbeb767296d4",
+  "raw_decisions": [
+    {
+      "request_id": "chatcmpl-75ae95d9-a3a0-9837-b741-fb5f5e5891c5",
+      "usage": {
+        "completion_tokens": 383,
+        "prompt_tokens": 4345,
+        "total_tokens": 4728,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "choices": [
+        {
+          "content": "{\"reason\": \"SYN-HIST-V2-006 适用：同为只读聚合查询在客户端超时上限处返回 E_TIMEOUT，单日查询快、大范围查询经延长等待后完整返回且与逐月汇总一致；客户已确认无本机开发代理，排除 SYN-HIST-V2-007 的代理根因。客户实测季度查询约3秒，建议将只读客户端等待上限调整到8秒做受控验证。\", \"reply\": \"根据您提供的信息，只读季度聚合查询在客户端1秒超时上限处返回 E_TIMEOUT，而单日查询约0.2秒；在同网络下经维护人员允许等待8秒后，季度查询约3秒完整返回，与逐月汇总结果一致。这与历史案例 SYN-HIST-V2-006 的情况吻合：大范围只读聚合查询的耗时超过了客户端原始超时设置，并非查询本身失败。\\n\\n建议方案（待人工审核）：\\n1. 根据您已测得的只读季度查询耗时（约3秒），将本次只读查询的客户端等待上限调整到8秒后进行受控验证。\\n2. 如需更小等待时延，可缩小查询日期区间（例如按月或按日查询）。\\n3. 此设置仅适用于本次只读聚合查询，不要推广到支付或其他写入请求。\\n\\n以上为待人工审核的建议，不涉及自动执行任何操作。\", \"evidence_ids\": [\"SYN-HIST-V2-006\"], \"evidence_quotes\": {\"SYN-HIST-V2-006\": \"全年聚合在本案例约需 4 秒，原客户端在 2 秒终止等待。\"}, \"risk_flags\": [], \"next_step\": \"propose_resolution\", \"questions\": []}",
+          "finish_reason": "stop"
+        }
+      ]
+    }
+  ],
+  "raw_proposal": {
+    "reason": "SYN-HIST-V2-006 适用：同为只读聚合查询在客户端超时上限处返回 E_TIMEOUT，单日查询快、大范围查询经延长等待后完整返回且与逐月汇总一致；客户已确认无本机开发代理，排除 SYN-HIST-V2-007 的代理根因。客户实测季度查询约3秒，建议将只读客户端等待上限调整到8秒做受控验证。",
+    "reply": "根据您提供的信息，只读季度聚合查询在客户端1秒超时上限处返回 E_TIMEOUT，而单日查询约0.2秒；在同网络下经维护人员允许等待8秒后，季度查询约3秒完整返回，与逐月汇总结果一致。这与历史案例 SYN-HIST-V2-006 的情况吻合：大范围只读聚合查询的耗时超过了客户端原始超时设置，并非查询本身失败。\n\n建议方案（待人工审核）：\n1. 根据您已测得的只读季度查询耗时（约3秒），将本次只读查询的客户端等待上限调整到8秒后进行受控验证。\n2. 如需更小等待时延，可缩小查询日期区间（例如按月或按日查询）。\n3. 此设置仅适用于本次只读聚合查询，不要推广到支付或其他写入请求。\n\n以上为待人工审核的建议，不涉及自动执行任何操作。",
+    "evidence_ids": [
+      "SYN-HIST-V2-006"
+    ],
+    "evidence_quotes": {
+      "SYN-HIST-V2-006": "全年聚合在本案例约需 4 秒，原客户端在 2 秒终止等待。"
+    },
+    "risk_flags": [],
+    "next_step": "propose_resolution",
+    "questions": []
+  },
+  "evaluation_config": {
+    "models": {
+      "rrf_k": 60,
+      "top_k": 5,
+      "limits": {
+        "max_agent_steps": 8,
+        "max_case_details": 2,
+        "max_search_rounds": 2,
+        "max_clarification_rounds": 2,
+        "processing_timeout_seconds": 90.0
+      },
+      "decision": "glm-5.2",
+      "dimension": 1024,
+      "embedding": "text-embedding-v4",
+      "collection": "historical_cases_m3_9c369df151b9201377c533fe",
+      "candidate_k": 20,
+      "understanding": "qwen3.7-flash",
+      "decision_protocol": "m3-retrieval-evidence-v1"
+    },
+    "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+    "retrieval_mode": "hybrid",
+    "agent_version": "ticketmind-m3"
+  },
+  "http_database_consistent": true,
+  "idempotent_no_extra_run": true
+}

@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-09-15T12:50:38.092704+00:00",
+  "source": "data/cache/m4/regression-push.xml",
+  "total": 152,
+  "real_postgresql": 44,
+  "logic_or_doubles": 108,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "provider_calls_in_tests": 0,
+  "new_scenarios": [
+    "test_real_model_transport_fails_once_and_preserves_ticket[timeout]",
+    "test_real_model_transport_fails_once_and_preserves_ticket[http_503]",
+    "test_real_model_transport_fails_once_and_preserves_ticket[invalid_json]",
+    "test_missing_real_checkpoint_refuses_recompute_or_publish",
+    "test_finished_checkpoint_with_other_review_refuses_publication",
+    "test_evaluation_export_keeps_synthetic_final_separate_from_absent_model_output"
+  ],
+  "historical_not_rerun": {
+    "m3_real_flow": 8,
+    "m2_process_recovery": 4
+  }
+}

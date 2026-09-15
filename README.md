@@ -4,7 +4,7 @@
 
 三类提案都先进入 waiting_review。**生成建议不会关闭工单；发布仅指本地数据库消息，没有接入邮件或外部客服平台。** 本轮 M2 验收收尾已完成：历史三类真实提案及审核、客户补充后真实重检索与建议、用户批准编辑后的业务应用均有证据，工程验证已覆盖审核与进程恢复。
 
-语料为 data/synthetic/v2/ 中的 12 条历史案例和 16 条开发输入，均为合成场景，不代表真实客户效果。M3 BM25/Hybrid 尚未实现。
+语料为 data/synthetic/v2/ 中的 12 条历史案例和 16 条开发输入，均为合成场景，不代表真实客户效果。M3 已实现 BM25、Dense/BM25/Hybrid 模式与 RRF；首次和再次检索均接入工单处理。真实检索对比、8 个 HTTP/数据库场景及限制见 [M3 交付报告](docs/m3-retrieval.md)。
 
 当前决策协议 `m2-action-boundaries-v2` 下，glm-5.2用真实新查询向量在Milvus召回006并生成建议，随后精确缓存回放应用用户批准的编辑稿：completed、工单open、版本3→4、消息3→4，重复审核幂等。草稿中过度结论已由人工编辑删除；此前失败样本均保留。实际证据见 [补充验收](docs/m2-followup.md)及[审核单](docs/m2-followup-review.md)。这些是不同阶段/模型的合成样本证据，不代表当前单模型三路径完整回归或总体准确率。
 
@@ -32,8 +32,9 @@ uv run --no-sync python scripts/configure_local_auth.py
 | TICKETMIND_MILVUS_URI、TICKETMIND_MILVUS_TIMEOUT_SECONDS | 默认本地 http://127.0.0.1:19530、10 秒 |
 | TICKETMIND_OPERATOR_TOKEN、TICKETMIND_REVIEWER_TOKEN | 独立 Bearer 凭据，至少 32 个非空白 ASCII 字符 |
 | TICKETMIND_OPERATOR_ID、TICKETMIND_REVIEWER_ID | 服务端预置身份，默认 operator/reviewer，必须不同 |
-| TICKETMIND_AGENT_VERSION | 默认 ticketmind-m2；旧环境显式设置 m1 时应更新这个非密钥项 |
-| TICKETMIND_RETRIEVAL_MODE、TICKETMIND_RETRIEVAL_TOP_K | 仅 dense，默认 3 条 |
+| TICKETMIND_AGENT_VERSION | 默认 ticketmind-m3；旧环境显式设置 m1/m2 时应更新这个非密钥项 |
+| TICKETMIND_RETRIEVAL_MODE、TICKETMIND_RETRIEVAL_TOP_K | dense / bm25 / hybrid；默认 dense、3 条，M3 对比使用 5 条 |
+| TICKETMIND_RETRIEVAL_CANDIDATE_K、TICKETMIND_RETRIEVAL_RRF_K | Hybrid 每路候选默认 20（至少 top_k）；RRF k 默认 60 |
 | TICKETMIND_PROCESSING_TIMEOUT_SECONDS | 默认 90 秒，阶段检查/SDK 超时，非进程硬截止 |
 | TICKETMIND_MAX_SEARCH_ROUNDS | 检索含首次最多 2 轮，可调低 |
 | TICKETMIND_MAX_CASE_DETAILS | 最多 2 个不同候选详情，可调低或设 0 |
@@ -196,6 +197,35 @@ uv run --no-sync python scripts/check_milvus.py
 
 先启动 Docker Desktop 的 Linux Engine。infra/milvus/.env 的 DOCKER_VOLUME_DIRECTORY 控制数据根目录；保留现有 volumes，日常停止用 docker compose --project-directory infra/milvus stop。
 
-仅新环境首次执行 scripts/init_case_collection.py、scripts/ingest_historical_cases.py。导入默认只复用 data/cache/embeddings/ 中匹配的向量，整批 --allow-embedding 须另行授权。当前仍按 12 条开发案例检查，本轮未重建、清空或迁移现有集合。
+旧 Dense 集合仅在新环境首次执行 scripts/init_case_collection.py、scripts/ingest_historical_cases.py；它绑定原始语料内容版本。导入默认只复用 data/cache/embeddings/ 中匹配的向量，整批 --allow-embedding 须另行授权。本轮新增 M3 集合并复用 12 条真实向量，保留 historical_cases_v1 的原数据与向量。
+
+### M3 初始化、切换与验收
+
+```powershell
+# 创建内容版本化新集合，然后复用文档向量并核对 ID、文本、版本和条数
+uv run --no-sync python scripts/init_case_collection.py --versioned
+uv run --no-sync python scripts/ingest_historical_cases.py --versioned
+
+# 仅影响当前终端启动的 API；持久配置可写入本地 .env，修改后重启 API
+$env:TICKETMIND_RETRIEVAL_MODE = 'hybrid'
+$env:TICKETMIND_AGENT_VERSION = 'ticketmind-m3'
+uv run --no-sync uvicorn ticketmind.main:app --host 127.0.0.1 --port 8000 --workers 1
+```
+
+切回 dense 即使用原始 V2 语料的旧 Dense 基线；bm25 不调用查询 Embedding。更换语料后，三种模式均要求对应内容版本的新集合，未初始化、未完整导入或版本不匹配会明确失败。不会搜索旧集合补结果。API 仍通过服务配置选择枚举模式，不接收任意集合名。
+
+```powershell
+# 固定 5 条历史查询；精确缓存缺失即失败，不补调模型
+uv run --no-sync python scripts/evaluate_retrieval.py --check-only
+uv run --no-sync python scripts/evaluate_retrieval.py
+# 新增 12 条诊断样本可先只跑无需向量的真实 BM25
+uv run --no-sync python scripts/evaluate_retrieval.py --queries data/synthetic/m3/retrieval_diagnostics.jsonl --modes bm25
+# 真实 PostgreSQL/checkpointer + ASGI HTTP + Milvus；理解/决策为明确标记的替身
+uv run --no-sync python scripts/check_m3_flow.py
+```
+
+报告默认保存为 data/cache/m3/ 下带时间戳的新文件。各通道候选、原始分数、排名、耗时和错误写入运行 tool_calls；最终证据保存 dense_score / bm25_score / fusion_score，不把分数混成置信度。Hybrid 任一路空结果或失败使运行 failed，已取得的候选仍保留在诊断中。
+
+M3 使用 m3-retrieval-evidence-v1 决策输入协议；旧决策缓存保留，但不能冒充当前证据结构的匹配缓存。M0 理解/向量缓存仍可复用。历史 M2 缓存审核命令属于历史协议证据；本轮未申请、执行任何新付费模型调用，也未重验真实模型对 Hybrid 证据的决策质量。
 
 实际证据见 [开发日志](docs/project-log.md)。恢复设计参考 [LangGraph interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts) 和 [PostgreSQL persistence](https://docs.langchain.com/oss/python/langgraph/add-memory)，以锁定依赖和本仓库测试为准。

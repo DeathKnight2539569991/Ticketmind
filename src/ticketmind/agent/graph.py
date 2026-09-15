@@ -21,6 +21,7 @@ def build_ticket_graph(
         decision_fn:Callable[[TicketAgentState], Proposal] | None=None,
         retrieval_timeout_fn:Callable[[], float] | None=None,
         retrieval_audit:list | None=None,
+        retrieval_fn:Callable | None=None,
 ) ->CompiledStateGraph:
     """业务图默认直接理解新工单；开发缓存通过可选适配器注入，客户端由调用方管理。"""
     def understand_node(
@@ -40,13 +41,16 @@ def build_ticket_graph(
         if retrieval_audit is not None:
             retrieval_audit.append(record)
         try:
-            retrieval=retrieve_ticket(state=state, embeddings=embeddings, client=client, top_k=top_k,
+            retrieval = retrieval_fn(state, record) if retrieval_fn else retrieve_ticket(
+                state=state, embeddings=embeddings, client=client, top_k=top_k,
                 timeout=retrieval_timeout_fn if retrieval_timeout_fn else timeout)
             record.update(status="succeeded", result_source_ids=[hit.source_id for hit in retrieval["retrieval_hits"]],
                           result_summary=f"返回 {len(retrieval['retrieval_hits'])} 条候选")
             return retrieval
-        except Exception:
+        except Exception as exc:
             record["error"] = "tool_execution_failed"
+            if hasattr(exc, "code"):
+                record["retrieval_error"] = exc.code
             raise
         finally:
             record["duration_ms"] = round((monotonic() - started) * 1000)

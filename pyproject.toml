@@ -33,4 +33,5 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 markers = ["integration: opt-in real PostgreSQL tests in temporary isolated schemas"]

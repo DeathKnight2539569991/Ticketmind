@@ -6,7 +6,7 @@ from ticketmind.agent.proposals import decision_adapter, validate_proposal
 from ticketmind.retrieval.dense import search_case_vectors
 
 
-def bounded_decision(state, *, decide, embeddings, client, corpus, config, remaining, audit, retrieval_timeout=None):
+def bounded_decision(state, *, decide, embeddings, client, corpus, config, remaining, audit, retrieval_timeout=None, search_fn=None):
     state = dict(state)
     state.update(case_details={}, tool_calls=audit, search_rounds=1, agent_steps=2)
     state["execution_limits"] = config.model_dump(include={
@@ -54,9 +54,12 @@ def bounded_decision(state, *, decide, embeddings, client, corpus, config, remai
         try:
             remaining()
             if decision.next_step == "search_cases":
-                vector = embeddings.embed_query(decision.query)
-                hits = search_case_vectors(client, vector, top_k=config.retrieval_top_k,
-                    timeout=min(remaining(), retrieval_timeout() if retrieval_timeout else remaining()))
+                if search_fn:
+                    hits = search_fn(decision.query, record)
+                else:
+                    vector = embeddings.embed_query(decision.query)
+                    hits = search_case_vectors(client, vector, top_k=config.retrieval_top_k,
+                        timeout=min(remaining(), retrieval_timeout() if retrieval_timeout else remaining()))
                 record["result_evidence"] = corpus.evidence(hits)
                 seen_queries.add(decision.query.strip().casefold())
                 state["search_rounds"] += 1
@@ -73,8 +76,10 @@ def bounded_decision(state, *, decide, embeddings, client, corpus, config, remai
                 record["result_summary"] = "读取本次版本的完整合成案例"
             remaining()
             record["status"] = "succeeded"
-        except Exception:
+        except Exception as exc:
             record["status"], record["error"] = "failed", "tool_execution_failed"
+            if hasattr(exc, "code"):
+                record["retrieval_error"] = exc.code
             raise
         finally:
             record["duration_ms"] = round((monotonic() - started) * 1000)

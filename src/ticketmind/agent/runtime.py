@@ -9,6 +9,9 @@ from ticketmind.core.config import MilvusSettings, ProcessingSettings, QwenSetti
 from ticketmind.knowledge.sources import load_sources
 from ticketmind.retrieval.embeddings import build_embedding_client
 from ticketmind.retrieval.milvus_client import build_milvus_client
+from ticketmind.retrieval.service import retrieve_cases
+from ticketmind.retrieval.versioned_collection import selected_collection
+from ticketmind.agent.retrieve import build_retrieval_query
 
 
 @dataclass
@@ -43,6 +46,9 @@ class AgentRunner:
                                  "decision_protocol": DECISION_PROTOCOL,
                                  "embedding": self.qwen.embedding_model, "dimension": 1024,
                                  "top_k": self.config.retrieval_top_k,
+                                 "candidate_k": self.config.retrieval_candidate_k,
+                                 "rrf_k": self.config.retrieval_rrf_k,
+                                 "collection": selected_collection(self.corpus, self.config.retrieval_mode),
                                  "limits": self.config.model_dump(include={"max_search_rounds", "max_case_details", "max_agent_steps", "max_clarification_rounds", "processing_timeout_seconds"})}}
 
     def __call__(self, snapshot: dict) -> RunOutput:
@@ -89,9 +95,20 @@ class AgentRunner:
             stage = "decision"
             result, hits = bounded_decision(state, decide=one_decision, embeddings=embeddings,
                 client=client, corpus=self.corpus, config=self.config, remaining=remaining, audit=partial["tool_calls"],
-                retrieval_timeout=lambda: min(self.milvus.timeout_seconds, remaining()))
+                retrieval_timeout=lambda: min(self.milvus.timeout_seconds, remaining()), search_fn=search)
             evidence = self.corpus.evidence(hits)
             return result
+
+        def search(query, record):
+            nonlocal stage
+            stage = "retrieval"
+            return retrieve_cases(query, client=client, embeddings=embeddings, corpus=self.corpus,
+                config=self.config, timeout=lambda: min(self.milvus.timeout_seconds, remaining()),
+                record=record, model=self.qwen.embedding_model)
+
+        def initial_retrieval(state, record):
+            query = build_retrieval_query(subject=state["subject"], body=state["body"])
+            return {"retrieval_query": query, "retrieval_hits": search(query, record)}
 
         try:
             if self.qwen.embedding_model != "text-embedding-v4":
@@ -99,13 +116,15 @@ class AgentRunner:
             client = (self.milvus_factory or build_milvus_client)(self.milvus.model_copy(
                 update={"timeout_seconds": min(self.milvus.timeout_seconds, remaining())}))
             # The production adapter gives each query a remaining-budget timeout, with no retries.
-            embeddings = self.embedding_factory(remaining) if self.embedding_factory else build_budgeted_embeddings(
-                self.qwen, remaining, lambda value: usage.setdefault("embeddings", []).append(value))
+            embeddings = None if self.config.retrieval_mode == "bm25" else (
+                self.embedding_factory(remaining) if self.embedding_factory else build_budgeted_embeddings(
+                    self.qwen, remaining, lambda value: usage.setdefault("embeddings", []).append(value)))
             graph = build_ticket_graph(self.qwen, embeddings=embeddings, client=client,
                                        top_k=self.config.retrieval_top_k,
                                        timeout=min(self.milvus.timeout_seconds, remaining()),
                                        understanding_fn=understand, decision_fn=decide,
                                        retrieval_audit=partial["tool_calls"],
+                                       retrieval_fn=initial_retrieval,
                                        retrieval_timeout_fn=lambda: min(self.milvus.timeout_seconds, remaining()))
             for update in graph.stream(partial, stream_mode="updates"):
                 for node, values in update.items():

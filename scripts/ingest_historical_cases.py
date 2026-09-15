@@ -4,12 +4,16 @@ from pathlib import Path
 from ticketmind.core.config import MilvusSettings, QwenSettings
 from ticketmind.knowledge.corpus import load_historical_cases
 from ticketmind.knowledge.vector_cache import load_or_build_records
-from ticketmind.retrieval.case_collection import CASE_COLLECTION
+from ticketmind.retrieval.case_collection import CASE_COLLECTION, LEGACY_CORPUS_VERSION
 from ticketmind.retrieval.milvus_client import build_milvus_client
+from ticketmind.core.config import ProcessingSettings
+from ticketmind.knowledge.sources import load_sources
+from ticketmind.retrieval.versioned_collection import validate_collection
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--versioned", action="store_true", help="导入 M3 内容版本化集合；不修改旧集合")
     parser.add_argument(
         "--allow-embedding",
         action="store_true",
@@ -18,12 +22,10 @@ def main() -> None:
     args = parser.parse_args()
 
     project_root = Path(__file__).resolve().parents[1]
-    cases = load_historical_cases(
-        project_root / "data/synthetic/v2/historical_cases.jsonl"
-    )
-
-    if len(cases) != 12:
-        raise ValueError("本轮验证预期为 12 条历史案例")
+    corpus = load_sources(ProcessingSettings().corpus_path)
+    cases = list(corpus.cases.values())
+    if not args.versioned and corpus.version != LEGACY_CORPUS_VERSION:
+        raise ValueError("旧 Dense 集合绑定原始语料版本；新语料请使用 --versioned")
 
     milvus_settings = MilvusSettings()
     qwen_settings = QwenSettings()
@@ -34,8 +36,10 @@ def main() -> None:
     client = build_milvus_client(milvus_settings)
 
     try:
+        collection = validate_collection(client, corpus, model=qwen_settings.embedding_model,
+            timeout=milvus_settings.timeout_seconds) if args.versioned else CASE_COLLECTION
         if not client.has_collection(
-            collection_name=CASE_COLLECTION,
+            collection_name=collection,
             timeout=milvus_settings.timeout_seconds,
         ):
             raise RuntimeError("集合不存在，请先运行集合初始化脚本")
@@ -48,16 +52,17 @@ def main() -> None:
         )
 
         result = client.upsert(
-            collection_name=CASE_COLLECTION,
-            data=[record.model_dump() for record in records],
+            collection_name=collection,
+            data=[{**record.model_dump(), **({"corpus_version": corpus.version, "bm25_text": record.text.lower()}
+                  if args.versioned else {})} for record in records],
             timeout=milvus_settings.timeout_seconds,
         )
         print(f"写入结果：{result}")
 
         stored = client.get(
-            collection_name=CASE_COLLECTION,
+            collection_name=collection,
             ids=[record.source_id for record in records],
-            output_fields=["source_id", "text"],
+            output_fields=["source_id", "text"] + (["corpus_version", "bm25_text"] if args.versioned else []),
             consistency_level="Strong",
             timeout=milvus_settings.timeout_seconds,
         )
@@ -72,9 +77,11 @@ def main() -> None:
         }
         if len(stored) != len(records) or actual != expected:
             raise RuntimeError("读回的案例 ID 或文本与本次导入不一致")
+        if args.versioned and any(row["corpus_version"] != corpus.version or row["bm25_text"] != row["text"].lower() for row in stored):
+            raise RuntimeError("读回版本或 BM25 文本不一致")
 
         counts = client.query(
-            collection_name=CASE_COLLECTION,
+            collection_name=collection,
             filter="",
             output_fields=["count(*)"],
             consistency_level="Strong",

@@ -61,7 +61,8 @@ def test_real_graph_orchestration_and_partial_failure(monkeypatch, settings, fai
         with pytest.raises(RunFailure) as error:
             runner({"subject": "s", "body": "b"})
         assert error.value.partial["understanding"].summary == "unit understanding"
-        assert error.value.stage == {"embedding": "retrieval", "decision": "decision", "source": "source_validation"}[failure]
+        # M3 validates source contents inside retrieval, before any decision is possible.
+        assert error.value.stage == {"embedding": "retrieval", "decision": "decision", "source": "retrieval"}[failure]
         if failure == "decision":
             assert error.value.evidence[0]["source_id"] == case.source_id
         else:

@@ -14,7 +14,9 @@ def search_case_vectors(
         query_vectors: list[float],
         *,
         top_k: int,
-        timeout:float
+        timeout:float,
+        collection_name: str = CASE_COLLECTION,
+        expected_corpus_version: str | None = None,
 )-> list[RetrievalHit]:
     if not 1<=top_k<=100:
         raise ValueError("top_k 必须在 1 到 100 之间")
@@ -25,17 +27,20 @@ def search_case_vectors(
     if not any(value != 0 for value in query_vectors):
         raise ValueError("查询向量不能全为零")
     results=client.search(
-        collection_name=CASE_COLLECTION,
+        collection_name=collection_name,
         data=[query_vectors],
         anns_field="embedding",
         search_params={"metric_type": "COSINE"},
-        output_fields=["source_id", "text"],
+        output_fields=["source_id", "text"] + (["corpus_version"] if expected_corpus_version else []),
         limit=top_k,
         timeout=timeout,
         consistency_level="Strong"
     )
     if len(results) != 1:
         raise RuntimeError("单条查询未返回对应的一组结果")
+    if expected_corpus_version and any(hit["entity"].get("corpus_version") != expected_corpus_version for hit in results[0]):
+        from ticketmind.retrieval.schemas import RetrievalError
+        raise RetrievalError("corpus_version_mismatch")
 
     return [
         RetrievalHit(

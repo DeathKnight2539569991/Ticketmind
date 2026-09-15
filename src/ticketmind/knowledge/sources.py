@@ -12,11 +12,17 @@ class CorpusSnapshot:
     cases: dict[str, HistoricalCase]
 
     def evidence(self, hits) -> list[dict]:
+        from ticketmind.retrieval.schemas import EvidenceHit
         evidence = []
         for rank, hit in enumerate(hits, 1):
             case = self.cases.get(hit.source_id)
             if case is None or build_case_text(case) != hit.text:
                 raise ValueError("Milvus 来源或文本与本次语料版本不匹配")
+            if isinstance(hit, EvidenceHit):
+                if hit.corpus_version != self.version or hit.title != case.request.subject:
+                    raise ValueError("检索证据版本不匹配")
+                evidence.append({**hit.model_dump(), "synthetic": True})
+                continue
             evidence.append({**hit.model_dump(), "corpus_version": self.version,
                              "title": case.request.subject, "rank": rank, "dense_score": hit.score,
                              "bm25_score": None, "fusion_score": None, "retrieval_mode": "dense",

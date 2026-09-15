@@ -69,9 +69,11 @@ class AuthSettings(BaseSettings):
 class ProcessingSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8",
                                       env_prefix="TICKETMIND_", extra="ignore")
-    agent_version: str = "ticketmind-m2"
-    retrieval_mode: Literal["dense"] = "dense"
+    agent_version: str = "ticketmind-m3"
+    retrieval_mode: Literal["dense", "bm25", "hybrid"] = "dense"
     retrieval_top_k: int = Field(default=3, ge=1, le=100)
+    retrieval_candidate_k: int = Field(default=20, ge=1, le=100)
+    retrieval_rrf_k: int = Field(default=60, ge=1, le=1000)
     processing_timeout_seconds: float = Field(default=90, gt=0, le=300)
     max_search_rounds: int = Field(default=2, ge=1, le=2)
     max_case_details: int = Field(default=2, ge=0, le=2)

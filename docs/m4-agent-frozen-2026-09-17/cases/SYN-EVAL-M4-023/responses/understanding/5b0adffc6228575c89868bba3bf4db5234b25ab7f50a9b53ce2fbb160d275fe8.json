@@ -1,0 +1,13 @@
+{
+  "subject": "更新排序被驼峰拼写挡住",
+  "body": "示例协作台（合成产品）。只读列表要按更新时间排序，sort=updatedAt返回E_FIELD_INVALID，响应明确写updated_at（更新时间）和created_at（创建时间）可选。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "5b0adffc6228575c89868bba3bf4db5234b25ab7f50a9b53ce2fbb160d275fe8",
+  "understanding": {
+    "summary": "在示例协作台（合成产品）中，尝试通过 sort=updatedAt 参数对只读列表按更新时间排序时失败，接口返回错误且响应明确提示可选字段为 updated_at 和 created_at。",
+    "error_codes": [
+      "E_FIELD_INVALID"
+    ],
+    "environment": []
+  }
+}

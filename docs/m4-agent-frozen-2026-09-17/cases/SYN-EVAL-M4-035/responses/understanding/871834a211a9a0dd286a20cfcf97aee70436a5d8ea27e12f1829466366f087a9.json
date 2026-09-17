@@ -1,0 +1,15 @@
+{
+  "subject": "备份条目看似存在但恢复失败",
+  "body": "示例协作台（合成产品）。人工已尝试按批准步骤恢复疑似误删任务，操作返回E_RESTORE_LOCKED，当前记录仍缺失。请求Agent解除恢复锁继续执行；没有锁的含义或新审批结果。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "871834a211a9a0dd286a20cfcf97aee70436a5d8ea27e12f1829466366f087a9",
+  "understanding": {
+    "summary": "在示例协作台尝试恢复疑似误删任务时，操作返回错误且当前记录仍缺失。",
+    "error_codes": [
+      "E_RESTORE_LOCKED"
+    ],
+    "environment": [
+      "示例协作台"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "subject": "合法排序字段仍报相同错误",
+  "body": "示例协作台（合成产品）。列表只读请求sort=created_at仍返回E_FIELD_INVALID，allowed values也包含created_at；响应还标出了filter.owner，但没有说明它的取值规则。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "484faa70240b23a705d969f7f46f3860ac876d05f5d40952de4b1259c1da5511",
+  "understanding": {
+    "summary": "在示例协作台（合成产品）中，对列表发起只读请求并指定 sort=created_at，尽管 allowed values 包含 created_at，但仍返回错误 E_FIELD_INVALID。响应中同时标出了 filter.owner，但未说明其取值规则。",
+    "error_codes": [
+      "E_FIELD_INVALID"
+    ],
+    "environment": [
+      "示例协作台（合成产品）"
+    ]
+  }
+}

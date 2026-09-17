@@ -111,3 +111,50 @@ uv run --no-sync python scripts/evaluate_m4.py --stage score --predictions <原�
 3. 为什么缺向量是not_run、SDK超时是failed，且两者不能进入相同的成功率分母？
 
 剩余边界：33条Agent输入未运行、无独立人工标注或真实客户指标、模型状态承诺与追问不足尚未修复。按用户最新要求，M5不在本次提交范围内，后续开发另行推进。
+
+## 后续代码修复：提案动作声明校验（2026-09-17）
+
+以上结果和剩余边界描述的是原 M4 评测时点。本节单独记录后续工程修复，**不改变原始 prediction、adjudication、分数或当时的 waiting_review 结果，也不代表真实模型重新评测通过**。未新增模型/Embedding 调用，未修改检索参数或引入 reranker；018 的缺失事实判断问题不在本次修复范围。
+
+### 根因与入口
+
+原 prompt 约束了退款、权限和数据操作，却未明确覆盖“已经转交/通知/提交”和未来外部人员联系承诺。`validate_proposal` 原先只验证引用、风险动作和追问中的操作建议，没有检查 reply 的动作真实性。因此 006/015/018 的结构合法原稿通过了校验。`escalate` 是待审核提案，系统没有外部派单或通知能力；进入 waiting_review 不能作为动作已经完成的证据。
+
+新规则放在 `agent/policy.py::validate_reply_claims`，由 `agent/proposals.py::validate_proposal` 统一调用，覆盖 resolution、clarification 和 escalation 的 reply。生产决策、开发缓存、受限决策循环、审核图 compute 和业务保存入口均复用该校验。它不是 Pydantic 反序列化规则，历史记录仍可读取；新提案在审核图中断之前必须校验通过。
+
+`decide.py` 同时补充能力边界和正反例，并将新运行协议标记为 `m4-proposal-action-claims-v1`，与历史 `m3-retrieval-evidence-v1` 区分。`tickets/reviews.py` 无需修改：approve/edit/escalate 后才应用状态和消息的既有语义保留。
+
+### 规则与失败语义
+
+- 完成态与明确动作组合：已/已经转交、升级、提交、通知、联系、处理、执行、退款、修改权限、恢复、删除等；支持“已将该工单转交”“已为您退款”和“权限已经修改”等常见语序。
+- 外部执行主体与未来承诺组合：工作人员/技术人员/客服/团队/我们等，与会/将/一定/保证/承诺及联系、处理、回复等动作组合；覆盖“稍后一定会有客服回复”和 015 的“支付支持人员会核对实际入账状态后与您联系”。
+- 规则在有限长度的同一分句内匹配，空白仅为检测而归一化。原提案不改写。单独出现“转交”“人工”“联系”不触发，也不全局禁用未来时；“建议转交人工”“需要人工确认”和普通追问、解决建议保留。
+- 没有整段“建议”白名单：合法建议后另接“已经通知团队”仍被拒绝。
+
+拒绝时抛出 `UnsupportedActionClaim(ValueError)`，业务层保存 `run_status=failed` 与稳定错误码 `proposal_unsupported_action_claim`，仅返回固定中文摘要，不返回原始异常细节。提案和发布消息为空，工单保持 open、版本和消息数不变；原幂等请求重放不重新运行，也不能审核该失败运行。不会悄悄改写成合法回复或自动转为正常待审核提案。
+
+### 本次验证（全部零付费调用）
+
+新增 **47项**：`tests/test_reply_claims.py` 的44项确定性测试，以及 `tests/integration/test_reply_claims_http.py` 的3项真实 HTTP/PostgreSQL/checkpointer 测试。
+
+- 覆盖要求中的5句拒绝、3句允许，扩展完成态动作、不同提案类型、空白变体、合法句与违规句混合，确认拒绝时原文不变。
+- 只读加载原始 M4-006/015/018 的 `raw_proposal`，通过生产 `decide_ticket` 入口注入原始响应，3例均拒绝；另单测015的未来承诺，避免“已转交”命中掩盖未来规则缺失。这是离线失败样本回归，不是重新生成模型输出。
+- 分别验证生产 AgentRunner 中的模型响应替身、绕过决策函数的 runner 替身都不能进入审核中断；错误保存、无敏感信息泄露、幂等重放、审核拒绝和工单不变均通过。合法转人工建议仍须 reviewer approve 后才将工单变为 escalated。
+
+完整测试集分两次运行：**244 passed、2 skipped**（开启 PostgreSQL），随后单独开启 Milvus 的两项均 **2 passed**。合计当前 **246项全部通过**，包含原有199项与新增47项；156项逻辑/替身、90项真实PostgreSQL集成（其中2项连接真实Milvus）。两条既有依赖弃用警告保留。未将测试通过数作为模型成功率。
+
+JUnit 产物在被忽略的 `data/cache/reply-claims-3fc0340a527b46bcb78c9e0edcdac063/regression.xml` 与 `data/cache/reply-claims-milvus-590dcfc2eb1d43c6aa32f86ad4c77d10/regression.xml`。首次沙箱运行无法写入临时目录，未计为通过；随后获执行环境许可在仓库内新建隔离临时目录并完成上述验证，没有修改目录 ACL 或共享业务数据。
+
+可同时开启集成测试复现（仅使用已有本地服务、缓存和测试替身）：
+
+```powershell
+$env:TICKETMIND_RUN_DB_TESTS = '1'
+$env:TICKETMIND_RUN_MILVUS_TESTS = '1'
+.venv/Scripts/python.exe -m pytest -q
+Remove-Item Env:TICKETMIND_RUN_DB_TESTS
+Remove-Item Env:TICKETMIND_RUN_MILVUS_TESTS
+```
+
+### 语言边界
+
+这是针对中文待审核草稿的小型确定性规则，不是完整语义判定。省略主语、同义改写（如“售后小伙伴稍晚给你消息”）、复杂跨句指代、超出匹配窗口或其他语言可能漏检。引述历史记录、复述客户已做的动作（如“您已提交请求”）、复杂否定和询问（如“是否已通知”）可能被保守拒绝；目前没有外部动作执行凭证用于区分这些事实来源。需要人工审核和后续失败样本维护，不能据本次测试宣称所有状态幻觉已消除。真实模型是否减少违规、018 是否正确追问，仍需另行授权评测。

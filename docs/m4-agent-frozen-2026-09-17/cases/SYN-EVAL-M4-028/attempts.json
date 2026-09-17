@@ -1,0 +1,47 @@
+{
+  "attempts": [
+    {
+      "category": "understanding",
+      "fingerprint": "7eca2205a1af2ca161ce4f0221bcf817348862d79541a67417f65cd130e625da",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:16:56.379233+00:00",
+      "usage": {
+        "completion_tokens": 69,
+        "prompt_tokens": 389,
+        "total_tokens": 458,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 389
+        }
+      },
+      "duration_ms": 2015
+    },
+    {
+      "category": "decision",
+      "fingerprint": "9d0f02fac9ca1e51817a39bc6c52dcf1d847fccbad7794caa06d68160cd3c93a",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:16:58.430372+00:00",
+      "usage": {
+        "completion_tokens": 193,
+        "prompt_tokens": 4301,
+        "total_tokens": 4494,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-e7db6935-7bf1-915f-8c3a-5292bf1f140d",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\9d0f02fac9ca1e51817a39bc6c52dcf1d847fccbad7794caa06d68160cd3c93a.json",
+      "duration_ms": 3609
+    }
+  ]
+}

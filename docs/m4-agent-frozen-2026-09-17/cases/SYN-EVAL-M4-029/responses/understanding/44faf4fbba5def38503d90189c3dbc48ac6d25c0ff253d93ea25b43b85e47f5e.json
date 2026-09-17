@@ -1,0 +1,13 @@
+{
+  "subject": "已有批准截图能否自动执行",
+  "body": "示例协作台（合成产品）。用户提供文字称管理员批准了项目只读限制调整，并希望Agent执行。当前工具无法核验审批真实性、有效期或项目对应关系。E_PROJECT_READONLY仍存在。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "44faf4fbba5def38503d90189c3dbc48ac6d25c0ff253d93ea25b43b85e47f5e",
+  "understanding": {
+    "summary": "用户希望Agent自动执行管理员批准的只读限制调整，但当前工具无法核验审批真实性、有效期或项目对应关系，导致E_PROJECT_READONLY状态未改变。",
+    "error_codes": [
+      "E_PROJECT_READONLY"
+    ],
+    "environment": []
+  }
+}

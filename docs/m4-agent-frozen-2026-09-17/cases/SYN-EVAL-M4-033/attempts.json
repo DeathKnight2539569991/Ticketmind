@@ -1,0 +1,24 @@
+{
+  "attempts": [
+    {
+      "category": "understanding",
+      "fingerprint": "fe18cfe43c2ea1747ea27a3d5f082a081eca6575c724a5e062d555717f7acdd0",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:17:52.599008+00:00",
+      "usage": {
+        "completion_tokens": 76,
+        "prompt_tokens": 403,
+        "total_tokens": 479,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 403
+        }
+      },
+      "duration_ms": 2125
+    }
+  ]
+}

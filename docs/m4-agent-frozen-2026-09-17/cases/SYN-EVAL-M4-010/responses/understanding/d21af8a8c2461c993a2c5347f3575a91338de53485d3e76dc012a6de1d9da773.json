@@ -1,0 +1,15 @@
+{
+  "subject": "换负责人后旧游标失效",
+  "body": "示例协作台（合成产品）。任务列表第一页筛选assignee=me，第二页改成assignee=team并保留旧next_cursor，报E_CURSOR_INVALID；同负责人连续翻页正常。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "d21af8a8c2461c993a2c5347f3575a91338de53485d3e76dc012a6de1d9da773",
+  "understanding": {
+    "summary": "在示例协作台（合成产品）中，任务列表第一页筛选assignee=me，第二页改为assignee=team并保留旧next_cursor时，出现游标失效报错；同负责人连续翻页正常。",
+    "error_codes": [
+      "E_CURSOR_INVALID"
+    ],
+    "environment": [
+      "示例协作台（合成产品）"
+    ]
+  }
+}

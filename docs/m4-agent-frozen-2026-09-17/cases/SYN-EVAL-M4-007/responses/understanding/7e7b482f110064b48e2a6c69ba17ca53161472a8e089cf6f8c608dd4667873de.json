@@ -1,0 +1,13 @@
+{
+  "subject": "导出备注的中文显示异常",
+  "body": "示例协作台（合成产品）。同一下载CSV的中文备注在Windows桌面表格软件双击打开后乱码，UTF-8文本编辑器里完整，列数正常，想查看原始备注。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "7e7b482f110064b48e2a6c69ba17ca53161472a8e089cf6f8c608dd4667873de",
+  "understanding": {
+    "summary": "导出CSV文件中的中文备注在Windows桌面表格软件中打开时显示为乱码，但在UTF-8文本编辑器中显示正常且列数正确。",
+    "error_codes": [],
+    "environment": [
+      "Windows桌面"
+    ]
+  }
+}

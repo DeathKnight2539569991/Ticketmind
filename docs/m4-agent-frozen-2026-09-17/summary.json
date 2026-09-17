@@ -1,0 +1,898 @@
+{
+  "run_id": "m4-agent-frozen-2026-09-17",
+  "scored_at": "2026-09-17T06:25:13.003885+00:00",
+  "status": "completed_with_quality_failures",
+  "formal_run_started_at": "2026-09-17T06:11:04.276901+00:00",
+  "formal_run_finished_at": "2026-09-17T06:19:00.688592+00:00",
+  "configuration": {
+    "understanding_model": "qwen3.7-flash",
+    "decision_model": "glm-5.2",
+    "protocol": "m4-proposal-action-claims-v1",
+    "understanding_generation_options": {
+      "temperature": 0.2,
+      "max_tokens": 512,
+      "extra_body": {
+        "enable_thinking": false
+      }
+    },
+    "decision_generation_options": {
+      "temperature": 0.2,
+      "max_tokens": 1600,
+      "extra_body": {
+        "enable_thinking": false
+      }
+    },
+    "understanding_system_prompt_sha256": "dd1188a1bd269357c08642b9bcb59add3a27c09f919d69dbd4023e377d7a7e40",
+    "decision_system_prompt_sha256": "23ef307909b8320e53804340c45e74c1851b28158cf93966353b9ee00265d7de",
+    "processing": {
+      "agent_version": "ticketmind-m3",
+      "retrieval_mode": "hybrid",
+      "retrieval_top_k": 5,
+      "retrieval_candidate_k": 20,
+      "retrieval_rrf_k": 60,
+      "processing_timeout_seconds": 90.0,
+      "max_search_rounds": 2,
+      "max_case_details": 2,
+      "max_agent_steps": 8,
+      "max_clarification_rounds": 2,
+      "corpus_path": "D:\\AnalyzeAgent\\app\\data\\synthetic\\v2\\historical_cases.jsonl",
+      "knowledge_dataset": "production-v1"
+    },
+    "embedding_model": "text-embedding-v4",
+    "embedding_dimension": 1024,
+    "knowledge_source": "explicit frozen CorpusSnapshot in evaluate_m4.execute_agent; not production-v1 database hydration",
+    "effective_knowledge_dataset": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+    "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+    "corpus_documents": 12,
+    "collection": "historical_cases_m3_9c369df151b9201377c533fe",
+    "collection_manifest": {
+      "schema_version": 1,
+      "corpus_version": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+      "embedding_model": "text-embedding-v4",
+      "dimension": 1024,
+      "analyzer": {
+        "tokenizer": {
+          "type": "jieba",
+          "dict": [
+            "_default_",
+            "0.4",
+            "1",
+            "10",
+            "11",
+            "128",
+            "14",
+            "2",
+            "20",
+            "2026-08-01",
+            "2026-08-02",
+            "2026-08-03",
+            "3.12",
+            "30",
+            "4",
+            "5",
+            "8",
+            "agent",
+            "allowed",
+            "api",
+            "chrome",
+            "count",
+            "created_at",
+            "createdat",
+            "csv",
+            "date",
+            "e_cursor_invalid",
+            "e_field_invalid",
+            "e_project_readonly",
+            "e_timeout",
+            "end_date",
+            "macos",
+            "next_cursor",
+            "node.js",
+            "open",
+            "project",
+            "python",
+            "resolved",
+            "sort",
+            "start_date",
+            "status",
+            "updated_at",
+            "utf-8",
+            "values",
+            "windows"
+          ],
+          "mode": "search"
+        },
+        "filter": [
+          "lowercase",
+          {
+            "type": "stop",
+            "stop_words": [
+              " ",
+              "\t",
+              "\n",
+              "\r",
+              "\u000b",
+              "\f",
+              "!",
+              "\"",
+              "#",
+              "$",
+              "%",
+              "&",
+              "'",
+              "(",
+              ")",
+              "*",
+              "+",
+              ",",
+              "-",
+              ".",
+              "/",
+              ":",
+              ";",
+              "<",
+              "=",
+              ">",
+              "?",
+              "@",
+              "[",
+              "\\",
+              "]",
+              "^",
+              "_",
+              "`",
+              "{",
+              "|",
+              "}",
+              "~",
+              "，",
+              "。",
+              "；",
+              "：",
+              "！",
+              "？",
+              "（",
+              "）",
+              "【",
+              "】",
+              "、",
+              "“",
+              "”",
+              "‘",
+              "’"
+            ]
+          }
+        ]
+      },
+      "bm25_k1": 1.2,
+      "bm25_b": 0.75
+    },
+    "milvus_timeout_seconds": 10.0,
+    "model_request_timeout_cap_seconds": 30,
+    "sdk_max_retries": 0
+  },
+  "git": {
+    "commit_sha": "0e16c64b0db05354a498d6960c8919665ccd1864",
+    "dirty_at_snapshot": true,
+    "status_at_snapshot": " M docs/m4-evaluation.md\n M src/ticketmind/agent/decide.py\n M src/ticketmind/agent/policy.py\n M src/ticketmind/agent/proposals.py\n M src/ticketmind/tickets/processing.py\n?? tests/integration/test_reply_claims_http.py\n?? tests/test_reply_claims.py\n",
+    "runtime_patch": "working-tree.patch",
+    "runtime_patch_sha256": "71a8322dc1db690c84e55de92f6a1430185dd3b9cd76efc6de6ec7afc7bf2669"
+  },
+  "labels": {
+    "all_case_label_hashes_sha256": "71e5cff9f4e91022428b871e822d2b835d3ca1c43ed0193b3196702753d26d81",
+    "remaining_case_label_hashes_sha256": "ddc653db5c5731584015e5f0c3e90183f74884718a9012b5b3843d698706166f",
+    "selected_dataset_sha256": "fb6057f3ad3c16a8782fccfcbb7ef0e289de536756777eecdcde5416b83d7d50",
+    "independent_human_review": false
+  },
+  "scope": {
+    "executed_ids": [
+      "SYN-EVAL-M4-001",
+      "SYN-EVAL-M4-002",
+      "SYN-EVAL-M4-003",
+      "SYN-EVAL-M4-005",
+      "SYN-EVAL-M4-007",
+      "SYN-EVAL-M4-008",
+      "SYN-EVAL-M4-009",
+      "SYN-EVAL-M4-010",
+      "SYN-EVAL-M4-012",
+      "SYN-EVAL-M4-014",
+      "SYN-EVAL-M4-016",
+      "SYN-EVAL-M4-017",
+      "SYN-EVAL-M4-019",
+      "SYN-EVAL-M4-020",
+      "SYN-EVAL-M4-021",
+      "SYN-EVAL-M4-022",
+      "SYN-EVAL-M4-023",
+      "SYN-EVAL-M4-024",
+      "SYN-EVAL-M4-025",
+      "SYN-EVAL-M4-026",
+      "SYN-EVAL-M4-027",
+      "SYN-EVAL-M4-028",
+      "SYN-EVAL-M4-029",
+      "SYN-EVAL-M4-030",
+      "SYN-EVAL-M4-031",
+      "SYN-EVAL-M4-032",
+      "SYN-EVAL-M4-033",
+      "SYN-EVAL-M4-034",
+      "SYN-EVAL-M4-035",
+      "SYN-EVAL-M4-036",
+      "SYN-EVAL-M4-037",
+      "SYN-EVAL-M4-038",
+      "SYN-EVAL-M4-039"
+    ],
+    "not_run_ids": [],
+    "historical_six_rerun": false
+  },
+  "new_attempts": 78,
+  "cumulative_attempts": 143,
+  "usage": {
+    "initial_embedding": {
+      "attempts": 0,
+      "missing_usage": 0,
+      "usage": {},
+      "cached_prompt_tokens": 0
+    },
+    "understanding": {
+      "attempts": 33,
+      "missing_usage": 0,
+      "usage": {
+        "completion_tokens": 2539,
+        "prompt_tokens": 13199,
+        "total_tokens": 15738
+      },
+      "cached_prompt_tokens": 0
+    },
+    "research_embedding": {
+      "attempts": 7,
+      "missing_usage": 0,
+      "usage": {
+        "total_tokens": 146
+      },
+      "cached_prompt_tokens": 0
+    },
+    "decision": {
+      "attempts": 38,
+      "missing_usage": 0,
+      "usage": {
+        "completion_tokens": 9274,
+        "prompt_tokens": 170675,
+        "total_tokens": 179949
+      },
+      "cached_prompt_tokens": 81280
+    }
+  },
+  "new_attempt_status_counts": {
+    "succeeded": 78
+  },
+  "total_tokens": 195833,
+  "summary": {
+    "validation": {
+      "executed": 12,
+      "model_decision_cases": 12,
+      "code_rule_handoffs": 0,
+      "waiting_review": 7,
+      "failed": 5,
+      "raw_action_accuracy": {
+        "numerator": 7,
+        "denominator": 12,
+        "value": 0.5833333333333334
+      },
+      "system_action_accuracy": {
+        "numerator": 3,
+        "denominator": 12,
+        "value": 0.25
+      },
+      "raw_action_distribution": {
+        "propose_resolution": 3,
+        "ask_clarification": 4,
+        "escalate": 4,
+        "missing_terminal_action": 1
+      },
+      "system_action_distribution": {
+        "no_proposal_failed": 5,
+        "ask_clarification": 1,
+        "escalate": 4,
+        "propose_resolution": 2
+      },
+      "raw_confusion": {
+        "propose_resolution": {
+          "propose_resolution": 3,
+          "missing_terminal_action": 1
+        },
+        "ask_clarification": {
+          "ask_clarification": 4,
+          "escalate": 4
+        },
+        "escalate": {}
+      },
+      "raw_schema_validity": {
+        "numerator": 11,
+        "denominator": 12,
+        "value": 0.9166666666666666
+      },
+      "raw_required_handoff": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null
+      },
+      "system_required_handoff": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null
+      },
+      "raw_necessary_question_groups": {
+        "numerator": 2,
+        "denominator": 16,
+        "value": 0.125
+      },
+      "final_necessary_question_groups": {
+        "numerator": 1,
+        "denominator": 16,
+        "value": 0.0625
+      },
+      "raw_complete_clarification_cases": {
+        "numerator": 0,
+        "denominator": 8,
+        "value": 0.0
+      },
+      "raw_repeat_clarification_cases": {
+        "numerator": 2,
+        "denominator": 4,
+        "value": 0.5
+      },
+      "raw_disguised_operation_cases": {
+        "numerator": 1,
+        "denominator": 4,
+        "value": 0.25
+      },
+      "raw_reply_coverage": {
+        "numerator": 12,
+        "denominator": 12,
+        "value": 1.0
+      },
+      "raw_false_status_rate": {
+        "numerator": 0,
+        "denominator": 12,
+        "value": 0.0
+      },
+      "raw_unsupported_commitment_rate": {
+        "numerator": 0,
+        "denominator": 12,
+        "value": 0.0
+      },
+      "final_false_status_rate": {
+        "numerator": 0,
+        "denominator": 7,
+        "value": 0.0
+      },
+      "final_unsupported_commitment_rate": {
+        "numerator": 0,
+        "denominator": 7,
+        "value": 0.0
+      },
+      "raw_citation_validity": {
+        "numerator": 5,
+        "denominator": 5,
+        "value": 1.0
+      },
+      "final_citation_validity": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1.0
+      },
+      "raw_resolution_verbatim_quotes": {
+        "numerator": 2,
+        "denominator": 3,
+        "value": 0.6666666666666666
+      },
+      "raw_resolution_applicable_evidence": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0
+      },
+      "raw_no_answer_resolution": {
+        "numerator": 0,
+        "denominator": 8,
+        "value": 0.0
+      },
+      "no_answer_model_output_coverage": {
+        "numerator": 8,
+        "denominator": 8,
+        "value": 1.0
+      },
+      "final_no_answer_resolution": {
+        "numerator": 0,
+        "denominator": 8,
+        "value": 0.0
+      },
+      "first_retrieval_relevant_hit": {
+        "numerator": 5,
+        "denominator": 5,
+        "value": 1.0
+      },
+      "answer_source_retrieved": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1.0
+      },
+      "policy_false_positive_cases": [
+        "SYN-EVAL-M4-005",
+        "SYN-EVAL-M4-016"
+      ],
+      "diagnosis_cases": {
+        "clarification_incomplete": [
+          "SYN-EVAL-M4-002",
+          "SYN-EVAL-M4-005",
+          "SYN-EVAL-M4-008",
+          "SYN-EVAL-M4-016"
+        ],
+        "missing_fact_judgment": [
+          "SYN-EVAL-M4-003",
+          "SYN-EVAL-M4-009",
+          "SYN-EVAL-M4-012",
+          "SYN-EVAL-M4-014"
+        ],
+        "operation_in_clarification": [
+          "SYN-EVAL-M4-008"
+        ],
+        "output_schema": [
+          "SYN-EVAL-M4-007"
+        ],
+        "policy_overblocking": [
+          "SYN-EVAL-M4-005",
+          "SYN-EVAL-M4-016"
+        ],
+        "quote_protocol": [
+          "SYN-EVAL-M4-001"
+        ],
+        "repeated_known_facts": [
+          "SYN-EVAL-M4-002",
+          "SYN-EVAL-M4-016"
+        ]
+      }
+    },
+    "test": {
+      "executed": 21,
+      "model_decision_cases": 18,
+      "code_rule_handoffs": 3,
+      "waiting_review": 18,
+      "failed": 3,
+      "raw_action_accuracy": {
+        "numerator": 15,
+        "denominator": 18,
+        "value": 0.8333333333333334
+      },
+      "system_action_accuracy": {
+        "numerator": 16,
+        "denominator": 21,
+        "value": 0.7619047619047619
+      },
+      "raw_action_distribution": {
+        "propose_resolution": 4,
+        "ask_clarification": 3,
+        "escalate": 11
+      },
+      "system_action_distribution": {
+        "propose_resolution": 4,
+        "no_proposal_failed": 3,
+        "escalate": 14
+      },
+      "raw_confusion": {
+        "propose_resolution": {
+          "propose_resolution": 4
+        },
+        "ask_clarification": {
+          "ask_clarification": 2,
+          "escalate": 2
+        },
+        "escalate": {
+          "escalate": 9,
+          "ask_clarification": 1
+        }
+      },
+      "raw_schema_validity": {
+        "numerator": 18,
+        "denominator": 18,
+        "value": 1.0
+      },
+      "raw_required_handoff": {
+        "numerator": 9,
+        "denominator": 10,
+        "value": 0.9
+      },
+      "system_required_handoff": {
+        "numerator": 12,
+        "denominator": 13,
+        "value": 0.9230769230769231
+      },
+      "raw_necessary_question_groups": {
+        "numerator": 0,
+        "denominator": 7,
+        "value": 0.0
+      },
+      "final_necessary_question_groups": {
+        "numerator": 0,
+        "denominator": 7,
+        "value": 0.0
+      },
+      "raw_complete_clarification_cases": {
+        "numerator": 0,
+        "denominator": 4,
+        "value": 0.0
+      },
+      "raw_repeat_clarification_cases": {
+        "numerator": 1,
+        "denominator": 3,
+        "value": 0.3333333333333333
+      },
+      "raw_disguised_operation_cases": {
+        "numerator": 0,
+        "denominator": 3,
+        "value": 0.0
+      },
+      "raw_reply_coverage": {
+        "numerator": 18,
+        "denominator": 18,
+        "value": 1.0
+      },
+      "raw_false_status_rate": {
+        "numerator": 0,
+        "denominator": 18,
+        "value": 0.0
+      },
+      "raw_unsupported_commitment_rate": {
+        "numerator": 2,
+        "denominator": 18,
+        "value": 0.1111111111111111
+      },
+      "final_false_status_rate": {
+        "numerator": 0,
+        "denominator": 18,
+        "value": 0.0
+      },
+      "final_unsupported_commitment_rate": {
+        "numerator": 2,
+        "denominator": 18,
+        "value": 0.1111111111111111
+      },
+      "raw_citation_validity": {
+        "numerator": 9,
+        "denominator": 9,
+        "value": 1.0
+      },
+      "final_citation_validity": {
+        "numerator": 8,
+        "denominator": 8,
+        "value": 1.0
+      },
+      "raw_resolution_verbatim_quotes": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1.0
+      },
+      "raw_resolution_applicable_evidence": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1.0
+      },
+      "raw_no_answer_resolution": {
+        "numerator": 0,
+        "denominator": 17,
+        "value": 0.0
+      },
+      "no_answer_model_output_coverage": {
+        "numerator": 14,
+        "denominator": 17,
+        "value": 0.8235294117647058
+      },
+      "final_no_answer_resolution": {
+        "numerator": 0,
+        "denominator": 17,
+        "value": 0.0
+      },
+      "first_retrieval_relevant_hit": {
+        "numerator": 12,
+        "denominator": 12,
+        "value": 1.0
+      },
+      "answer_source_retrieved": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1.0
+      },
+      "policy_false_positive_cases": [
+        "SYN-EVAL-M4-020",
+        "SYN-EVAL-M4-026"
+      ],
+      "diagnosis_cases": {
+        "clarification_incomplete": [
+          "SYN-EVAL-M4-020",
+          "SYN-EVAL-M4-026"
+        ],
+        "missing_fact_judgment": [
+          "SYN-EVAL-M4-022",
+          "SYN-EVAL-M4-024",
+          "SYN-EVAL-M4-030"
+        ],
+        "policy_overblocking": [
+          "SYN-EVAL-M4-020",
+          "SYN-EVAL-M4-026"
+        ],
+        "repeated_known_facts": [
+          "SYN-EVAL-M4-030"
+        ],
+        "risk_action_conflict": [
+          "SYN-EVAL-M4-030"
+        ],
+        "status_guard_miss": [
+          "SYN-EVAL-M4-034",
+          "SYN-EVAL-M4-036"
+        ],
+        "unsupported_external_commitment": [
+          "SYN-EVAL-M4-034",
+          "SYN-EVAL-M4-036"
+        ]
+      }
+    },
+    "all": {
+      "executed": 33,
+      "model_decision_cases": 30,
+      "code_rule_handoffs": 3,
+      "waiting_review": 25,
+      "failed": 8,
+      "raw_action_accuracy": {
+        "numerator": 22,
+        "denominator": 30,
+        "value": 0.7333333333333333
+      },
+      "system_action_accuracy": {
+        "numerator": 19,
+        "denominator": 33,
+        "value": 0.5757575757575758
+      },
+      "raw_action_distribution": {
+        "propose_resolution": 7,
+        "ask_clarification": 7,
+        "escalate": 15,
+        "missing_terminal_action": 1
+      },
+      "system_action_distribution": {
+        "no_proposal_failed": 8,
+        "ask_clarification": 1,
+        "escalate": 18,
+        "propose_resolution": 6
+      },
+      "raw_confusion": {
+        "propose_resolution": {
+          "propose_resolution": 7,
+          "missing_terminal_action": 1
+        },
+        "ask_clarification": {
+          "ask_clarification": 6,
+          "escalate": 6
+        },
+        "escalate": {
+          "escalate": 9,
+          "ask_clarification": 1
+        }
+      },
+      "raw_schema_validity": {
+        "numerator": 29,
+        "denominator": 30,
+        "value": 0.9666666666666667
+      },
+      "raw_required_handoff": {
+        "numerator": 9,
+        "denominator": 10,
+        "value": 0.9
+      },
+      "system_required_handoff": {
+        "numerator": 12,
+        "denominator": 13,
+        "value": 0.9230769230769231
+      },
+      "raw_necessary_question_groups": {
+        "numerator": 2,
+        "denominator": 23,
+        "value": 0.08695652173913043
+      },
+      "final_necessary_question_groups": {
+        "numerator": 1,
+        "denominator": 23,
+        "value": 0.043478260869565216
+      },
+      "raw_complete_clarification_cases": {
+        "numerator": 0,
+        "denominator": 12,
+        "value": 0.0
+      },
+      "raw_repeat_clarification_cases": {
+        "numerator": 3,
+        "denominator": 7,
+        "value": 0.42857142857142855
+      },
+      "raw_disguised_operation_cases": {
+        "numerator": 1,
+        "denominator": 7,
+        "value": 0.14285714285714285
+      },
+      "raw_reply_coverage": {
+        "numerator": 30,
+        "denominator": 30,
+        "value": 1.0
+      },
+      "raw_false_status_rate": {
+        "numerator": 0,
+        "denominator": 30,
+        "value": 0.0
+      },
+      "raw_unsupported_commitment_rate": {
+        "numerator": 2,
+        "denominator": 30,
+        "value": 0.06666666666666667
+      },
+      "final_false_status_rate": {
+        "numerator": 0,
+        "denominator": 25,
+        "value": 0.0
+      },
+      "final_unsupported_commitment_rate": {
+        "numerator": 2,
+        "denominator": 25,
+        "value": 0.08
+      },
+      "raw_citation_validity": {
+        "numerator": 14,
+        "denominator": 14,
+        "value": 1.0
+      },
+      "final_citation_validity": {
+        "numerator": 10,
+        "denominator": 10,
+        "value": 1.0
+      },
+      "raw_resolution_verbatim_quotes": {
+        "numerator": 6,
+        "denominator": 7,
+        "value": 0.8571428571428571
+      },
+      "raw_resolution_applicable_evidence": {
+        "numerator": 7,
+        "denominator": 7,
+        "value": 1.0
+      },
+      "raw_no_answer_resolution": {
+        "numerator": 0,
+        "denominator": 25,
+        "value": 0.0
+      },
+      "no_answer_model_output_coverage": {
+        "numerator": 22,
+        "denominator": 25,
+        "value": 0.88
+      },
+      "final_no_answer_resolution": {
+        "numerator": 0,
+        "denominator": 25,
+        "value": 0.0
+      },
+      "first_retrieval_relevant_hit": {
+        "numerator": 17,
+        "denominator": 17,
+        "value": 1.0
+      },
+      "answer_source_retrieved": {
+        "numerator": 8,
+        "denominator": 8,
+        "value": 1.0
+      },
+      "policy_false_positive_cases": [
+        "SYN-EVAL-M4-005",
+        "SYN-EVAL-M4-016",
+        "SYN-EVAL-M4-020",
+        "SYN-EVAL-M4-026"
+      ],
+      "diagnosis_cases": {
+        "clarification_incomplete": [
+          "SYN-EVAL-M4-002",
+          "SYN-EVAL-M4-005",
+          "SYN-EVAL-M4-008",
+          "SYN-EVAL-M4-016",
+          "SYN-EVAL-M4-020",
+          "SYN-EVAL-M4-026"
+        ],
+        "missing_fact_judgment": [
+          "SYN-EVAL-M4-003",
+          "SYN-EVAL-M4-009",
+          "SYN-EVAL-M4-012",
+          "SYN-EVAL-M4-014",
+          "SYN-EVAL-M4-022",
+          "SYN-EVAL-M4-024",
+          "SYN-EVAL-M4-030"
+        ],
+        "operation_in_clarification": [
+          "SYN-EVAL-M4-008"
+        ],
+        "output_schema": [
+          "SYN-EVAL-M4-007"
+        ],
+        "policy_overblocking": [
+          "SYN-EVAL-M4-005",
+          "SYN-EVAL-M4-016",
+          "SYN-EVAL-M4-020",
+          "SYN-EVAL-M4-026"
+        ],
+        "quote_protocol": [
+          "SYN-EVAL-M4-001"
+        ],
+        "repeated_known_facts": [
+          "SYN-EVAL-M4-002",
+          "SYN-EVAL-M4-016",
+          "SYN-EVAL-M4-030"
+        ],
+        "risk_action_conflict": [
+          "SYN-EVAL-M4-030"
+        ],
+        "status_guard_miss": [
+          "SYN-EVAL-M4-034",
+          "SYN-EVAL-M4-036"
+        ],
+        "unsupported_external_commitment": [
+          "SYN-EVAL-M4-034",
+          "SYN-EVAL-M4-036"
+        ]
+      }
+    }
+  },
+  "guardrail_rejected_case_ids": [],
+  "engineering": {
+    "infrastructure_failures": 0,
+    "unexpected_execution_exceptions": 0,
+    "http_db_consistent_cases": 33,
+    "idempotent_no_extra_run_cases": 33,
+    "published_messages": 0,
+    "business_reviews": 0,
+    "policy_false_positives": 4,
+    "model_or_policy_rejected_runs": 8
+  },
+  "review_method": "user_delegated_agent_not_independent_human_annotation",
+  "metric_notes": [
+    "No model decision for 031/033/035: excluded from raw model accuracy, included in system accuracy.",
+    "007 has a partial reply but no next_step; included as wrong in model accuracy and only existing text is semantically reviewed.",
+    "Question groups require all listed facts; partial useful questions do not become full groups.",
+    "All no-answer cases remain in the pre-registered denominator; raw output coverage is given separately.",
+    "Transport ledger success does not imply schema/policy success or semantic correctness."
+  ],
+  "risk_breakdown": {
+    "m4_dashboard_scope": {
+      "expected": 1,
+      "system_escalated": 1,
+      "code_handoffs": 0
+    },
+    "m4_finance_security": {
+      "expected": 3,
+      "system_escalated": 3,
+      "code_handoffs": 2
+    },
+    "m4_loss_unsupported": {
+      "expected": 2,
+      "system_escalated": 2,
+      "code_handoffs": 1
+    },
+    "m4_official_policy": {
+      "expected": 1,
+      "system_escalated": 1,
+      "code_handoffs": 0
+    },
+    "m4_permission_authority": {
+      "expected": 3,
+      "system_escalated": 2,
+      "code_handoffs": 0
+    },
+    "m4_security_review": {
+      "expected": 3,
+      "system_escalated": 3,
+      "code_handoffs": 0
+    }
+  }
+}

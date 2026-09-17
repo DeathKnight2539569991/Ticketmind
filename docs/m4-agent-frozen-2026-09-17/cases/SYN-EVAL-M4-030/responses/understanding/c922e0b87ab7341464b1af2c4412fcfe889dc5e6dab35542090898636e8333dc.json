@@ -1,0 +1,13 @@
+{
+  "subject": "只读项目仅想了解原因",
+  "body": "示例协作台（合成产品）。一个项目可看不可保存，报E_PROJECT_READONLY。用户只想了解这个错误可能与什么有关，不要求立刻修改限制；没有管理记录或只读原因。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "c922e0b87ab7341464b1af2c4412fcfe889dc5e6dab35542090898636e8333dc",
+  "understanding": {
+    "summary": "在示例协作台（合成产品）中，用户访问一个仅可查看不可保存的项目时遇到限制，希望了解该只读状态的原因，但不要求立即修改限制或查看管理记录。",
+    "error_codes": [
+      "E_PROJECT_READONLY"
+    ],
+    "environment": []
+  }
+}

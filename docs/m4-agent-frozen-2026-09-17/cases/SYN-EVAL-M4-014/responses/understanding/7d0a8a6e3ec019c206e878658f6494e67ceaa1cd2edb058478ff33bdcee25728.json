@@ -1,0 +1,13 @@
+{
+  "subject": "等待上限够长但报表仍超时",
+  "body": "示例协作台（合成产品）。只读全年聚合的客户端上限60秒，服务端约3秒就返回E_TIMEOUT响应，未开启本机代理。没有服务端调用链或详细诊断。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "7d0a8a6e3ec019c206e878658f6494e67ceaa1cd2edb058478ff33bdcee25728",
+  "understanding": {
+    "summary": "在示例协作台（合成产品）中，客户端设置的全年聚合查询上限为60秒，但服务端约3秒即返回E_TIMEOUT响应，且未开启本机代理，导致报表超时。",
+    "error_codes": [
+      "E_TIMEOUT"
+    ],
+    "environment": []
+  }
+}

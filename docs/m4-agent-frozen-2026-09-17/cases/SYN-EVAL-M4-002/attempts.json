@@ -1,0 +1,70 @@
+{
+  "attempts": [
+    {
+      "category": "understanding",
+      "fingerprint": "653818fdc50e427972fc9f3da48d9d6e88e314b91643d784b662abeee4e36007",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:11:55.525368+00:00",
+      "usage": {
+        "completion_tokens": 85,
+        "prompt_tokens": 398,
+        "total_tokens": 483,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 398
+        }
+      },
+      "duration_ms": 2000
+    },
+    {
+      "category": "decision",
+      "fingerprint": "1cd92661c5a1a365d72e4730025b5229fa611e1667f35ec45246fc7ba0c39fe8",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:11:57.560893+00:00",
+      "usage": {
+        "completion_tokens": 65,
+        "prompt_tokens": 4415,
+        "total_tokens": 4480,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-3d4cf0b0-d437-9dbd-9bb0-b43b723f7d66",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\1cd92661c5a1a365d72e4730025b5229fa611e1667f35ec45246fc7ba0c39fe8.json",
+      "duration_ms": 1812
+    },
+    {
+      "category": "decision",
+      "fingerprint": "1ee6fa6171e5541890a7e382c2fa9a1ae2341fff870c8538589985a8472a625e",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:11:59.379165+00:00",
+      "usage": {
+        "completion_tokens": 331,
+        "prompt_tokens": 4789,
+        "total_tokens": 5120,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 4096,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 5,
+      "request_id": "chatcmpl-d25d6f82-f170-9eb1-acec-f20af748aa9e",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\1ee6fa6171e5541890a7e382c2fa9a1ae2341fff870c8538589985a8472a625e.json",
+      "duration_ms": 5875
+    }
+  ]
+}

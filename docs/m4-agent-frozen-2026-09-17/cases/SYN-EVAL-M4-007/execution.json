@@ -1,0 +1,16 @@
+{
+  "case_id": "SYN-EVAL-M4-007",
+  "finished_at": "2026-09-17T06:12:53.383700+00:00",
+  "process_exit_code": 0,
+  "run_status": "failed",
+  "error_code": "agent_execution_failed",
+  "safe_to_continue": true,
+  "new_attempts": {
+    "understanding": 1,
+    "decision": 1
+  },
+  "cumulative_attempts": 78,
+  "raw_action": null,
+  "final_action": null,
+  "prediction_sha256": "fc114253b8f258cca4d2543dbf73184a415c95e5b66585e201cfc37129f83f9e"
+}

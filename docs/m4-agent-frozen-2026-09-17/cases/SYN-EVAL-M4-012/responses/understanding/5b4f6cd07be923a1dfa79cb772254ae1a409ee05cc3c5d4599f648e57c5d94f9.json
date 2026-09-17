@@ -1,0 +1,15 @@
+{
+  "subject": "查询第一页就报游标签名错误",
+  "body": "示例协作台（合成产品）。未传任何cursor的第一页任务查询返回E_CURSOR_SIGNATURE。此前未用过分页；只有该错误码，没有更多响应。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "5b4f6cd07be923a1dfa79cb772254ae1a409ee05cc3c5d4599f648e57c5d94f9",
+  "understanding": {
+    "summary": "在示例协作台（合成产品）中，未传任何cursor进行第一页任务查询时，返回游标签名错误。此前未使用过分页功能，且仅有该错误码，无更多响应信息。",
+    "error_codes": [
+      "E_CURSOR_SIGNATURE"
+    ],
+    "environment": [
+      "示例协作台（合成产品）"
+    ]
+  }
+}

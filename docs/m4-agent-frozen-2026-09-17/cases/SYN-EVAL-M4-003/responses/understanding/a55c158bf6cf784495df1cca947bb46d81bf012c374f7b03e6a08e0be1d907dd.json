@@ -1,0 +1,11 @@
+{
+  "subject": "小时范围少了午夜一小时",
+  "body": "示例协作台（合成产品）。使用带时区的 start_time/end_time 查询小时统计。结果在UTC午夜附近少一小时，但当地日统计正常；没有此接口的边界或时区说明。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "a55c158bf6cf784495df1cca947bb46d81bf012c374f7b03e6a08e0be1d907dd",
+  "understanding": {
+    "summary": "在使用带时区的 start_time/end_time 查询小时统计时，结果在 UTC 午夜附近少显示一小时，但当地日统计正常；该接口没有边界或时区说明。",
+    "error_codes": [],
+    "environment": []
+  }
+}

@@ -1,0 +1,1033 @@
+{
+  "attempts": [
+    {
+      "category": "initial_embedding",
+      "fingerprint": "aaab6effbc9c5fcd8cdc8c0fda3d54b44c3978bc205ae172378ca9dffd6858c8",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:28:59.769770+00:00",
+      "usage": {
+        "total_tokens": 64
+      },
+      "duration_ms": 235
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "59e6c53226d1b85f590facbb945c1aefe33df80d35ae196e64b341ad56d19048",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:00.009769+00:00",
+      "usage": {
+        "total_tokens": 59
+      },
+      "duration_ms": 156
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "2cf0f1b02450942de87260acfc44f9349b310d95d4bdd7f95ed22695a9c24eab",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:00.159099+00:00",
+      "usage": {
+        "total_tokens": 61
+      },
+      "duration_ms": 797
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "60e84866deb6e9af480634d19d32b4c5d34cf68918eefecfdc9b2731eb12d46d",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:00.963197+00:00",
+      "usage": {
+        "total_tokens": 67
+      },
+      "duration_ms": 172
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "4440f8504ebe686b8315923b986336cf0f3a60c5b3cf68d8d0ac760fe42f11c6",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:01.131299+00:00",
+      "usage": {
+        "total_tokens": 66
+      },
+      "duration_ms": 156
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "9f6d363db1112897922f6dfc94290182d9aa7b95b0f3bb38f064431b28b708ad",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:01.286443+00:00",
+      "usage": {
+        "total_tokens": 58
+      },
+      "duration_ms": 109
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "5b101a4bcf31d206e935e8e45dcdf1043443b493c0f253ad21914f75b59686a2",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:01.400751+00:00",
+      "usage": {
+        "total_tokens": 58
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "10ce3fe7e9acc15be63965e5a260976f2a7fd613c1da19cb6806935c4705e476",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:01.520023+00:00",
+      "usage": {
+        "total_tokens": 59
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "c91ba4e52d06b149af900072fca4acdccdf6695f93c8cbc86dda89ff2a64b838",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:01.644715+00:00",
+      "usage": {
+        "total_tokens": 65
+      },
+      "duration_ms": 375
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "e2f896e7e4201353b28c0e12d26ec31f208487bf0535e4cfbb71d98e7b73fb9d",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:02.032492+00:00",
+      "usage": {
+        "total_tokens": 57
+      },
+      "duration_ms": 141
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "c17b5636554ebec6d31244038be2a6234ca75540542212b2c65d26bbcf7093f6",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:02.175145+00:00",
+      "usage": {
+        "total_tokens": 60
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "ea2628a46024403824ea0de347cc2c5987390965cc757a70bab1522d5210255c",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:02.311782+00:00",
+      "usage": {
+        "total_tokens": 53
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "ff0675cccf26077a361c249e1dac1249110e7d703b66e3ff68f128091d46d3f2",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:02.438491+00:00",
+      "usage": {
+        "total_tokens": 79
+      },
+      "duration_ms": 141
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "309dfa8e49e826f4ac9be8614e5fe90f8785b1fa40802404b2a9a850318a50e9",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:02.583589+00:00",
+      "usage": {
+        "total_tokens": 62
+      },
+      "duration_ms": 141
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "a242d449b40ba9a17cd6a0766c11a04d8fb713fd3a139092ee3e96ae39d15468",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:02.729637+00:00",
+      "usage": {
+        "total_tokens": 61
+      },
+      "duration_ms": 109
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "49b0eb8647742519d9b68d3696c8c13aa3bf515226870d76b102523de7887b83",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:02.837949+00:00",
+      "usage": {
+        "total_tokens": 67
+      },
+      "duration_ms": 109
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "f0a72d8606c2f30df2b9db7c8d2cd868449c2dc42c55947bc348c20b148364eb",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:02.947923+00:00",
+      "usage": {
+        "total_tokens": 80
+      },
+      "duration_ms": 328
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "ce6bfa5484680666c0f0ab8697728366416131aa97aed8e968a3b6bae747af8f",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:03.274449+00:00",
+      "usage": {
+        "total_tokens": 61
+      },
+      "duration_ms": 110
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "f5c537d24e68ecbc4e7504ba04aa51d8ab2acd50fd22cbe7b3b2381fb8107bab",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:03.385701+00:00",
+      "usage": {
+        "total_tokens": 65
+      },
+      "duration_ms": 140
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "02d5a18d42d95eaf39d14b055fed1d9145ff35d5bbf5eef174c510a157f4c1f8",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:03.522983+00:00",
+      "usage": {
+        "total_tokens": 51
+      },
+      "duration_ms": 157
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "b38a075b7f4ca195f48096da9b420b7817645fe8544ba7c157be9de646e01167",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:03.673877+00:00",
+      "usage": {
+        "total_tokens": 75
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "7da8d0b0977845be756b4edc135f6deaeef7cef19d1cdb28ce7eae2078819fa8",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:03.798597+00:00",
+      "usage": {
+        "total_tokens": 61
+      },
+      "duration_ms": 109
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "667f1aca37303207b401d388949c3c8cabae22252b7b8d92918fecd2db58442d",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:03.908820+00:00",
+      "usage": {
+        "total_tokens": 59
+      },
+      "duration_ms": 109
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "0772aad02df4795fe7e09f103726d8c6f2629038defa038328ee3ef3ddf2c449",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:04.027713+00:00",
+      "usage": {
+        "total_tokens": 58
+      },
+      "duration_ms": 141
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "5435511d93db655b12f5399ba1ff835317b7a80b0996aed508cf12574b7f61f6",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:04.173129+00:00",
+      "usage": {
+        "total_tokens": 53
+      },
+      "duration_ms": 78
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "bd1564a45a9ad32c19185903b45abdb71948c7b248c3d8d3161364d3a9de35bb",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:04.259060+00:00",
+      "usage": {
+        "total_tokens": 64
+      },
+      "duration_ms": 140
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "cb33e82a8ee00052397f7fc61922fc3d3329fb7edf9e03dcb59337f5c9e3c75b",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:04.405848+00:00",
+      "usage": {
+        "total_tokens": 64
+      },
+      "duration_ms": 485
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "ff2eef4b715fdfd677ac1182b5704613a5ecdda11c7e9f5ffb6da083d9daa093",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:04.890995+00:00",
+      "usage": {
+        "total_tokens": 51
+      },
+      "duration_ms": 94
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "baccd62f8090799abccc6691abf77b036bce10a4f72107efd9bb99c517a7ac7b",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:04.990681+00:00",
+      "usage": {
+        "total_tokens": 57
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "1ab984f420a459072a94bd539c6765f7e6c70de37852d0ee2f40c958260c01e9",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:05.122490+00:00",
+      "usage": {
+        "total_tokens": 58
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "7fe1e477090801f6737bd9db3825b32de7f52b1d9774a8585f01f5980e81e313",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:05.240227+00:00",
+      "usage": {
+        "total_tokens": 66
+      },
+      "duration_ms": 203
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "793613363e1f43ceb6d033f3e817c66889fd23f1379cc5c63cdec87d98776bbc",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:05.447666+00:00",
+      "usage": {
+        "total_tokens": 55
+      },
+      "duration_ms": 110
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "19badbd5b725eecb7ff0ea1ea0008941ff4f208f0d961a687395896434fb4f10",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:05.555678+00:00",
+      "usage": {
+        "total_tokens": 67
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "087119d32719932964c0dab99ec54373a5dd271c0f4759b0c6319f63d2661161",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:05.679299+00:00",
+      "usage": {
+        "total_tokens": 62
+      },
+      "duration_ms": 109
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "1728a7a052f319ce512546edcc87b10c52b3a86b4e9e051005e28f5422caf52b",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:05.796150+00:00",
+      "usage": {
+        "total_tokens": 65
+      },
+      "duration_ms": 281
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "be0e334782ae63608d2070a5f2319d688bee6b896f1d02b8a7d5266e3ab3846a",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:06.066598+00:00",
+      "usage": {
+        "total_tokens": 59
+      },
+      "duration_ms": 110
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "44b40a235b12d50729094050c9419f6d3ae72773645ae9f8d8bf22e7a444a44e",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:06.174237+00:00",
+      "usage": {
+        "total_tokens": 71
+      },
+      "duration_ms": 109
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "ae65e1f578f8a0d420532ff39f8b436f2a5692dfd339a03aca66e6cfe300cf95",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:06.290546+00:00",
+      "usage": {
+        "total_tokens": 70
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "3b133e5b2fb66fb495c76abcd6b4ff5898b0292984ad9dc428be0f8600f6cfa7",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:06.423440+00:00",
+      "usage": {
+        "total_tokens": 76
+      },
+      "duration_ms": 109
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "9f2ef42ff59eceb614b9af195463ebfe2e13fdf365f9b9d35b0a395ee57c3cc3",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:06.547500+00:00",
+      "usage": {
+        "total_tokens": 21
+      },
+      "duration_ms": 93
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "64ea3f54a5012463114850493a6c82e98789d002f4c8363d9df14e6bbd8a45e8",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:06.655907+00:00",
+      "usage": {
+        "total_tokens": 20
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "7d2fd906e1034bfec3da4d173aac84379bf2d11329bccbe097768bf991a85f42",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:06.797631+00:00",
+      "usage": {
+        "total_tokens": 25
+      },
+      "duration_ms": 156
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "ef903918173203c0306457415748249b083aef558e612e33c22985bca84f675f",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:06.965495+00:00",
+      "usage": {
+        "total_tokens": 23
+      },
+      "duration_ms": 656
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "943a7f61378c0b894469782ce3d55496a0b0fb115435722b6db3b6a390759603",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:07.622971+00:00",
+      "usage": {
+        "total_tokens": 23
+      },
+      "duration_ms": 719
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "61cc22f7a3b54d18852ca04db0273975e21ef5ddc6626ff1b1326c4dff4c74f2",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:08.331400+00:00",
+      "usage": {
+        "total_tokens": 19
+      },
+      "duration_ms": 109
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "891034f9ac149935c26f728545a912ac93d81d44437822c8d39d79891fa06f90",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:08.440834+00:00",
+      "usage": {
+        "total_tokens": 24
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "a1ea363dcf4e3da4dc2ec3d32091273b3bcc82e208ebe791f939ddaffb902c13",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:08.569236+00:00",
+      "usage": {
+        "total_tokens": 27
+      },
+      "duration_ms": 110
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "1abb45e6da41e569fd24a087b260d724b9e4052f83a22c4b98e5e13b8637adf7",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:08.687420+00:00",
+      "usage": {
+        "total_tokens": 10
+      },
+      "duration_ms": 125
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "d7a0dca94635d91332420d75fa419b5e5ae4528dbedbe7c959b0daa59362ed7e",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:08.803263+00:00",
+      "usage": {
+        "total_tokens": 30
+      },
+      "duration_ms": 390
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "5f62fcb6c82f05fa538b5094ce8d6d9385f458c8e75cb3110eefa0c46eb24c01",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:09.199538+00:00",
+      "usage": {
+        "total_tokens": 33
+      },
+      "duration_ms": 110
+    },
+    {
+      "category": "initial_embedding",
+      "fingerprint": "fee3b45963cd3ade263dd625b1d7c844629f647084e1e5ec30768e3045d2c475",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:29:09.311427+00:00",
+      "usage": {
+        "total_tokens": 25
+      },
+      "duration_ms": 156
+    },
+    {
+      "category": "understanding",
+      "fingerprint": "78f89967fea2871e3e665ee8a30bfed98660624805c57019023bb99d9a023e9c",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:11.619794+00:00",
+      "usage": {
+        "completion_tokens": 93,
+        "prompt_tokens": 401,
+        "total_tokens": 494,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 401
+        }
+      },
+      "duration_ms": 2375
+    },
+    {
+      "category": "decision",
+      "fingerprint": "c0886479ec5bacd34cdf3f33e47160c460dcd05fd8ac9cdf05545f7c47824c1f",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:14.036730+00:00",
+      "usage": {
+        "completion_tokens": 316,
+        "prompt_tokens": 4241,
+        "total_tokens": 4557,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-d276bcac-4bb0-924b-b966-18ffe8a5999a",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\c0886479ec5bacd34cdf3f33e47160c460dcd05fd8ac9cdf05545f7c47824c1f.json",
+      "duration_ms": 5094
+    },
+    {
+      "category": "understanding",
+      "fingerprint": "179beb1343a3e97ea245e34711b88c67eae2648694c422d9a8215481c34b8220",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:19.533448+00:00",
+      "usage": {
+        "completion_tokens": 81,
+        "prompt_tokens": 395,
+        "total_tokens": 476,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 395
+        }
+      },
+      "duration_ms": 1234
+    },
+    {
+      "category": "decision",
+      "fingerprint": "ac613b4d8c7b48932c03ab19fef6199c70ce4f384407f44a91eb5fcbd359d29f",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:20.812668+00:00",
+      "usage": {
+        "completion_tokens": 230,
+        "prompt_tokens": 4205,
+        "total_tokens": 4435,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-46468f09-4a93-9d64-8ef3-ec791276f3b4",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\ac613b4d8c7b48932c03ab19fef6199c70ce4f384407f44a91eb5fcbd359d29f.json",
+      "duration_ms": 5016
+    },
+    {
+      "category": "understanding",
+      "fingerprint": "2ea88b5cfe3b79fa7ae24f42a70240a9a32a6c59630d0ba2b8639d6ba5e1a36f",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:26.240009+00:00",
+      "usage": {
+        "completion_tokens": 84,
+        "prompt_tokens": 399,
+        "total_tokens": 483,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 399
+        }
+      },
+      "duration_ms": 2110
+    },
+    {
+      "category": "decision",
+      "fingerprint": "6fe6aa15a6c0c9c2f3414c3480759de00c6721060e5b74688458bb3de8bd40e2",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:28.391437+00:00",
+      "usage": {
+        "completion_tokens": 295,
+        "prompt_tokens": 4183,
+        "total_tokens": 4478,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-5921d308-b5a6-9466-b536-81f20ac553f3",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\6fe6aa15a6c0c9c2f3414c3480759de00c6721060e5b74688458bb3de8bd40e2.json",
+      "duration_ms": 6407
+    },
+    {
+      "category": "understanding",
+      "fingerprint": "9523e6a06673abb84c561dbfa43d71b90eab2154ee6175f1541d6689969e6353",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:35.314527+00:00",
+      "usage": {
+        "completion_tokens": 84,
+        "prompt_tokens": 417,
+        "total_tokens": 501,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 417
+        }
+      },
+      "duration_ms": 1407
+    },
+    {
+      "category": "decision",
+      "fingerprint": "035564c344cd70ada237414ecd5e165268b94aa3f9471aecbe2f6b7c49d2cf37",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:36.760321+00:00",
+      "usage": {
+        "completion_tokens": 383,
+        "prompt_tokens": 4345,
+        "total_tokens": 4728,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-75ae95d9-a3a0-9837-b741-fb5f5e5891c5",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\035564c344cd70ada237414ecd5e165268b94aa3f9471aecbe2f6b7c49d2cf37.json",
+      "duration_ms": 7359
+    },
+    {
+      "category": "understanding",
+      "fingerprint": "ea14d23a98fc701e5c7db87d26ac26158f8fb49c8ac62e4f05fa0f0797586d6d",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:44.674282+00:00",
+      "usage": {
+        "completion_tokens": 68,
+        "prompt_tokens": 398,
+        "total_tokens": 466,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 398
+        }
+      },
+      "duration_ms": 1062
+    },
+    {
+      "category": "decision",
+      "fingerprint": "a40bc4494eb9eb6b39829b6ae2be7bcb735fea1315226710eca27559adcc6f04",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:45.777364+00:00",
+      "usage": {
+        "completion_tokens": 158,
+        "prompt_tokens": 4306,
+        "total_tokens": 4464,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-144f833f-8975-9387-af5c-d166a7f37601",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\a40bc4494eb9eb6b39829b6ae2be7bcb735fea1315226710eca27559adcc6f04.json",
+      "duration_ms": 4375
+    },
+    {
+      "category": "understanding",
+      "fingerprint": "fbb401ae80b371b0a22d104ec8bcfa246c9c676d7006a0189347c697af12d289",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:50.665022+00:00",
+      "usage": {
+        "completion_tokens": 95,
+        "prompt_tokens": 400,
+        "total_tokens": 495,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 400
+        }
+      },
+      "duration_ms": 1391
+    },
+    {
+      "category": "decision",
+      "fingerprint": "168e8cde12276de218621e075fe27b62e07535e51827faf32a5dd87d6ea66b99",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:52.095353+00:00",
+      "usage": {
+        "completion_tokens": 242,
+        "prompt_tokens": 4332,
+        "total_tokens": 4574,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-80bafa67-b46c-9c79-b87d-3093970ce3dc",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\168e8cde12276de218621e075fe27b62e07535e51827faf32a5dd87d6ea66b99.json",
+      "duration_ms": 4625
+    },
+    {
+      "category": "research_embedding",
+      "fingerprint": "b9a46add3b21ab967b80757e566843909b72cfd1449892b78ec70da434b6d5dc",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:56.745610+00:00",
+      "usage": {
+        "total_tokens": 25
+      },
+      "duration_ms": 188
+    },
+    {
+      "category": "decision",
+      "fingerprint": "e117ff136059ff5f9ba66240c5227931a2d3f42b1ca9004adc93f93f314baf32",
+      "status": "succeeded",
+      "started_at": "2026-09-15T12:34:56.942988+00:00",
+      "usage": {
+        "completion_tokens": 301,
+        "prompt_tokens": 5355,
+        "total_tokens": 5656,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2432,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 5,
+      "request_id": "chatcmpl-74438039-5c5d-9e63-9131-88353218496d",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\e117ff136059ff5f9ba66240c5227931a2d3f42b1ca9004adc93f93f314baf32.json",
+      "duration_ms": 6141
+    },
+    {
+      "category": "understanding",
+      "fingerprint": "da595455925878764d7ea8aec1cbec6117a6d15386b0c573261f0ef775a0d0b2",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:11:39.038575+00:00",
+      "usage": {
+        "completion_tokens": 103,
+        "prompt_tokens": 401,
+        "total_tokens": 504,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 401
+        }
+      },
+      "duration_ms": 2766
+    },
+    {
+      "category": "decision",
+      "fingerprint": "e1898c9b48a57cfc8a30737d62108edf4901ae4ce19b869e58e0b8296b7cedc5",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:11:41.844227+00:00",
+      "usage": {
+        "completion_tokens": 484,
+        "prompt_tokens": 4438,
+        "total_tokens": 4922,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-9c950032-d75a-974a-b04c-20384e4e733c",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\e1898c9b48a57cfc8a30737d62108edf4901ae4ce19b869e58e0b8296b7cedc5.json",
+      "duration_ms": 7609
+    },
+    {
+      "category": "understanding",
+      "fingerprint": "653818fdc50e427972fc9f3da48d9d6e88e314b91643d784b662abeee4e36007",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:11:55.525368+00:00",
+      "usage": {
+        "completion_tokens": 85,
+        "prompt_tokens": 398,
+        "total_tokens": 483,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 398
+        }
+      },
+      "duration_ms": 2000
+    },
+    {
+      "category": "decision",
+      "fingerprint": "1cd92661c5a1a365d72e4730025b5229fa611e1667f35ec45246fc7ba0c39fe8",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:11:57.560893+00:00",
+      "usage": {
+        "completion_tokens": 65,
+        "prompt_tokens": 4415,
+        "total_tokens": 4480,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-3d4cf0b0-d437-9dbd-9bb0-b43b723f7d66",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\1cd92661c5a1a365d72e4730025b5229fa611e1667f35ec45246fc7ba0c39fe8.json",
+      "duration_ms": 1812
+    },
+    {
+      "category": "decision",
+      "fingerprint": "1ee6fa6171e5541890a7e382c2fa9a1ae2341fff870c8538589985a8472a625e",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:11:59.379165+00:00",
+      "usage": {
+        "completion_tokens": 331,
+        "prompt_tokens": 4789,
+        "total_tokens": 5120,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 4096,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 5,
+      "request_id": "chatcmpl-d25d6f82-f170-9eb1-acec-f20af748aa9e",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\1ee6fa6171e5541890a7e382c2fa9a1ae2341fff870c8538589985a8472a625e.json",
+      "duration_ms": 5875
+    },
+    {
+      "category": "understanding",
+      "fingerprint": "a55c158bf6cf784495df1cca947bb46d81bf012c374f7b03e6a08e0be1d907dd",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:12:13.042654+00:00",
+      "usage": {
+        "completion_tokens": 62,
+        "prompt_tokens": 398,
+        "total_tokens": 460,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 398
+        }
+      },
+      "duration_ms": 2375
+    },
+    {
+      "category": "decision",
+      "fingerprint": "4f6255ccef5e09dd8d6d086bd493fc58469e1a315a23a1d3c6ecd139c11c7df9",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:12:15.458018+00:00",
+      "usage": {
+        "completion_tokens": 229,
+        "prompt_tokens": 4384,
+        "total_tokens": 4613,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-ae31e264-1e83-9384-aa5f-9569bc86efe5",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\4f6255ccef5e09dd8d6d086bd493fc58469e1a315a23a1d3c6ecd139c11c7df9.json",
+      "duration_ms": 4109
+    },
+    {
+      "category": "research_embedding",
+      "fingerprint": "4623a365c57de2043606e0296a3d1efa695196bbda2a5a58eb6d08935e0a03ff",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:12:19.593388+00:00",
+      "usage": {
+        "total_tokens": 22
+      },
+      "duration_ms": 218
+    },
+    {
+      "category": "decision",
+      "fingerprint": "26746d866016e6685722ee0f8da09c2556be2b5fea2ab13a2a1eb1c429ea661a",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:12:19.831345+00:00",
+      "usage": {
+        "completion_tokens": 215,
+        "prompt_tokens": 5060,
+        "total_tokens": 5275,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2560,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 5,
+      "request_id": "chatcmpl-2fbe1dd5-80c9-9af5-9aa4-08fc76b9a487",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\26746d866016e6685722ee0f8da09c2556be2b5fea2ab13a2a1eb1c429ea661a.json",
+      "duration_ms": 4219
+    },
+    {
+      "category": "understanding",
+      "fingerprint": "4f1456fc79d233d44682ae87906d78542a62e3c57ab0865dfe67bb6e51bdf1ac",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:12:31.357594+00:00",
+      "usage": {
+        "completion_tokens": 90,
+        "prompt_tokens": 400,
+        "total_tokens": 490,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 400
+        }
+      },
+      "duration_ms": 2171
+    },
+    {
+      "category": "decision",
+      "fingerprint": "3b09dbcd97f5756bb6937f8695f459b64524b60ea1318a21ed4f38bfe90a03af",
+      "status": "succeeded",
+      "started_at": "2026-09-17T06:12:33.565662+00:00",
+      "usage": {
+        "completion_tokens": 348,
+        "prompt_tokens": 4345,
+        "total_tokens": 4693,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2048,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "agent_steps": 3,
+      "request_id": "chatcmpl-dbe29cc6-d2d2-9569-8b20-a3f1c14bd6b8",
+      "cache_path": "D:\\AnalyzeAgent\\app\\data\\cache\\m4\\decision\\3b09dbcd97f5756bb6937f8695f459b64524b60ea1318a21ed4f38bfe90a03af.json",
+      "duration_ms": 6375
+    }
+  ]
+}

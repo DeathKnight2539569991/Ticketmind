@@ -1,0 +1,15 @@
+{
+  "subject": "响应合法值与历史字段不同",
+  "body": "示例协作台（合成产品）。只读任务列表sort=createdAt报E_FIELD_INVALID，本次响应只列allowed values: opened_at, closed_at。我需要按创建时间排序，不清楚opened_at是否表示创建。",
+  "model": "qwen3.7-flash",
+  "request_fingerprint": "da052f5a64586eb7cba831e5790adbd05a389ba6bdb6cb7f80f772e61ca83268",
+  "understanding": {
+    "summary": "在示例协作台（合成产品）中，对只读任务列表使用 sort=createdAt 参数时返回 E_FIELD_INVALID 错误。响应中仅列出 allowed values: opened_at, closed_at，用户希望按创建时间排序但不确定 opened_at 是否代表创建时间。",
+    "error_codes": [
+      "E_FIELD_INVALID"
+    ],
+    "environment": [
+      "示例协作台（合成产品）"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "case_id": "SYN-EVAL-M4-039",
+  "finished_at": "2026-09-17T06:19:00.688592+00:00",
+  "process_exit_code": 0,
+  "run_status": "waiting_review",
+  "error_code": null,
+  "safe_to_continue": true,
+  "new_attempts": {
+    "understanding": 1,
+    "decision": 1
+  },
+  "cumulative_attempts": 143,
+  "raw_action": "escalate",
+  "final_action": "escalate",
+  "prediction_sha256": "c1b2cecdcdb23891c95687b2cbb2bcf99b65583af305f9c2b366269e986ed9e4"
+}

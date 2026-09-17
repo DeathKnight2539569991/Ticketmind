@@ -56,6 +56,7 @@ def pending_panel(api):
             with st.spinner("正在提交，请勿关闭页面…"):
                 result = api.send(pending)
             st.session_state.pop("detail", None)
+            st.session_state.pop("knowledge_snapshot", None)
             if result.get("run_status") == "failed" and result.get("review"):
                 st.error("审核已保存，但应用失败。可使用当前请求原样重试。")
                 st.text(result.get("error_summary") or result.get("error_code"))
@@ -74,6 +75,7 @@ def pending_panel(api):
     if right.button("取消当前请求", key="cancel_write"):
         st.session_state.pop("pending", None)
         st.session_state.pop("detail", None)
+        st.session_state.pop("knowledge_snapshot", None)
         st.rerun()
     st.stop()
 
@@ -160,6 +162,7 @@ def detail_view(api, ticket, reviewer):
     st.caption(f"{ticket['ticket_number']} · {STATUS[ticket['status']]} · 版本 {version}")
     if st.button("刷新当前工单", key="refresh_detail"):
         st.session_state.pop("detail", None)
+        st.session_state.pop("knowledge_snapshot", None)
         st.rerun()
     messages_tab, runs_tab, actions_tab = st.tabs(["消息记录", "运行与审核", "工单操作"])
     with messages_tab:
@@ -204,6 +207,41 @@ def detail_view(api, ticket, reviewer):
                         queue(f"/tickets/{ticket_id}/close", dict(reason=reason, expected_version=version), "确认解决并关闭工单")
                     else:
                         st.error("请填写解决说明并明确确认。")
+    if ticket["status"] == "resolved":
+        knowledge_view(api, ticket, reviewer)
+
+
+def knowledge_view(api, ticket, reviewer):
+    st.subheader("知识沉淀")
+    saved = st.session_state.get("knowledge_snapshot")
+    if not saved or saved["ticket_id"] != ticket["id"]:
+        saved = {"ticket_id": ticket["id"], "result": api.get(f"/tickets/{ticket['id']}/knowledge")}
+        st.session_state.knowledge_snapshot = saved
+    result = saved["result"]
+    case = result.get("knowledge")
+    if case:
+        st.write(f"Knowledge status：{case['status']}")
+        st.code(case["source_id"], language=None)
+        st.caption(f"知识版本 {case['revision']} · 状态版本 {case['version']} · 审核者 {case['reviewer_id']}")
+        st.write("Index state：" + ("已验证" if case["status"] == "active" else case["status"]))
+        if case.get("index_error"):
+            st.error("索引失败原因：" + case["index_error"])
+        if reviewer and (case["status"] in ("pending_index", "index_failed") or case.get("index_error")):
+            if st.button("重试知识索引（仅使用已有向量）"):
+                queue(f"/knowledge/{quote(case['dataset_version'], safe='')}/{quote(case['source_id'], safe='')}/retry",
+                      {"expected_version": case["version"]}, "重试索引；缺少向量时保持可观察失败，由管理员按授权预算处理")
+        return
+    candidate = result.get("candidate")
+    if not candidate:
+        return
+    st.info("已形成待审候选，尚未进入知识库。批准后才会尝试建立索引。")
+    with st.expander("核对候选知识全文", expanded=True):
+        st.text(candidate["content"])
+    if reviewer:
+        confirmed = st.checkbox("我已核对完整会话，批准该案例作为可检索知识")
+        if st.button("Publish to Knowledge Base", disabled=not confirmed):
+            queue(f"/tickets/{ticket['id']}/knowledge/approve", {"expected_version": ticket["version"]},
+                  "批准此已解决工单沉淀为知识；仅使用已有向量，缺少缓存时等待显式索引")
 
 
 def main():

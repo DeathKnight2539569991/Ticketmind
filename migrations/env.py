@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from ticketmind.core.config import get_settings
 from ticketmind.db.base import Base
 import ticketmind.tickets.models
+import ticketmind.knowledge.models
 
 config = context.config
 

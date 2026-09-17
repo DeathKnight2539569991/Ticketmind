@@ -22,12 +22,17 @@ def main():
     # Fresh credentials only belong to this isolated demo; never load production tokens.
     auth = AuthSettings(_env_file=None, operator_token=secrets.token_urlsafe(32), reviewer_token=secrets.token_urlsafe(32))
     with isolated_database() as (_, factory, schema):
+        from ticketmind.knowledge.seed import seed_knowledge
+        from ticketmind.core.config import ProcessingSettings
+        seed_knowledge(factory, ProcessingSettings().corpus_path)
         credentials = directory / f"demo-{schema}.json"
         credentials.write_text(json.dumps({"api_url": f"http://127.0.0.1:{args.port}", "schema": schema,
             "operator_token": auth.operator_token.get_secret_value(), "reviewer_token": auth.reviewer_token.get_secret_value()}, indent=2), encoding="utf-8")
         print(f"SYNTHETIC DEMO ONLY. Local credentials: {credentials.resolve()}", flush=True)
         try:
-            server = uvicorn.Server(uvicorn.Config(create_app(session_factory=factory, runner=DemoRunner(), auth_settings=auth),
+            from ticketmind.workbench.demo import demo_knowledge_sync
+            server = uvicorn.Server(uvicorn.Config(create_app(session_factory=factory, runner=DemoRunner(), auth_settings=auth,
+                        knowledge_sync=demo_knowledge_sync(factory)),
                         host="127.0.0.1", port=args.port, log_level="warning"))
             if hasattr(signal, "SIGBREAK"):
                 signal.signal(signal.SIGBREAK, lambda *_: setattr(server, "should_exit", True))

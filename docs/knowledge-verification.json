@@ -1,0 +1,68 @@
+{
+  "phase": "knowledge-storage-and-writeback",
+  "date": "2026-09-17",
+  "regression": {
+    "timestamp": "2026-09-17T11:12:09.735358+08:00",
+    "original_tests": 161,
+    "new_tests": 38,
+    "total": 199,
+    "passed": 199,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "duration_seconds": 66.877,
+    "logic_and_doubles": 112,
+    "real_postgresql": 87,
+    "new_test_modules": {
+      "tests/integration/test_knowledge.py": 32,
+      "tests/integration/test_knowledge_milvus.py": 2,
+      "tests/integration/test_knowledge_workbench.py": 3,
+      "tests/test_knowledge_index.py": 1
+    },
+    "junit": "data/cache/knowledge/regression.xml",
+    "warnings": "Two existing dependency deprecations: dashscope Assistants API and langchain-community."
+  },
+  "additional_checks": {
+    "m3_real_http_pg_milvus_scenarios_passed": 8,
+    "m3_report": "data/cache/m3/flow-20260917T022958668903.json",
+    "m3_original_collections_unchanged": true,
+    "m3_legacy_data_sha256": "44b9f50f6ff091f6b8d0ba16e08c4d77f4df3c673bd9f10f7d0527542b7aaedf",
+    "m4_offline_preflight": "passed",
+    "m4_preflight_report": "data/cache/m4/reports/prepare-5aa1701782ba4fd0af2bbcc2ab51d4c8.json",
+    "m0_graph_check_only": "passed; exact understanding/query cache hits",
+    "legacy_versioned_ingestion_command": "passed; PostgreSQL source + existing exact vectors + Milvus readback",
+    "migration_upgrade_preserves_existing_rows_and_matches_models": "passed in real PostgreSQL",
+    "empty_downgrade_then_upgrade": "passed in isolated PostgreSQL",
+    "nonempty_downgrade": "correctly refused",
+    "real_model_decision_acceptance": "not run",
+    "new_browser_manual_acceptance": "not run; Streamlit AppTest uses real loopback HTTP/PG"
+  },
+  "local_development_initialization": {
+    "environment_verified": "development",
+    "migration_head": "b812ce904a61",
+    "seed_created_first_run": 12,
+    "seed_created_second_run": 0,
+    "exact_vectors_imported_each_run": 12,
+    "synthetic_dataset": "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f",
+    "synthetic_active_cases": 12,
+    "production_dataset": "production-v1",
+    "production_collection_initialized": true,
+    "production_cases": 0,
+    "existing_ticket_run_review_rows": "preserved",
+    "production_deployment": "not performed"
+  },
+  "external_paid_calls": {
+    "llm": 0,
+    "embedding": 0,
+    "other": 0,
+    "note": "Deterministic doubles and existing exact caches are excluded from provider call counts; loopback SDK fault tests do not call a provider."
+  },
+  "remaining_limitations": [
+    "New production content needs explicitly authorized embedding when no exact vector cache exists; HTTP endpoints always have zero embedding budget.",
+    "Knowledge content is immutable in this phase; no edit/revision history UI. Retirement preserves historical source content.",
+    "Candidate is the complete ordered published conversation and requires reviewer applicability/privacy review; no model summary is generated.",
+    "Text beyond the 16384-byte index limit fails before embedding; no silent truncation.",
+    "Explicit reconcile only; no reliable background worker or distributed transaction. PostgreSQL outages can delay failure recording.",
+    "No new model-quality claims or production ranking metrics; historical M4 limitations remain."
+  ]
+}

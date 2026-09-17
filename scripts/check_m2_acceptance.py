@@ -23,6 +23,8 @@ from ticketmind.api.schemas.runs import ReviewCreate
 from ticketmind.core.config import AuthSettings, MilvusSettings, ProcessingSettings, QwenSettings
 from ticketmind.db.testing import isolated_database
 from ticketmind.main import create_app
+from ticketmind.knowledge.sources import load_sources
+from ticketmind.knowledge.seed import seed_knowledge
 from ticketmind.tickets.models import ProcessingResult
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -84,12 +86,13 @@ def execute_case(case, qwen, config, ledger, directory, review=None):
     adapters = AcceptanceAdapters(qwen, directory, ledger,
         legacy_directory=LEGACY if case["id"] == "clarification" else None)
     runner = AgentRunner(qwen, MilvusSettings(), config, understanding_fn=adapters.understanding,
-                         embedding_factory=adapters.embeddings, decision_fn=adapters.decision)
+                         embedding_factory=adapters.embeddings, decision_fn=adapters.decision, corpus=load_sources(config.corpus_path))
     auth = AuthSettings(_env_file=None, operator_token=secrets.token_urlsafe(32), reviewer_token=secrets.token_urlsafe(32))
     report = {"case": case, "verification": "asgi_http_real_postgresql_checkpointer_milvus_model_or_exact_cache",
               "model_quality": "pending_human_review", "business_review": "not_executed"}
     try:
         with isolated_database(os.getenv("TICKETMIND_TEST_DATABASE_URL")) as (_, factory, schema):
+            seed_knowledge(factory, config.corpus_path)
             report["temporary_schema"] = schema
             app = create_app(session_factory=factory, runner=runner, auth_settings=auth, processing_settings=config)
             with TestClient(app) as client:

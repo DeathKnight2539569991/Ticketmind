@@ -16,7 +16,7 @@ def reciprocal_rank_fusion(dense: list[EvidenceHit], bm25: list[EvidenceHit], *,
             if hit.source_id not in merged:
                 merged[hit.source_id] = hit.model_copy(update={"retrieval_mode": "hybrid", "fusion_score": 0.0})
             current = merged[hit.source_id]
-            if (current.text, current.corpus_version) != (hit.text, hit.corpus_version):
+            if (getattr(current, "text", None), current.corpus_version, getattr(current, "content_hash", None)) != (getattr(hit, "text", None), hit.corpus_version, getattr(hit, "content_hash", None)):
                 raise ValueError("融合来源版本不一致")
             setattr(current, f"{channel}_score", getattr(hit, f"{channel}_score"))
             setattr(current, f"{channel}_rank", rank)

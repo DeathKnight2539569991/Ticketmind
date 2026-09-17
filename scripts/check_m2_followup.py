@@ -26,6 +26,7 @@ from ticketmind.agent.schemas import TicketUnderstanding
 from ticketmind.core.config import QwenSettings, MilvusSettings, ProcessingSettings, AuthSettings
 from ticketmind.db.testing import isolated_database
 from ticketmind.main import create_app
+from ticketmind.knowledge.sources import load_sources
 from ticketmind.retrieval.milvus_client import build_milvus_client
 from ticketmind.tickets.models import ProcessingResult
 
@@ -64,6 +65,7 @@ class FirstSearchMiss:
 
 class FollowupRunner(AgentRunner):
     def __init__(self, *args, decision_model=None, **kwargs):
+        kwargs.setdefault("corpus", load_sources(args[2].corpus_path))
         super().__init__(*args, **kwargs)
         self.decision_model = decision_model
 

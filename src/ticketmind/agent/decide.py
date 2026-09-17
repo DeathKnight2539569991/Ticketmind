@@ -37,7 +37,12 @@ reason 是简短可核对的判断依据，不输出隐藏推理。reply 用中�
 
 def decision_messages(state: TicketAgentState) -> tuple[str, str]:
     evidence = [hit.model_dump() for hit in state["retrieval_hits"]]
-    return (SYSTEM_PROMPT + "\n\n结构定义：\n" + json.dumps(decision_adapter.json_schema(), ensure_ascii=False),
+    prompt = SYSTEM_PROMPT
+    if any(hit.get("synthetic") is False for hit in evidence):
+        prompt = prompt.replace("你是合成 SaaS 工单场景中的内部客服建议助手", "你是 SaaS 工单场景中的内部客服建议助手").replace(
+            "历史案例均为合成场景，不将案例里的数值泛化为真实产品承诺。",
+            "案例来源类型由 synthetic 标记；已解决会话可能包含早期失败建议，按顺序核对最终处理结果，不将单例数值泛化为产品承诺。")
+    return (prompt + "\n\n结构定义：\n" + json.dumps(decision_adapter.json_schema(), ensure_ascii=False),
             json.dumps({"subject": state["subject"], "body": state["body"],
                         "understanding": state["understanding"].model_dump(), "evidence": evidence,
                         "case_details": state.get("case_details", {}),

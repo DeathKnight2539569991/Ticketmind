@@ -20,6 +20,13 @@ def get_runner(request: Request):
     if request.app.state.runner is not None:
         return request.app.state.runner
     try:
-        return AgentRunner(QwenSettings(), MilvusSettings(), request.app.state.processing_settings)
+        runner = AgentRunner(QwenSettings(), MilvusSettings(), request.app.state.processing_settings,
+                             session_factory=request.app.state.session_factory)
+        from ticketmind.retrieval.schemas import RetrievalError
+        try:
+            runner.corpus.dataset()
+        except RetrievalError as exc:
+            raise AppError(503, exc.code, "知识数据集尚未初始化，请先执行 migration 与 knowledge seed") from None
+        return runner
     except (ValidationError, ValueError, OSError):
-        raise AppError(503, "agent_configuration_unavailable", "Agent 配置或语料不可用，请检查本地配置") from None
+        raise AppError(503, "agent_configuration_unavailable", "Agent 配置不可用，请检查本地配置") from None

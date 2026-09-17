@@ -6,7 +6,7 @@ from ticketmind.agent.graph import build_ticket_graph
 from ticketmind.agent.understand import understand_ticket
 from ticketmind.agent.tools import bounded_decision
 from ticketmind.core.config import MilvusSettings, ProcessingSettings, QwenSettings
-from ticketmind.knowledge.sources import load_sources
+from ticketmind.knowledge.repository import KnowledgeStore
 from ticketmind.retrieval.embeddings import build_embedding_client
 from ticketmind.retrieval.milvus_client import build_milvus_client
 from ticketmind.retrieval.service import retrieve_cases
@@ -30,9 +30,14 @@ class RunFailure(Exception):
 class AgentRunner:
     """One synchronous run; owns external resources, never a database Session."""
     def __init__(self, qwen: QwenSettings, milvus: MilvusSettings, config: ProcessingSettings,
-                 *, understanding_fn=None, embedding_factory=None, decision_fn=None, milvus_factory=None):
+                 *, understanding_fn=None, embedding_factory=None, decision_fn=None, milvus_factory=None,
+                 session_factory=None, corpus=None):
         self.qwen, self.milvus, self.config = qwen, milvus, config
-        self.corpus = load_sources(config.corpus_path)
+        if session_factory is None:
+            from ticketmind.db.session import SesstionLocal
+            session_factory = SesstionLocal
+        # Frozen corpus injection is reserved for explicit evaluation adapters.
+        self.corpus = corpus if corpus is not None else KnowledgeStore(session_factory, config.knowledge_dataset)
         self.understanding_fn = understanding_fn
         self.embedding_factory = embedding_factory
         self.decision_fn = decision_fn
@@ -48,7 +53,8 @@ class AgentRunner:
                                  "top_k": self.config.retrieval_top_k,
                                  "candidate_k": self.config.retrieval_candidate_k,
                                  "rrf_k": self.config.retrieval_rrf_k,
-                                 "collection": selected_collection(self.corpus, self.config.retrieval_mode),
+                                 "collection": self.corpus.dataset().collection_name if isinstance(self.corpus, KnowledgeStore)
+                                               else selected_collection(self.corpus, self.config.retrieval_mode),
                                  "limits": self.config.model_dump(include={"max_search_rounds", "max_case_details", "max_agent_steps", "max_clarification_rounds", "processing_timeout_seconds"})}}
 
     def __call__(self, snapshot: dict) -> RunOutput:

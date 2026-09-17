@@ -21,6 +21,27 @@ class EvidenceHit(BaseModel):
     retrieval_mode: RetrievalMode
 
 
+class KnowledgeEvidenceHit(EvidenceHit):
+    knowledge_revision: int
+    content_hash: str
+    synthetic: bool
+    metadata: dict
+
+
+class IndexHit(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    source_id: str = Field(min_length=1)
+    corpus_version: str
+    content_hash: str | None = None
+    rank: int = Field(ge=1)
+    dense_score: float | None = None
+    bm25_score: float | None = None
+    fusion_score: float | None = None
+    dense_rank: int | None = None
+    bm25_rank: int | None = None
+    retrieval_mode: RetrievalMode
+
+
 class RetrievalError(RuntimeError):
     """Stable, non-secret error identifier for persisted retrieval diagnostics."""
 

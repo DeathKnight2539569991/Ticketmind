@@ -80,3 +80,4 @@ class ProcessingSettings(BaseSettings):
     max_agent_steps: int = Field(default=8, ge=3, le=8)
     max_clarification_rounds: int = Field(default=2, ge=0, le=2)
     corpus_path: Path = Path(__file__).resolve().parents[3] / "data/synthetic/v2/historical_cases.jsonl"
+    knowledge_dataset: str = Field(default="production-v1", min_length=1, max_length=128)

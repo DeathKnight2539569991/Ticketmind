@@ -56,7 +56,7 @@ def test_real_graph_orchestration_and_partial_failure(monkeypatch, settings, fai
 
     runner = AgentRunner(settings, MilvusSettings(_env_file=None, uri="http://unit.invalid"), ProcessingSettings(),
         understanding_fn=lambda **kwargs: TicketUnderstanding(summary="unit understanding", error_codes=[], environment=[]),
-        embedding_factory=lambda remaining: Embedding(), decision_fn=decide)
+        embedding_factory=lambda remaining: Embedding(), decision_fn=decide, corpus=corpus)
     if failure:
         with pytest.raises(RunFailure) as error:
             runner({"subject": "s", "body": "b"})

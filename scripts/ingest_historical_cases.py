@@ -9,6 +9,11 @@ from ticketmind.retrieval.milvus_client import build_milvus_client
 from ticketmind.core.config import ProcessingSettings
 from ticketmind.knowledge.sources import load_sources
 from ticketmind.retrieval.versioned_collection import validate_collection
+from ticketmind.db.session import SesstionLocal
+from ticketmind.knowledge.seed import seed_knowledge, cache_vector, embedding_identity
+from ticketmind.knowledge.models import KnowledgeCase
+from ticketmind.knowledge.corpus import HistoricalCase
+from sqlalchemy import select
 
 
 def main() -> None:
@@ -23,7 +28,12 @@ def main() -> None:
 
     project_root = Path(__file__).resolve().parents[1]
     corpus = load_sources(ProcessingSettings().corpus_path)
-    cases = list(corpus.cases.values())
+    seed_knowledge(SesstionLocal, ProcessingSettings().corpus_path)
+    # Compatibility command: authoritative documents still come from PG.
+    with SesstionLocal() as session:
+        stored_cases = {row.source_id: row for row in session.scalars(select(KnowledgeCase).where(
+            KnowledgeCase.dataset_version == corpus.version)).all()}
+        cases = [HistoricalCase.model_validate(stored_cases[source_id].source) for source_id in corpus.cases]
     if not args.versioned and corpus.version != LEGACY_CORPUS_VERSION:
         raise ValueError("旧 Dense 集合绑定原始语料版本；新语料请使用 --versioned")
 
@@ -50,6 +60,19 @@ def main() -> None:
             project_root / "data/cache/embeddings",
             allow_embedding=args.allow_embedding,
         )
+        with SesstionLocal() as session, session.begin():
+            for record in records:
+                cache_vector(session, embedding_identity(qwen_settings, record.text), record.embedding)
+
+        if args.versioned:
+            from ticketmind.knowledge.sync import KnowledgeSync
+            from ticketmind.knowledge.index import MilvusKnowledgeIndex
+            synced = KnowledgeSync(SesstionLocal, MilvusKnowledgeIndex(client, milvus_settings.timeout_seconds),
+                                   qwen_settings).reconcile(corpus.version, repair_active=True)
+            if any(row["status"] != "active" for row in synced):
+                raise RuntimeError("知识索引未全部成功；请检查 PostgreSQL index_error 并 reconcile")
+            print(f"PG → Milvus 同步完成：{len(synced)} 条")
+            return
 
         result = client.upsert(
             collection_name=collection,

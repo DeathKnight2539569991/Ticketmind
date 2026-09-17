@@ -30,3 +30,26 @@ class DemoRunner:
         return RunOutput({"understanding": TicketUnderstanding(summary="合成演示输入：" + subject, error_codes=[], environment=[]),
                           "proposal": proposal}, self.corpus.evidence([RetrievalHit(source_id=source.source_id,
                           text=build_case_text(source), score=0.5)]), {"synthetic_test_double": True})
+
+
+def demo_knowledge_sync(factory):
+    """Explicit isolated demo only; no Milvus or model SDK client is constructed."""
+    from ticketmind.knowledge.sync import KnowledgeSync
+    from ticketmind.core.config import QwenSettings
+    class IndexDouble:
+        def __init__(self):
+            self.rows = {}
+        def ensure(self, dataset):
+            pass
+        def matches(self, dataset, case):
+            return self.rows.get((dataset.version, case.source_id)) == case.content_hash
+        def upsert(self, dataset, case, vector):
+            self.rows[dataset.version, case.source_id] = case.content_hash
+        def delete(self, dataset, case):
+            self.rows.pop((dataset.version, case.source_id), None)
+    class VectorDouble:
+        def embed_documents(self, documents):
+            return [[1.0] * 1024 for _ in documents]
+    return KnowledgeSync(factory, IndexDouble(), QwenSettings(_env_file=None,
+        DASHSCOPE_API_KEY="synthetic-demo", DASHSCOPE_WORKSPACE_ID="synthetic-demo"),
+        embedding_factory=VectorDouble, embedding_budget=1000)

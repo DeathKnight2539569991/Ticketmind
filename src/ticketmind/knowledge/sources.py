@@ -11,6 +11,10 @@ class CorpusSnapshot:
     version: str
     cases: dict[str, HistoricalCase]
 
+    def get_case_detail(self, source_id):
+        """Explicit frozen dataset adapter for offline evaluation only."""
+        return self.cases[source_id].model_dump(mode="json")
+
     def evidence(self, hits) -> list[dict]:
         from ticketmind.retrieval.schemas import EvidenceHit
         evidence = []

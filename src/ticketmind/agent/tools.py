@@ -69,11 +69,12 @@ def bounded_decision(state, *, decide, embeddings, client, corpus, config, remai
                 record["result_source_ids"] = [hit.source_id for hit in hits]
                 record["result_summary"] = f"返回 {len(hits)} 条候选"
             else:
-                case = corpus.cases[decision.source_id]
-                state["case_details"][decision.source_id] = case.model_dump(mode="json")
+                state["case_details"][decision.source_id] = corpus.get_case_detail(decision.source_id)
                 details.add(decision.source_id)
                 record["result_source_ids"] = [decision.source_id]
-                record["result_summary"] = "读取本次版本的完整合成案例"
+                from ticketmind.knowledge.repository import KnowledgeStore
+                record["result_summary"] = ("读取本次版本的完整案例" if isinstance(corpus, KnowledgeStore)
+                                            else "读取本次版本的完整合成案例")
             remaining()
             record["status"] = "succeeded"
         except Exception as exc:

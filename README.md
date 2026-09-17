@@ -1,5 +1,18 @@
 # TicketMind
 
+当前知识架构：**PostgreSQL 保存权威正文，Milvus 提供检索索引，JSONL 仅用于 seed / evaluation**。已解决工单在工作台显示待审候选，经 reviewer 明确批准后形成知识；索引失败可见、可重试，生产新增知识无需重写 JSONL 或重启 Agent。完整设计、初始化和验收见 [Knowledge 交付报告](docs/knowledge-writeback.md)。下文 M0—M5 的模型调用及质量数据保留为历史证据。
+
+首次使用现有开发库，先执行：
+
+```powershell
+uv run --no-sync alembic upgrade head
+uv run --no-sync python scripts/knowledge.py seed
+uv run --no-sync python scripts/knowledge.py import-cache
+uv run --no-sync python scripts/knowledge.py reconcile --dataset production-v1
+```
+
+`import-cache` 仅导入已有精确向量，缺失即停止；不调用模型。生产知识初始为空，合成 seed 不混入生产检索。固定合成数据集的同步和选择方式见报告。HTTP 发布/重试仅使用缓存；新工单缺向量时返回 `index_failed / embedding_cache_missing`，管理员必须在明确授权后通过带累计台账的命令生成向量。
+
 面向合成 SaaS 技术支持工单的单 Agent 项目。M2 已支持：身份认证 → 工单与客户消息 → 理解、Dense 检索和有界决策 → 持久化暂停 → 人工审核 → 保存回复 → 客服明确关闭。
 
 三类提案都先进入 waiting_review。**生成建议不会关闭工单；发布仅指本地数据库消息，没有接入邮件或外部客服平台。** 本轮 M2 验收收尾已完成：历史三类真实提案及审核、客户补充后真实重检索与建议、用户批准编辑后的业务应用均有证据，工程验证已覆盖审核与进程恢复。
@@ -10,7 +23,7 @@
 
 M4 A档已完成：39条新评测输入、33条开发标签补全；51条查询完成Dense/BM25/Hybrid真实对比，6条validation Agent样本动作匹配5/6，3条草稿错误声称已转交。实际新增调用65次。标签和语义结果由用户委托Agent审查，不是独立人工标注；剩余33条Agent输入尚未运行。见[M4报告](docs/m4-evaluation.md)、[标签审阅清单](docs/m4-label-review.md)与[调用记录](docs/m4-call-budget.md)。
 
-M5 新增 Streamlit 工作台：工单列表与消息 → 处理 → 查看提案、证据与工具轨迹 → 人工审核 → 人工回复或明确关闭。当前全量 **161 项测试通过（111 逻辑/替身＋50 真实 PostgreSQL）**；新增 6 个工作台场景经过真实本机 HTTP，Agent 使用替身。M5 无新增付费调用，未修复或重测上述 M4 模型质量问题。
+M5 新增 Streamlit 工作台：工单列表与消息 → 处理 → 查看提案、证据与工具轨迹 → 人工审核 → 人工回复或明确关闭。M5 当时全量 **161 项测试通过（111 逻辑/替身＋50 真实 PostgreSQL）**；新增 6 个工作台场景经过真实本机 HTTP，Agent 使用替身。知识阶段最终全量为 **199 passed（112 逻辑/替身＋87 真实 PostgreSQL，含真实 Milvus 测试）**，新增付费调用为 0，未重新评定上述 M4 模型质量。
 
 ## 先运行工作台
 
@@ -62,7 +75,8 @@ uv run --no-sync python scripts/configure_local_auth.py
 | TICKETMIND_MAX_CASE_DETAILS | 最多 2 个不同候选详情，可调低或设 0 |
 | TICKETMIND_MAX_AGENT_STEPS | 理解、首次检索、每次决策、每次工具分别计步，最多 8 步 |
 | TICKETMIND_MAX_CLARIFICATION_ROUNDS | 最多 2 轮，按成功应用的追问审核计数 |
-| TICKETMIND_CORPUS_PATH | 可选；默认项目内 v2 历史案例，版本按内容计算 |
+| TICKETMIND_CORPUS_PATH | 仅 seed / evaluation；可选，默认项目内 v2 历史案例 |
+| TICKETMIND_KNOWLEDGE_DATASET | 正式 Agent 的 PostgreSQL 数据集；默认 production-v1，可显式选择冻结合成版本 |
 
 模型地址由业务空间拼接为 https://&lt;workspace&gt;.cn-beijing.maas.aliyuncs.com/compatible-mode/v1（理解/决策）和 /api/v1（Embedding）。本地 Milvus 适配尚无鉴权，不直接暴露公网。
 
@@ -74,7 +88,7 @@ uv run --no-sync alembic current
 uv run --no-sync uvicorn ticketmind.main:app --host 127.0.0.1 --port 8000 --workers 1
 ```
 
-M2 业务迁移为 **9c42d71ab203**，基于 M1 的 6b31a12c9e01 新增审核表、消息审计、发布消息关联和 cancelled 状态，保留旧数据；有 M2 审计数据时拒绝有损降级。
+最新业务迁移为 **b812ce904a61**，在 M2 的 **9c42d71ab203** 之上新增知识数据集、知识案例、操作审计和精确向量缓存四张表。旧工单、运行、审核不改写；有知识数据时拒绝有损降级。M2 的审核表、消息审计、发布消息关联和 cancelled 状态全部保留。
 
 启动使用独立连接池初始化 PostgreSQL checkpointer 的 checkpoint_* / checkpoints 表，与业务表位于相同数据库/schema。检查点由 saver.setup 管理，业务表由 Alembic 管理。仅新增 langgraph-checkpoint-postgres 3.1.2 及其 psycopg-pool 3.3.1；保留 LangGraph 1.2.11 和其余既有版本。
 
@@ -98,7 +112,11 @@ M2 业务迁移为 **9c42d71ab203**，基于 M1 的 6b31a12c9e01 新增审核表
 | GET /tickets/{ticket_id}/runs/{run_id} | 原提案、证据、工具记录、配置、usage、审核与错误 |
 | POST /tickets/{ticket_id}/runs/{run_id}/review | 仅 reviewer；decision、expected_version、可选 edited_reply/comment |
 | POST /tickets/{ticket_id}/close | 仅 reviewer；expected_version、reason，保存关闭审计 |
-| GET /sources/{source_id}?corpus_version=... | 对应版本完整合成案例；旧版不可用返回 404，运行快照仍保留 |
+| GET /sources/{source_id}?corpus_version=... | 从 PG 读取对应版本完整来源；含停用来源供审计，无此版本返回 404 |
+| GET /tickets/{ticket_id}/knowledge | 待审候选全文或已沉淀知识状态 |
+| POST /tickets/{ticket_id}/knowledge/approve | reviewer；expected_version 是工单版本，批准并尝试缓存索引 |
+| GET /knowledge/{dataset}/{source_id} | 知识正文、审核来源、版本、索引状态与错误 |
+| POST /knowledge/{dataset}/{source_id}/retry 或 /retire | reviewer；expected_version 是知识状态版本 |
 
 创建工单后查询详情，取得 version 和最新消息 id，再创建运行。**新运行可能调用付费模型，只在已授权预算内执行。** 正式 API 不启用开发缓存。
 
@@ -220,7 +238,7 @@ uv run --no-sync python scripts/check_milvus.py
 
 先启动 Docker Desktop 的 Linux Engine。infra/milvus/.env 的 DOCKER_VOLUME_DIRECTORY 控制数据根目录；保留现有 volumes，日常停止用 docker compose --project-directory infra/milvus stop。
 
-旧 Dense 集合仅在新环境首次执行 scripts/init_case_collection.py、scripts/ingest_historical_cases.py；它绑定原始语料内容版本。导入默认只复用 data/cache/embeddings/ 中匹配的向量，整批 --allow-embedding 须另行授权。本轮新增 M3 集合并复用 12 条真实向量，保留 historical_cases_v1 的原数据与向量。
+以下是固定 M0—M4 评测兼容入口，正式知识初始化使用本文开头的 `knowledge.py`。旧 Dense 集合绑定原始语料内容版本。兼容导入脚本现在也先 seed PostgreSQL、从 PG 取正文，再复用 data/cache/embeddings/ 中匹配的向量；`--versioned` 通过知识同步服务更新状态。整批 `--allow-embedding` 仍须另行授权；生产新增向量使用带累计台账的新命令。保留 historical_cases_v1 与原 M3 集合。
 
 ### M3 初始化、切换与验收
 
@@ -232,10 +250,11 @@ uv run --no-sync python scripts/ingest_historical_cases.py --versioned
 # 仅影响当前终端启动的 API；持久配置可写入本地 .env，修改后重启 API
 $env:TICKETMIND_RETRIEVAL_MODE = 'hybrid'
 $env:TICKETMIND_AGENT_VERSION = 'ticketmind-m3'
+$env:TICKETMIND_KNOWLEDGE_DATASET = 'synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f'
 uv run --no-sync uvicorn ticketmind.main:app --host 127.0.0.1 --port 8000 --workers 1
 ```
 
-切回 dense 即使用原始 V2 语料的旧 Dense 基线；bm25 不调用查询 Embedding。更换语料后，三种模式均要求对应内容版本的新集合，未初始化、未完整导入或版本不匹配会明确失败。不会搜索旧集合补结果。API 仍通过服务配置选择枚举模式，不接收任意集合名。
+固定评测适配器切回 dense 仍使用原 V2 旧 Dense 基线。正式 API 的三种模式均使用 `TICKETMIND_KNOWLEDGE_DATASET` 对应的 PG 登记集合；即使设为合成数据集，也从 PG 回填正文。bm25 不调用查询 Embedding。版本不匹配会明确失败，不向旧集合或 JSONL 补结果；API 不接收任意集合名。
 
 ```powershell
 # 固定 5 条历史查询；精确缓存缺失即失败，不补调模型

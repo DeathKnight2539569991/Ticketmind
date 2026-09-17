@@ -1,4 +1,5 @@
 from ticketmind.db.base import Base
+import ticketmind.knowledge.models
 from ticketmind.tickets.models import ProcessingResult, Ticket, TicketMessage
 from sqlalchemy.orm import configure_mappers
 
@@ -8,6 +9,10 @@ def test_ticket_models_are_registered_in_metadata() -> None:
         "ticket_messages",
         "processing_results",
         "processing_reviews",
+        "knowledge_cases",
+        "knowledge_datasets",
+        "knowledge_operations",
+        "knowledge_embeddings",
     }
 
 

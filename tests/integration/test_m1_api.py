@@ -28,6 +28,8 @@ pytestmark = [pytest.mark.integration, pytest.mark.skipif(os.getenv("TICKETMIND_
 @pytest.fixture(scope="module")
 def database():
     with isolated_database(os.getenv("TICKETMIND_TEST_DATABASE_URL")) as database:
+        from ticketmind.knowledge.seed import seed_knowledge
+        seed_knowledge(database[1], ProcessingSettings().corpus_path)
         yield database
 
 
@@ -271,7 +273,8 @@ def test_real_local_dependency_failure_is_persisted_without_model_calls(setup, m
         port = unavailable.getsockname()[1]
         client.app.state.runner = runtime.AgentRunner(
             QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unit-only", DASHSCOPE_WORKSPACE_ID="unit-only"),
-            MilvusSettings(_env_file=None, uri=f"http://127.0.0.1:{port}", timeout_seconds=1), ProcessingSettings())
+            MilvusSettings(_env_file=None, uri=f"http://127.0.0.1:{port}", timeout_seconds=1), ProcessingSettings(),
+            session_factory=factory)
         response = run(client, create(client))
     result = response.json()
     assert response.status_code == 201 and result["run_status"] == "failed"

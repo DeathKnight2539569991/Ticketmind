@@ -112,7 +112,7 @@ def main():
             runner = AgentRunner(qwen, milvus, config.model_copy(update={"retrieval_mode": mode}),
                 understanding_fn=lambda **kw: TicketUnderstanding(summary="M3 工程验证替身", error_codes=["E_TIMEOUT"], environment=["Python 3.12"]),
                 decision_fn=decide, embedding_factory=lambda remaining: Embeddings(),
-                milvus_factory=lambda settings: FaultClient(build_milvus_client(settings), fault))
+                milvus_factory=lambda settings: FaultClient(build_milvus_client(settings), fault), corpus=corpus)
             app = create_app(session_factory=factory, runner=runner, auth_settings=auth)
             with TestClient(app) as http:
                 http.headers["Authorization"] = "Bearer " + auth.operator_token.get_secret_value()

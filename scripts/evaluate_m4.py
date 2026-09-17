@@ -96,7 +96,7 @@ def execute_agent(case, qwen, config, ledger, decision_model):
     adapters = AcceptanceAdapters(qwen, CACHE, ledger)
     decisions = AcceptanceAdapters(qwen.model_copy(update={"model": decision_model}), CACHE, ledger)
     runner = AgentRunner(qwen, MilvusSettings(), config, understanding_fn=adapters.understanding,
-                         embedding_factory=adapters.embeddings, decision_fn=decisions.decision)
+                         embedding_factory=adapters.embeddings, decision_fn=decisions.decision, corpus=load_sources(config.corpus_path))
     class EvaluationRunner:
         @property
         def metadata(self):
@@ -205,7 +205,7 @@ def main():
         "dataset_sha256": digest(rows), "query_set_sha256": digest(queries), "development_overlay_sha256": digest(overlay),
         "manifest": manifest_for(corpus), "config": config.model_dump(mode="json"),
         "understanding_model": qwen.model, "decision_model": args.decision_model, "embedding_model": qwen.embedding_model,
-        "decision_protocol": AgentRunner(qwen, MilvusSettings(), config).metadata["model_config"]["decision_protocol"],
+        "decision_protocol": AgentRunner(qwen, MilvusSettings(), config, corpus=corpus).metadata["model_config"]["decision_protocol"],
         "new_call_ceilings": ceilings, "price": None, "price_status": "not_available", "rows": []}
     output = args.output or CACHE / "reports" / f"{args.stage}-{uuid4().hex}.json"
     try:

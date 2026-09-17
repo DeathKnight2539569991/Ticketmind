@@ -63,7 +63,7 @@ def test_real_model_transport_fails_once_and_preserves_ticket(setup, monkeypatch
     milvus = UnusedMilvus()
     runner = AgentRunner(QwenSettings(_env_file=None, DASHSCOPE_API_KEY="synthetic-local-only", DASHSCOPE_WORKSPACE_ID="unused"),
         MilvusSettings(_env_file=None, uri="http://unused.invalid"), ProcessingSettings(retrieval_mode="bm25"),
-        milvus_factory=lambda _: milvus)
+        milvus_factory=lambda _: milvus, session_factory=factory)
     client.app.state.runner = runner
     try:
         ticket, key = m1.create(client), uuid4().hex

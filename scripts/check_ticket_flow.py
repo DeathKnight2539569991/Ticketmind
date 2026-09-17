@@ -19,6 +19,8 @@ from ticketmind.agent.runtime import AgentRunner
 from ticketmind.core.config import AuthSettings, MilvusSettings, ProcessingSettings, QwenSettings
 from ticketmind.db.testing import isolated_database
 from ticketmind.main import create_app
+from ticketmind.knowledge.sources import load_sources
+from ticketmind.knowledge.seed import seed_knowledge
 from ticketmind.tickets.models import ProcessingResult
 
 
@@ -39,7 +41,7 @@ def main():
         raise RuntimeError("缺少匹配的 M0 真实缓存，禁止自动补调模型")
     decision = CachedDecision(qwen, args.decision_cache, allow_call=args.allow_decision)
     runner = AgentRunner(qwen, milvus, config, understanding_fn=understanding,
-                         embedding_factory=lambda remaining: embedding, decision_fn=decision)
+                         embedding_factory=lambda remaining: embedding, decision_fn=decision, corpus=load_sources(config.corpus_path))
     if args.check_only:
         print("配置、语料、两份 M0 真实缓存校验通过；未连接数据库/Milvus/模型；决策缓存需实际检索后校验。")
         return
@@ -50,6 +52,7 @@ def main():
     report = None
     try:
         with isolated_database() as (engine, factory, schema):
+            seed_knowledge(factory, config.corpus_path)
             application = create_app(session_factory=factory, runner=runner, auth_settings=auth, processing_settings=config)
             server = uvicorn.Server(uvicorn.Config(application, host="127.0.0.1", port=0, log_level="warning", access_log=False))
             with socket.socket() as sock:

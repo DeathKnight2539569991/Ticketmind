@@ -1,0 +1,49 @@
+{
+  "created_at": "2026-09-17T01:23:52.897024+00:00",
+  "base_commit": "192f115",
+  "paid_calls": 0,
+  "regression": {
+    "total": 161,
+    "real_postgresql": 50,
+    "logic_or_doubles": 111,
+    "failures": 0,
+    "errors": 0,
+    "source": "data/cache/m5/regression.xml"
+  },
+  "final_ui_recheck": {
+    "passed": 9,
+    "source": "data/cache/m5/ui-final.xml"
+  },
+  "browser": {
+    "created_at": "2026-09-17T01:21:05.956261+00:00",
+    "mode": "synthetic_demo",
+    "schema": "tm_test_0bc499bdfa5c4861978dd2ecb9557660",
+    "ticket_id": "d1cf40f4-70c9-487d-9ea9-ebcd5e6f1657",
+    "ticket_status": "resolved",
+    "ticket_version": 3,
+    "messages": 3,
+    "run_status": "completed",
+    "published_message_matches": true,
+    "close_reason": "合成验收完成",
+    "browser_errors": 0,
+    "paid_calls": 0,
+    "database_matches_http": true
+  },
+  "lifecycle": {
+    "demo_schema_removed": true,
+    "demo_credentials_removed": true,
+    "owned_api_ui_stopped": true,
+    "formal_startup_with_existing_pg": true,
+    "milvus_start_skipped": true
+  },
+  "compose_config_validated": [
+    "infra/milvus",
+    "infra/postgres"
+  ],
+  "not_run": [
+    "new_machine_full_live_model_flow",
+    "postgres_container_runtime",
+    "new_live_agent_or_embedding",
+    "recorded_demo_video"
+  ]
+}

@@ -8,7 +8,27 @@
 
 此前 M2 决策协议 `m2-action-boundaries-v2` 下，glm-5.2用真实新查询向量在Milvus召回006并生成建议，随后精确缓存回放应用用户批准的编辑稿：completed、工单open、版本3→4、消息3→4，重复审核幂等。草稿中过度结论已由人工编辑删除；此前失败样本均保留。实际证据见 [补充验收](docs/m2-followup.md)及[审核单](docs/m2-followup-review.md)。这些是不同阶段/模型的合成样本证据，不代表当前单模型三路径完整回归或总体准确率。
 
-M4 A档已完成：39条新评测输入、33条开发标签补全；51条查询完成Dense/BM25/Hybrid真实对比，6条validation Agent样本动作匹配5/6，3条草稿错误声称已转交。实际新增调用65次，152项分层测试通过。标签和语义结果由用户委托Agent审查，不是独立人工标注；剩余33条Agent输入尚未运行。M5工作台未实现，本次不推进。见[M4报告](docs/m4-evaluation.md)、[标签审阅清单](docs/m4-label-review.md)与[调用记录](docs/m4-call-budget.md)。
+M4 A档已完成：39条新评测输入、33条开发标签补全；51条查询完成Dense/BM25/Hybrid真实对比，6条validation Agent样本动作匹配5/6，3条草稿错误声称已转交。实际新增调用65次。标签和语义结果由用户委托Agent审查，不是独立人工标注；剩余33条Agent输入尚未运行。见[M4报告](docs/m4-evaluation.md)、[标签审阅清单](docs/m4-label-review.md)与[调用记录](docs/m4-call-budget.md)。
+
+M5 新增 Streamlit 工作台：工单列表与消息 → 处理 → 查看提案、证据与工具轨迹 → 人工审核 → 人工回复或明确关闭。当前全量 **161 项测试通过（111 逻辑/替身＋50 真实 PostgreSQL）**；新增 6 个工作台场景经过真实本机 HTTP，Agent 使用替身。M5 无新增付费调用，未修复或重测上述 M4 模型质量问题。
+
+## 先运行工作台
+
+配置根目录 `.env` 的 PostgreSQL 连接后，运行零付费隔离演示：
+
+```powershell
+uv sync --locked
+uv run --no-sync python scripts/start_local.py --demo
+```
+
+打开 `http://127.0.0.1:8501`，从启动日志指向的本地临时凭据文件取 reviewer_token 登录。演示使用独立 schema 与确定性 Agent/检索替身，正常退出清理本次数据；它展示业务流程，不代表真实模型效果。
+
+正式模式使用 `uv run --no-sync python scripts/start_local.py`，启动前配置模型、身份和现有 Milvus，并按下文初始化语料。该模式的处理操作可能付费，启动器本身不触发模型请求。数据目录与已有 `.env` 保留。
+
+- [启动说明与 4 分钟演示](docs/m5-demo.md)
+- [架构与 API](docs/architecture.md)
+- [M5 验收与限制](docs/m5-workbench.md)
+- [上游来源、贡献范围与简历措辞](docs/sources-and-contributions.md)
 
 验收入口通过 `--decision-model` 只切换决策模型，理解缓存保留真实模型身份；全局默认配置未改。当前端点模型名是 `glm-5.2`，`glm5.2`返回NotFoundError；同一预算内修正名称，失败请求仍计入台账。
 
@@ -68,6 +88,7 @@ M2 业务迁移为 **9c42d71ab203**，基于 M1 的 6b31a12c9e01 新增审核表
 
 | 方法与路径 | 权限及输入 |
 | --- | --- |
+| GET /auth/me | Bearer；返回服务端身份、权限与 live/synthetic_demo 模式，不返回凭据 |
 | POST /tickets | operator/reviewer；subject、body、channel、requester_role |
 | GET /tickets | status、limit、offset；稳定分页 |
 | GET /tickets/{ticket_id} | 版本、有序消息、最新运行 |

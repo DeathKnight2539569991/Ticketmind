@@ -37,6 +37,7 @@ class ReviewRead(BaseModel):
     id: UUID
     run_id: UUID
     reviewer_id: str
+    idempotency_key: str
     decision: str
     edited_reply: str | None
     comment: str | None

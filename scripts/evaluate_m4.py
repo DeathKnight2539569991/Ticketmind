@@ -95,8 +95,9 @@ def execute_agent(case, qwen, config, ledger, decision_model):
     # Only customer input enters HTTP / Agent. No label or rule sheet is supplied.
     adapters = AcceptanceAdapters(qwen, CACHE, ledger)
     decisions = AcceptanceAdapters(qwen.model_copy(update={"model": decision_model}), CACHE, ledger)
-    runner = AgentRunner(qwen, MilvusSettings(), config, understanding_fn=adapters.understanding,
-                         embedding_factory=adapters.embeddings, decision_fn=decisions.decision, corpus=load_sources(config.corpus_path))
+    runner = AgentRunner(qwen, MilvusSettings(), config,
+                         embedding_factory=adapters.embeddings, decision_fn=decisions.decision,
+                         corpus=load_sources(config.corpus_path))
     class EvaluationRunner:
         @property
         def metadata(self):
@@ -104,8 +105,8 @@ def execute_agent(case, qwen, config, ledger, decision_model):
             meta["model_config"]["decision"] = decision_model
             return meta
 
-        def __call__(self, snapshot):
-            return runner(snapshot)
+        def __call__(self, agent_input, *, clarification_rounds=0):
+            return runner(agent_input, clarification_rounds=clarification_rounds)
     auth = AuthSettings(_env_file=None, operator_token=secrets.token_urlsafe(32), reviewer_token=secrets.token_urlsafe(32))
     report = {"case_id": case["case_id"], "input_hash": digest(case["input"]),
               "verification": "real_asgi_http_postgresql_checkpointer_milvus_model_or_exact_cache",
@@ -204,7 +205,7 @@ def main():
     report = {"created_at": datetime.now(UTC).isoformat(), "stage": args.stage, "synthetic": True,
         "dataset_sha256": digest(rows), "query_set_sha256": digest(queries), "development_overlay_sha256": digest(overlay),
         "manifest": manifest_for(corpus), "config": config.model_dump(mode="json"),
-        "understanding_model": qwen.model, "decision_model": args.decision_model, "embedding_model": qwen.embedding_model,
+        "decision_model": args.decision_model, "embedding_model": qwen.embedding_model,
         "decision_protocol": AgentRunner(qwen, MilvusSettings(), config, corpus=corpus).metadata["model_config"]["decision_protocol"],
         "new_call_ceilings": ceilings, "price": None, "price_status": "not_available", "rows": []}
     output = args.output or CACHE / "reports" / f"{args.stage}-{uuid4().hex}.json"

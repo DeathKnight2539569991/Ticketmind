@@ -38,7 +38,6 @@ def test_real_publish_three_modes_retire_and_repair(knowledge):
         # without loading JSONL or restarting the API. Only model decisions are doubles.
         from ticketmind.agent.runtime import AgentRunner
         from ticketmind.agent.proposals import Clarification, GetCaseDetail
-        from ticketmind.agent.schemas import TicketUnderstanding
         def decide(state, timeout, usage):
             if not state["case_details"]:
                 return GetCaseDetail(next_step="get_case_detail", source_id=case["source_id"], reason="核对已解决会话")
@@ -48,7 +47,7 @@ def test_real_publish_three_modes_retire_and_repair(knowledge):
         k.client.app.state.runner = AgentRunner(k.qwen, milvus,
             k.config.model_copy(update={"retrieval_mode": "bm25"}), session_factory=k.factory,
             judge_fn=lambda *args: {"passed": True, "violations": []},
-            decision_fn=decide, understanding_fn=lambda **kw: TicketUnderstanding(summary="test", error_codes=[], environment=[]))
+            decision_fn=decide)
         ticket = post(k, "/tickets", {"subject": "登录失败", "body": "登录失败", "channel": "web", "requester_role": "user"}).json()
         detail = k.client.get(f"/tickets/{ticket['id']}").json()
         run = post(k, f"/tickets/{ticket['id']}/runs", {"expected_version": 1, "trigger_message_id": detail["messages"][-1]["id"]})

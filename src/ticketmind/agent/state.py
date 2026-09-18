@@ -26,6 +26,9 @@ class ToolCallRecord(TypedDict, total=False):
     missing_evidence: str
     retrieval_error: str
     retrieval_mode: str
+    collection: str
+    candidate_k: int
+    channels: dict[str, Any]
 
 
 class TicketAgentState(TypedDict):

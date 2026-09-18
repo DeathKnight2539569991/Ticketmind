@@ -1,5 +1,6 @@
 """Deterministic substitutes test contracts/orchestration, not LLM semantic accuracy."""
 import json
+from copy import deepcopy
 
 import pytest
 from pydantic import ValidationError
@@ -18,6 +19,34 @@ BAD = Escalation(next_step="escalate", reason="需要人工核查", reply="届�
 GOOD = Escalation(next_step="escalate", reason="需要人工核查", reply="建议人工核查")
 FAIL = {"passed": False, "violations": [{"type": "unsupported_commitment", "text": BAD.reply,
                                        "reason": "系统不能保证人工未来采取行动"}]}
+
+
+def test_judge_payload_excludes_derived_context_without_changing_audit():
+    state = {
+        "subject": "连接失败", "body": "当前使用本地代理。",
+        "understanding": TicketUnderstanding(summary="派生理解", error_codes=[], environment=[]),
+        "tool_calls": [
+            {"tool": "search_cases", "parameters": {"query": "连接失败"},
+             "status": "succeeded", "result_source_ids": ["case-1"],
+             "result_summary": "检索摘要", "duration_ms": 10},
+            {"tool": "get_case_detail", "parameters": {"source_id": "case-1"},
+             "status": "failed", "result_source_ids": [], "error": "tool_execution_failed"},
+        ],
+    }
+    original = deepcopy(state)
+    _, user_prompt = semantic_judge.judge_messages(state, GOOD)
+    assert "understanding" not in json.loads(user_prompt)
+    payload = json.loads(user_prompt)
+    assert set(payload) == {"subject", "body", "proposal", "tool_calls", "system_capabilities"}
+    assert payload["subject"] == state["subject"] and payload["body"] == state["body"]
+    assert payload["proposal"] == GOOD.model_dump()
+    for actual, source in zip(payload["tool_calls"], state["tool_calls"], strict=True):
+        assert "result_summary" not in actual and "error" not in actual
+        assert actual == {key: source[key] for key in ("tool", "parameters", "status", "result_source_ids")}
+    assert state == original
+    # The Judge also works when no upstream understanding exists.
+    del state["understanding"]
+    assert semantic_judge.judge_messages(state, GOOD)[1] == user_prompt
 
 
 def make_runner(monkeypatch, decisions, judgments, **overrides):

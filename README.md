@@ -1,5 +1,7 @@
 # TicketMind
 
+当前输出护栏为独立 Semantic Judge：Decision 默认 `glm-5.3`，Judge 默认 `deepseek-v4.1-flash`。最终提案先经过确定性校验，再由 Judge 检查四类语义违规；拒绝后最多修正一次，仍失败则安全退出。配置、审计、离线验证与真实模型验收限制见 [Semantic Judge 新实验](docs/semantic-guardrail-v1.md)。新组合已做真实诊断，但仍有语义误判、协议错误和 Decision 超时/截断，尚未完成质量验收；历史报告保留实际使用的模型，M4 冻结结果未修改。
+
 当前知识架构：**PostgreSQL 保存权威正文，Milvus 提供检索索引，JSONL 仅用于 seed / evaluation**。已解决工单在工作台显示待审候选，经 reviewer 明确批准后形成知识；索引失败可见、可重试，生产新增知识无需重写 JSONL 或重启 Agent。完整设计、初始化和验收见 [Knowledge 交付报告](docs/knowledge-writeback.md)。下文 M0—M5 的模型调用及质量数据保留为历史证据。
 
 首次使用现有开发库，先执行：
@@ -43,7 +45,7 @@ uv run --no-sync python scripts/start_local.py --demo
 - [M5 验收与限制](docs/m5-workbench.md)
 - [上游来源、贡献范围与简历措辞](docs/sources-and-contributions.md)
 
-验收入口通过 `--decision-model` 只切换决策模型，理解缓存保留真实模型身份；全局默认配置未改。当前端点模型名是 `glm-5.2`，`glm5.2`返回NotFoundError；同一预算内修正名称，失败请求仍计入台账。
+历史验收入口通过 `--decision-model` 只切换决策模型，理解缓存保留真实模型身份。旧验收适配器没有 Judge 调用额度，新协议下需显式接入 Judge 适配器并使用独立新 run，不可直接复用旧额度启动真实评测。历史端点测试中 `glm-5.2` 可用，`glm5.2` 返回 NotFoundError；失败请求仍计入历史台账。
 
 ## 安装与配置
 
@@ -62,7 +64,9 @@ uv run --no-sync python scripts/configure_local_auth.py
 | --- | --- |
 | TICKETMIND_DATABASE_URL | postgresql+psycopg://...；账号需业务迁移及检查点建表权限 |
 | DASHSCOPE_API_KEY、DASHSCOPE_WORKSPACE_ID | 阿里云北京业务空间；预检不证明凭据有效 |
-| TICKETMIND_MODEL | 默认 qwen3.7-flash，用于理解/决策 |
+| TICKETMIND_MODEL | 默认 qwen3.7-flash，用于理解 |
+| TICKETMIND_DECISION_MODEL | 默认 glm-5.3，用于决策及唯一一次护栏修正 |
+| TICKETMIND_JUDGE_MODEL | 默认 deepseek-v4.1-flash，必须与 Decision 不同 |
 | TICKETMIND_EMBEDDING_MODEL | 现有集合固定 text-embedding-v4、1024 维 |
 | TICKETMIND_MILVUS_URI、TICKETMIND_MILVUS_TIMEOUT_SECONDS | 默认本地 http://127.0.0.1:19530、10 秒 |
 | TICKETMIND_OPERATOR_TOKEN、TICKETMIND_REVIEWER_TOKEN | 独立 Bearer 凭据，至少 32 个非空白 ASCII 字符 |
@@ -73,12 +77,12 @@ uv run --no-sync python scripts/configure_local_auth.py
 | TICKETMIND_PROCESSING_TIMEOUT_SECONDS | 默认 90 秒，阶段检查/SDK 超时，非进程硬截止 |
 | TICKETMIND_MAX_SEARCH_ROUNDS | 检索含首次最多 2 轮，可调低 |
 | TICKETMIND_MAX_CASE_DETAILS | 最多 2 个不同候选详情，可调低或设 0 |
-| TICKETMIND_MAX_AGENT_STEPS | 理解、首次检索、每次决策、每次工具分别计步，最多 8 步 |
+| TICKETMIND_MAX_AGENT_STEPS | 理解、首次检索、每次决策（含护栏修正）、每次工具分别计步，最多 8 步；Judge 最多两次，另受总超时约束 |
 | TICKETMIND_MAX_CLARIFICATION_ROUNDS | 最多 2 轮，按成功应用的追问审核计数 |
 | TICKETMIND_CORPUS_PATH | 仅 seed / evaluation；可选，默认项目内 v2 历史案例 |
 | TICKETMIND_KNOWLEDGE_DATASET | 正式 Agent 的 PostgreSQL 数据集；默认 production-v1，可显式选择冻结合成版本 |
 
-模型地址由业务空间拼接为 https://&lt;workspace&gt;.cn-beijing.maas.aliyuncs.com/compatible-mode/v1（理解/决策）和 /api/v1（Embedding）。本地 Milvus 适配尚无鉴权，不直接暴露公网。
+模型地址由业务空间拼接为 https://&lt;workspace&gt;.cn-beijing.maas.aliyuncs.com/compatible-mode/v1（理解/决策/Judge）和 /api/v1（Embedding）。本地 Milvus 适配尚无鉴权，不直接暴露公网。
 
 ## 数据库与启动
 

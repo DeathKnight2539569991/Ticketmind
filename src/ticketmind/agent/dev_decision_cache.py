@@ -3,7 +3,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from ticketmind.agent.decide import DECISION_OPTIONS, decide_ticket, decision_messages
+from ticketmind.agent.decide import decision_options, decide_ticket, decision_messages
 from ticketmind.agent.proposals import Decision, validate_proposal, validate_decision_evidence
 from ticketmind.agent.run_cache import calculate_request_fingerprint, save_cache
 
@@ -21,7 +21,7 @@ def decision_fingerprint(settings, state):
         "cache_version": 1, "model": settings.model,
         "endpoint": f"https://{settings.workspace_id}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
-        **DECISION_OPTIONS, "response_format": {"type": "json_object"},
+        **decision_options(settings), "response_format": {"type": "json_object"},
     })
 
 

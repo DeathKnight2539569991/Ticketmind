@@ -406,6 +406,7 @@ def test_runtime_and_detail_use_pg_without_jsonl(knowledge, monkeypatch):
     runner = AgentRunner(k.qwen, MilvusSettings(_env_file=None, uri="http://unused"),
         k.config.model_copy(update={"corpus_path": Path("does-not-exist"), "retrieval_mode": "bm25"}),
         session_factory=k.factory, milvus_factory=lambda _: client, decision_fn=decision,
+        judge_fn=lambda *args: {"passed": True, "violations": []},
         understanding_fn=lambda **kw: TicketUnderstanding(summary="test", error_codes=[], environment=[]))
     assert not hasattr(runner.corpus, "cases")
     output = runner({"subject": "登录", "body": "失败"})

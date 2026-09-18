@@ -10,7 +10,7 @@ from time import monotonic
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from ticketmind.agent.decide import DECISION_OPTIONS, decision_messages
+from ticketmind.agent.decide import decision_options, decision_messages
 from ticketmind.agent.dev_cache import CachedUnderstanding, CachedQueryEmbeddings
 from ticketmind.agent.dev_decision_cache import decision_fingerprint
 from ticketmind.agent.proposals import decision_adapter, validate_proposal, validate_decision_evidence
@@ -152,7 +152,7 @@ class AcceptanceAdapters:
                     write_json(path, {"request_fingerprint": fp, "response": value,
                                       "system_prompt": system, "user_prompt": user})
                 generate_text(settings=self.settings, system_prompt=system, user_prompt=user,
-                    json_mode=True, timeout=timeout, generation_options=DECISION_OPTIONS, response_callback=capture)
+                    json_mode=True, timeout=timeout, generation_options=decision_options(self.settings), response_callback=capture)
             self.ledger.attempt("decision", fp, call)
             response = Record.model_validate_json(path.read_text(encoding="utf-8")).model_dump()
         raw = response["response"]

@@ -1,4 +1,4 @@
-"""Real HTTP/PostgreSQL/checkpointer, local model and retrieval substitutes."""
+"""Real HTTP/PostgreSQL/checkpointer, explicit offline Decision/Judge responses."""
 import json
 from uuid import UUID, uuid4
 
@@ -6,7 +6,7 @@ import pytest
 
 import test_m1_api as m1
 from test_m2_reviews import review
-from ticketmind.agent import decide, runtime
+from ticketmind.agent import decide, runtime, semantic_judge
 from ticketmind.agent.proposals import Escalation
 from ticketmind.agent.schemas import TicketUnderstanding
 from ticketmind.core.config import MilvusSettings, ProcessingSettings, QwenSettings
@@ -16,73 +16,82 @@ pytestmark = m1.pytestmark
 database = m1.database
 setup = m1.setup
 
+BAD = Escalation(next_step="escalate", reason="需要人工核查", reply="届时会由人工确认恢复范围")
+GOOD = Escalation(next_step="escalate", reason="需要核查", reply="建议人工核查")
+FAIL = {"passed": False, "violations": [{"type": "unsupported_commitment", "text": BAD.reply,
+                                       "reason": "不能保证外部人员未来执行动作"}]}
+PASS = {"passed": True, "violations": []}
 
-@pytest.mark.parametrize("entry", ["model_response", "injected_runner"])
-def test_invalid_claim_fails_before_review_and_preserves_ticket(setup, monkeypatch, entry):
+
+@pytest.mark.parametrize("entry", ["model_response", "injected_decision"])
+@pytest.mark.parametrize("outcome", ["pass", "repair", "reject_twice", "judge_error"])
+def test_semantic_guardrail_http_persistence(setup, monkeypatch, entry, outcome):
     client, synthetic, factory = setup
-    invalid = Escalation(next_step="escalate", reason="synthetic-secret-do-not-expose",
-                         reply="我们已将此工单转交支付支持团队处理。支付支持人员会核对实际入账状态后与您联系。")
-    calls = []
-    if entry == "model_response":
-        class LocalClient:
-            closed = False
-
-            def close(self):
-                self.closed = True
-
-        local_client = LocalClient()
-
-        def recorded_response(**kwargs):
-            calls.append(kwargs)
-            return json.dumps(invalid.model_dump(), ensure_ascii=False)
-
-        monkeypatch.setattr(decide, "generate_text", recorded_response)
-        monkeypatch.setattr(runtime, "retrieve_cases", lambda *args, **kwargs: [])
-        client.app.state.runner = runtime.AgentRunner(
-            QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
-            MilvusSettings(_env_file=None, uri="http://unused.invalid"),
-            ProcessingSettings(_env_file=None, retrieval_mode="bm25"),
-            understanding_fn=lambda **kwargs: TicketUnderstanding(summary="local", error_codes=[], environment=[]),
-            milvus_factory=lambda _: local_client, corpus=synthetic.corpus,
-        )
-    else:
-        # Verifies ReviewWorkflow's validation also protects against a runner
-        # that bypasses decide_ticket, before the review interrupt is written.
-        synthetic.proposal_override = invalid
-
+    decisions, judgments = [], []
+    class LocalClient:
+        closed = False
+        def close(self):
+            self.closed = True
+    local_client = LocalClient()
+    def next_decision():
+        decisions.append(True)
+        return GOOD if outcome == "pass" or (outcome == "repair" and len(decisions) == 2) else BAD
+    def next_judgment():
+        judgments.append(True)
+        if outcome == "judge_error":
+            raise TimeoutError("synthetic-secret-do-not-expose")
+        return PASS if outcome == "pass" or (outcome == "repair" and len(judgments) == 2) else FAIL
+    def recorded_response(**kwargs):
+        assert kwargs["settings"].model == "glm-5.3"
+        if len(decisions) == 1:
+            assert json.loads(kwargs["user_prompt"])["guardrail_feedback"]["violations"] == FAIL["violations"]
+        return next_decision().model_dump_json()
+    def judge_response(**kwargs):
+        assert kwargs["settings"].model == "deepseek-v4.1-flash"
+        return json.dumps(next_judgment(), ensure_ascii=False)
+    monkeypatch.setattr(decide, "generate_text", recorded_response)
+    monkeypatch.setattr(semantic_judge, "generate_text", judge_response)
+    monkeypatch.setattr(runtime, "retrieve_cases", lambda *args, **kwargs: [])
+    client.app.state.runner = runtime.AgentRunner(
+        QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
+        MilvusSettings(_env_file=None, uri="http://unused.invalid"),
+        ProcessingSettings(_env_file=None, retrieval_mode="bm25"),
+        understanding_fn=lambda **kwargs: TicketUnderstanding(summary="local", error_codes=[], environment=[]),
+        decision_fn=(lambda *args: next_decision()) if entry == "injected_decision" else None,
+        judge_fn=(lambda *args: next_judgment()) if entry == "injected_decision" else None,
+        milvus_factory=lambda _: local_client, corpus=synthetic.corpus,
+    )
     ticket, key = m1.create(client), uuid4().hex
     response = m1.run(client, ticket, key=key)
     result = response.json()
-    assert response.status_code == 201 and result["run_status"] == "failed", result
-    assert result["error_code"] == "proposal_unsupported_action_claim"
-    assert "未经执行" in result["error_summary"]
-    assert "synthetic-secret" not in response.text and invalid.reply not in response.text
-    assert result["proposal"] is None and result["published_message_id"] is None
+    success = outcome in ("pass", "repair")
+    assert response.status_code == 201, result
+    assert result["run_status"] == ("waiting_review" if success else "failed")
+    assert result["published_message_id"] is None
+    assert "synthetic-secret" not in response.text
     assert m1.run(client, ticket, key=key).json() == result
-    assert review(client, ticket, result).json()["error_code"] == "run_not_reviewable"
+    assert len(decisions) == len(judgments) == (2 if outcome in ("repair", "reject_twice") else 1)
+    assert local_client.closed
     current = client.get(f'/tickets/{ticket["id"]}').json()
     assert current["status"] == "open" and current["version"] == 1 and len(current["messages"]) == 1
     with factory() as session:
         saved = session.get(ProcessingResult, UUID(result["id"]))
-        assert saved.error_code == result["error_code"] and saved.proposal is None and saved.review is None
-    graph = client.app.state.workflow.graph()
-    checkpoint = graph.get_state(client.app.state.workflow.config(result["thread_id"]))
-    assert "output" not in checkpoint.values
-    assert not any(task.interrupts for task in checkpoint.tasks)
-    if entry == "model_response":
-        assert len(calls) == 1 and local_client.closed
+        assert len(saved.usage["semantic_judge"]) == len(judgments)
+        if success:
+            assert saved.proposal["reply"] == GOOD.reply
+        else:
+            assert saved.proposal is None and saved.review is None
+            assert saved.error_code == ("semantic_judge_error" if outcome == "judge_error" else "semantic_guardrail_failure")
+            assert saved.usage["guardrail_failure"]["code"] == saved.error_code
+            if outcome == "reject_twice":
+                assert all(a["result"] == FAIL for a in saved.usage["semantic_judge"])
+    checkpoint = client.app.state.workflow.graph().get_state(client.app.state.workflow.config(result["thread_id"]))
+    if success:
+        assert any(task.interrupts for task in checkpoint.tasks)
+        reviewed = review(client, ticket, result).json()
+        assert reviewed["run_status"] == "completed" and reviewed["published_message_id"]
+        assert client.get(f'/tickets/{ticket["id"]}').json()["status"] == "escalated"
+        assert len(judgments) == (2 if outcome == "repair" else 1)  # Resume does not rerun Judge.
     else:
-        assert synthetic.calls == 1
-
-
-def test_legal_escalation_still_needs_review_before_ticket_status_changes(setup):
-    client, runner, _ = setup
-    runner.proposal_override = Escalation(next_step="escalate", reason="需要核查",
-                                         reply="建议转交人工团队进一步确认。")
-    ticket = m1.create(client)
-    result = m1.run(client, ticket).json()
-    assert result["run_status"] == "waiting_review"
-    assert client.get(f'/tickets/{ticket["id"]}').json()["status"] == "open"
-    reviewed = review(client, ticket, result).json()
-    assert reviewed["run_status"] == "completed" and reviewed["published_message_id"]
-    assert client.get(f'/tickets/{ticket["id"]}').json()["status"] == "escalated"
+        assert "output" not in checkpoint.values and not any(task.interrupts for task in checkpoint.tasks)
+        assert review(client, ticket, result).json()["error_code"] == "run_not_reviewable"

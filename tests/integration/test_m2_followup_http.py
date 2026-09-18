@@ -23,11 +23,18 @@ def load_script(monkeypatch):
     spec = importlib.util.spec_from_file_location("followup_script", scripts / "check_m2_followup.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    # Legacy paid-call ledgers have no Judge category. This test supplies an
+    # explicit offline adapter; running the legacy script itself stays closed.
+    original_init = module.FollowupRunner.__init__
+    def offline_init(self, *args, **kwargs):
+        kwargs["judge_fn"] = lambda *args: {"passed": True, "violations": []}
+        original_init(self, *args, **kwargs)
+    monkeypatch.setattr(module.FollowupRunner, "__init__", offline_init)
     return module
 
 
 @pytest.mark.parametrize("execute,bad_output", [(False, None), (True, None),
-    (True, '{"next_step":"ask_clarification","reason":"unit","reply":"是否同意调整设置？","questions":["是否同意调整设置？"]}'),
+    (True, '{"next_step":"ask_clarification","reason":"unit","reply":"当前设置？","questions":["当前设置？","当前设置？"]}'),
     (True, '{"next_step":'),
     (True, '{"reason":"需要更多证据","query":"只读查询超时","missing_evidence":"适用案例"}'),
     (True, '[{"next_step":"search_cases","reason":"需要更多证据","query":"只读查询超时","missing_evidence":"适用案例"}]')])

@@ -1,0 +1,514 @@
+{
+  "ceilings": {
+    "decision": 7,
+    "judge": 19
+  },
+  "attempts": [
+    {
+      "index": 1,
+      "kind": "judge",
+      "label": "historical-005",
+      "fingerprint": "3dbc2d0aa444af98a193a01bea5f789090a720d517b35ff727215aa7c08580e2",
+      "status": "succeeded",
+      "file": "responses/01.json",
+      "at": "2026-09-18T02:21:33.411587+00:00",
+      "usage": {
+        "completion_tokens": 17,
+        "prompt_tokens": 1587,
+        "total_tokens": 1604,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1587
+        }
+      },
+      "duration_ms": 1844
+    },
+    {
+      "index": 2,
+      "kind": "judge",
+      "label": "historical-008",
+      "fingerprint": "5cc3d7a12dadf7350d5a788abacc28cba5335002c70c60a3ad4dac345a7903ea",
+      "status": "succeeded",
+      "file": "responses/02.json",
+      "at": "2026-09-18T02:21:35.260993+00:00",
+      "usage": {
+        "completion_tokens": 108,
+        "prompt_tokens": 1576,
+        "total_tokens": 1684,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1576
+        }
+      },
+      "duration_ms": 2015
+    },
+    {
+      "index": 3,
+      "kind": "judge",
+      "label": "historical-016",
+      "fingerprint": "a8c958146d6c404c6ef06a18d5d0020511ecb19ff3b7a38bf81a05a84b4cfd81",
+      "status": "succeeded",
+      "file": "responses/03.json",
+      "at": "2026-09-18T02:21:37.273746+00:00",
+      "usage": {
+        "completion_tokens": 197,
+        "prompt_tokens": 1619,
+        "total_tokens": 1816,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1619
+        }
+      },
+      "duration_ms": 3797
+    },
+    {
+      "index": 4,
+      "kind": "judge",
+      "label": "historical-020",
+      "fingerprint": "42e878b1b96d889340a38ed2b883107f1182dd30e595f11241dac3302e2f30bc",
+      "status": "succeeded",
+      "file": "responses/04.json",
+      "at": "2026-09-18T02:21:41.069140+00:00",
+      "usage": {
+        "completion_tokens": 17,
+        "prompt_tokens": 1488,
+        "total_tokens": 1505,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1488
+        }
+      },
+      "duration_ms": 1016
+    },
+    {
+      "index": 5,
+      "kind": "judge",
+      "label": "historical-026",
+      "fingerprint": "9a332bf43e24046638fbc41b708a0e7a57091c136370f81eca6c0b605cf72c65",
+      "status": "succeeded",
+      "file": "responses/05.json",
+      "at": "2026-09-18T02:21:42.091540+00:00",
+      "usage": {
+        "completion_tokens": 17,
+        "prompt_tokens": 1520,
+        "total_tokens": 1537,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1520
+        }
+      },
+      "duration_ms": 828
+    },
+    {
+      "index": 6,
+      "kind": "judge",
+      "label": "historical-034",
+      "fingerprint": "a6406910025550df459af88f348b95a713620c6c65edceeeb0aa92b74ff1169c",
+      "status": "succeeded",
+      "file": "responses/06.json",
+      "at": "2026-09-18T02:21:42.923115+00:00",
+      "usage": {
+        "completion_tokens": 93,
+        "prompt_tokens": 1451,
+        "total_tokens": 1544,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1451
+        }
+      },
+      "duration_ms": 1750
+    },
+    {
+      "index": 7,
+      "kind": "judge",
+      "label": "historical-036",
+      "fingerprint": "12de6e5b40f7784c0d1904dabe73e3d5cbb17aeab4b2ae788df762a52d3bae85",
+      "status": "succeeded",
+      "file": "responses/07.json",
+      "at": "2026-09-18T02:21:44.687651+00:00",
+      "usage": {
+        "completion_tokens": 417,
+        "prompt_tokens": 1420,
+        "total_tokens": 1837,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1420
+        }
+      },
+      "duration_ms": 7343
+    },
+    {
+      "index": 8,
+      "kind": "judge",
+      "label": "control-negation",
+      "fingerprint": "e89b6883c72df38ecb7b5e2d4eb65625c1f998703a371148697aace5c22fab75",
+      "status": "succeeded",
+      "file": "responses/08.json",
+      "at": "2026-09-18T02:21:52.029651+00:00",
+      "usage": {
+        "completion_tokens": 17,
+        "prompt_tokens": 1059,
+        "total_tokens": 1076,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1059
+        }
+      },
+      "duration_ms": 1188
+    },
+    {
+      "index": 9,
+      "kind": "judge",
+      "label": "control-historical",
+      "fingerprint": "03549b65058ae4a2ea12353aeaed412850dba4136f1712584cb694071dca7eb5",
+      "status": "succeeded",
+      "file": "responses/09.json",
+      "at": "2026-09-18T02:21:53.211414+00:00",
+      "usage": {
+        "completion_tokens": 17,
+        "prompt_tokens": 1058,
+        "total_tokens": 1075,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1058
+        }
+      },
+      "duration_ms": 1047
+    },
+    {
+      "index": 10,
+      "kind": "judge",
+      "label": "control-new_operation",
+      "fingerprint": "b28eb96457cd9098b9b690c59a1a7adf29cc602965db26f1af3692c206929237",
+      "status": "succeeded",
+      "file": "responses/10.json",
+      "at": "2026-09-18T02:21:54.256985+00:00",
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 1056,
+        "total_tokens": 1153,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1056
+        }
+      },
+      "duration_ms": 1844
+    },
+    {
+      "index": 11,
+      "kind": "judge",
+      "label": "control-advice",
+      "fingerprint": "cd7bf86d21d935c9ad6e4b574fb4365c462e07c5d2eeb6e0efd900e5f3130046",
+      "status": "succeeded",
+      "file": "responses/11.json",
+      "at": "2026-09-18T02:21:56.103268+00:00",
+      "usage": {
+        "completion_tokens": 88,
+        "prompt_tokens": 1045,
+        "total_tokens": 1133,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1045
+        }
+      },
+      "duration_ms": 2062
+    },
+    {
+      "index": 12,
+      "kind": "judge",
+      "label": "control-commitment",
+      "fingerprint": "616fa2a1d1a9a8f9c61c092afde459b0868ebb40807536e5aeeb6a82c97896ab",
+      "status": "succeeded",
+      "file": "responses/12.json",
+      "at": "2026-09-18T02:21:58.170907+00:00",
+      "usage": {
+        "completion_tokens": 90,
+        "prompt_tokens": 1049,
+        "total_tokens": 1139,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1049
+        }
+      },
+      "duration_ms": 1593
+    },
+    {
+      "index": 13,
+      "kind": "decision",
+      "label": "fresh-005-decision-1",
+      "fingerprint": "3da6052cb004d13d9160fb82f93479177f36de0dcb97c9ac00fbe3c585751771",
+      "status": "succeeded",
+      "file": "responses/13.json",
+      "at": "2026-09-18T02:21:59.775817+00:00",
+      "usage": {
+        "completion_tokens": 327,
+        "prompt_tokens": 4414,
+        "total_tokens": 4741,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "duration_ms": 7500
+    },
+    {
+      "index": 14,
+      "kind": "judge",
+      "label": "fresh-005-judge-1",
+      "fingerprint": "3d175b38a1a321f11724ff4f0f22bb0a69fc88a13f98c77dc9bad48203174cb6",
+      "status": "succeeded",
+      "file": "responses/14.json",
+      "at": "2026-09-18T02:22:07.282682+00:00",
+      "usage": {
+        "completion_tokens": 17,
+        "prompt_tokens": 1581,
+        "total_tokens": 1598,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1581
+        }
+      },
+      "duration_ms": 1266
+    },
+    {
+      "index": 15,
+      "kind": "decision",
+      "label": "fresh-026-decision-1",
+      "fingerprint": "7e41b63e38ff3b7aca1a6888a2e01d8d01aaaceda24099f2e9844ef945fc3038",
+      "status": "succeeded",
+      "file": "responses/15.json",
+      "at": "2026-09-18T02:22:08.567521+00:00",
+      "usage": {
+        "completion_tokens": 332,
+        "prompt_tokens": 4441,
+        "total_tokens": 4773,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2176,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "duration_ms": 5672
+    },
+    {
+      "index": 16,
+      "kind": "judge",
+      "label": "fresh-026-judge-1",
+      "fingerprint": "77dcca2c19b4cd0d5ddb32587e0a5deeb5cf45026f141229e85cc95c33f642cd",
+      "status": "succeeded",
+      "file": "responses/16.json",
+      "at": "2026-09-18T02:22:14.248338+00:00",
+      "usage": {
+        "completion_tokens": 17,
+        "prompt_tokens": 1579,
+        "total_tokens": 1596,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1579
+        }
+      },
+      "duration_ms": 922
+    },
+    {
+      "index": 17,
+      "kind": "decision",
+      "label": "repair-016-decision",
+      "fingerprint": "dd5fa9cd6a850540e5d49fe4bf34b7dca2d29b28058d5b2404a67ef890abd32e",
+      "status": "succeeded",
+      "file": "responses/17.json",
+      "at": "2026-09-18T02:22:15.172669+00:00",
+      "usage": {
+        "completion_tokens": 310,
+        "prompt_tokens": 5048,
+        "total_tokens": 5358,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2176,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "duration_ms": 4281
+    },
+    {
+      "index": 18,
+      "kind": "judge",
+      "label": "repair-016-judge",
+      "fingerprint": "27325cd6cbddbf75c945b30c9aa0abcee7e134e1e4bb257180892e0494ffda10",
+      "status": "succeeded",
+      "file": "responses/18.json",
+      "at": "2026-09-18T02:22:19.469472+00:00",
+      "usage": {
+        "completion_tokens": 17,
+        "prompt_tokens": 1562,
+        "total_tokens": 1579,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1562
+        }
+      },
+      "duration_ms": 656
+    },
+    {
+      "index": 19,
+      "kind": "decision",
+      "label": "repair-034-decision",
+      "fingerprint": "2050fa170f61f8a2fd2a88079e4d415b3bf671955db4d5858e39e611cc7a5d6b",
+      "status": "succeeded",
+      "file": "responses/19.json",
+      "at": "2026-09-18T02:22:20.134804+00:00",
+      "usage": {
+        "completion_tokens": 208,
+        "prompt_tokens": 4672,
+        "total_tokens": 4880,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2176,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "duration_ms": 3094
+    },
+    {
+      "index": 20,
+      "kind": "judge",
+      "label": "repair-034-judge",
+      "fingerprint": "e93d7b37964fbb7377b16aba2648a20c7e2d6585dff73fd522f6e3dd150ea5bc",
+      "status": "succeeded",
+      "file": "responses/20.json",
+      "at": "2026-09-18T02:22:23.231742+00:00",
+      "usage": {
+        "completion_tokens": 254,
+        "prompt_tokens": 1451,
+        "total_tokens": 1705,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1451
+        }
+      },
+      "duration_ms": 4437
+    },
+    {
+      "index": 21,
+      "kind": "decision",
+      "label": "repair-036-decision",
+      "fingerprint": "8a80d951f505c0e280e26faadcfba2e6d00de1f726adb704ba1775d9fa3a9df8",
+      "status": "succeeded",
+      "file": "responses/21.json",
+      "at": "2026-09-18T02:22:27.668673+00:00",
+      "usage": {
+        "completion_tokens": 207,
+        "prompt_tokens": 5061,
+        "total_tokens": 5268,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 2176,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      },
+      "duration_ms": 3234
+    },
+    {
+      "index": 22,
+      "kind": "judge",
+      "label": "repair-036-judge",
+      "fingerprint": "114bf7e240aedd814225a8bd8c5cdbbbc8ce7ddde6595874f70213eaae85217b",
+      "status": "succeeded",
+      "file": "responses/22.json",
+      "at": "2026-09-18T02:22:30.908243+00:00",
+      "usage": {
+        "completion_tokens": 532,
+        "prompt_tokens": 1421,
+        "total_tokens": 1953,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": 1421
+        }
+      },
+      "duration_ms": 9547
+    }
+  ]
+}

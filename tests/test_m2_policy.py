@@ -15,13 +15,12 @@ from ticketmind.retrieval.dense import RetrievalHit
                                  "Could you disable the proxy and retry?", "请修改权限再试。",
                                  "您是否同意将客户端请求超时时间调整为大于 5 秒（例如 10 秒）？",
                                  "Would you agree to increase the client timeout?", "是否允许调大客户端等待上限？"])
-def test_clarification_cannot_smuggle_operations(text):
+def test_semantic_questions_are_deferred_to_judge(text):
     for field in ("reply", "questions"):
         proposal = proposal_adapter.validate_python({"next_step": "ask_clarification", "reason": "缺少环境",
             "reply": text if field == "reply" else "请提供当前信息。",
             "questions": [text if field == "questions" else "是否使用代理？"]})
-        with pytest.raises(ValueError, match="操作建议"):
-            validate_proposal(proposal, set())
+        validate_proposal(proposal, set())
 
 
 def test_questions_can_ask_existing_facts():
@@ -55,7 +54,8 @@ def execute(decisions, *, changes=None, limits=None, tool_error=False):
     def embed(query):
         vectors.append(query)
         return [1.0] * 1024
-    args = dict(decide=decide, embeddings=SimpleNamespace(embed_query=embed), client=SimpleNamespace(search=search),
+    args = dict(decide=decide, judge=lambda *args: {"passed": True, "violations": []},
+                embeddings=SimpleNamespace(embed_query=embed), client=SimpleNamespace(search=search),
                 corpus=corpus, config=config, remaining=lambda: 1.0, audit=audit)
     if tool_error:
         with pytest.raises(RuntimeError):
@@ -139,7 +139,7 @@ def test_expired_budget_stops_before_decision_or_tool():
         pytest.fail("expired budget executed a decision")
     with pytest.raises(TimeoutError):
         bounded_decision({"subject": "s", "body": "b", "retrieval_query": "q", "retrieval_hits": []},
-            decide=forbidden, embeddings=None, client=None, corpus=None,
+            decide=forbidden, judge=forbidden, embeddings=None, client=None, corpus=None,
             config=ProcessingSettings(_env_file=None), remaining=expired, audit=[])
 
 

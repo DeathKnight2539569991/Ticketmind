@@ -6,14 +6,6 @@ Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max
 SourceId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
 
 
-class UnsupportedActionClaim(ValueError):
-    """A proposal asserts an unperformed action or an unsupported commitment."""
-    code = "proposal_unsupported_action_claim"
-
-    def __init__(self):
-        super().__init__("提案回复包含未经执行的动作声明或无依据的外部行动承诺；请重新生成待审核建议")
-
-
 class ProposalBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
     reason: Text
@@ -71,8 +63,6 @@ decision_adapter = TypeAdapter(Decision)
 
 
 def validate_proposal(proposal: Proposal, source_ids: set[str]) -> None:
-    from ticketmind.agent.policy import validate_reply_claims
-    validate_reply_claims(proposal.reply)
     if not set(proposal.evidence_ids) <= source_ids:
         raise ValueError("提案引用了本次检索中不存在的来源")
     if proposal.risk_flags and proposal.next_step != "escalate":

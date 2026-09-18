@@ -70,6 +70,19 @@ class ProcessingSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8",
                                       env_prefix="TICKETMIND_", extra="ignore")
     agent_version: str = "ticketmind-m3"
+    decision_model: str = Field(default="glm-5.3", min_length=1)
+    judge_model: str = Field(default="deepseek-v4.1-flash", min_length=1)
+
+    @model_validator(mode="after")
+    def independent_judge(self):
+        # Treat common punctuation/case aliases as the same model.
+        def canonical(name):
+            return "".join(c for c in name.casefold() if c.isalnum())
+        if not canonical(self.decision_model) or not canonical(self.judge_model):
+            raise ValueError("模型名称不能为空")
+        if canonical(self.decision_model) == canonical(self.judge_model):
+            raise ValueError("Semantic Judge 必须与 Decision 使用不同模型")
+        return self
     retrieval_mode: Literal["dense", "bm25", "hybrid"] = "dense"
     retrieval_top_k: int = Field(default=3, ge=1, le=100)
     retrieval_candidate_k: int = Field(default=20, ge=1, le=100)

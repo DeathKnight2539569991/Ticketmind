@@ -32,6 +32,9 @@ def ledger(path, **limits):
     (0, "approve", "awaiting_customer"), (1, "edit", "open"), (2, "approve", "escalated")])
 def test_acceptance_exports_raw_and_reviewed_results(tmp_path, monkeypatch, case_index, review_decision, status):
     script = load_script()
+    original_runner = script.AgentRunner
+    monkeypatch.setattr(script, "AgentRunner", lambda *args, **kwargs: original_runner(
+        *args, **kwargs, judge_fn=lambda *args: {"passed": True, "violations": []}))
     case = script.load_cases()[case_index]
     case = {**case, "id": "synthetic-" + case["id"]}  # Don't use real M0 cache in a synthetic test.
     config = ProcessingSettings(_env_file=None)

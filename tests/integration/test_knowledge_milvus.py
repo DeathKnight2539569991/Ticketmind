@@ -47,6 +47,7 @@ def test_real_publish_three_modes_retire_and_repair(knowledge):
                                  questions=["当前错误是什么？"], evidence_ids=[case["source_id"]])
         k.client.app.state.runner = AgentRunner(k.qwen, milvus,
             k.config.model_copy(update={"retrieval_mode": "bm25"}), session_factory=k.factory,
+            judge_fn=lambda *args: {"passed": True, "violations": []},
             decision_fn=decide, understanding_fn=lambda **kw: TicketUnderstanding(summary="test", error_codes=[], environment=[]))
         ticket = post(k, "/tickets", {"subject": "登录失败", "body": "登录失败", "channel": "web", "requester_role": "user"}).json()
         detail = k.client.get(f"/tickets/{ticket['id']}").json()

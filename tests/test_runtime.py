@@ -4,7 +4,7 @@ from ticketmind.agent import runtime
 from ticketmind.agent.dev_decision_cache import CachedDecision
 from ticketmind.agent.proposals import Clarification
 from ticketmind.agent.runtime import AgentRunner, RunFailure
-from ticketmind.agent.schemas import TicketUnderstanding
+from ticketmind.agent.schemas import AgentMessage, AgentRunInput
 from ticketmind.core.config import MilvusSettings, ProcessingSettings, QwenSettings
 from ticketmind.knowledge.corpus import build_case_text
 from ticketmind.knowledge.sources import load_sources
@@ -13,6 +13,10 @@ from ticketmind.knowledge.sources import load_sources
 @pytest.fixture
 def settings():
     return QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unit-only", DASHSCOPE_WORKSPACE_ID="unit-only")
+
+
+def run_input(subject="s", content="b"):
+    return AgentRunInput(subject=subject, messages=[AgentMessage(role="customer", content=content)])
 
 
 def proposal():
@@ -55,13 +59,12 @@ def test_real_graph_orchestration_and_partial_failure(monkeypatch, settings, fai
         return proposal()
 
     runner = AgentRunner(settings, MilvusSettings(_env_file=None, uri="http://unit.invalid"), ProcessingSettings(),
-        understanding_fn=lambda **kwargs: TicketUnderstanding(summary="unit understanding", error_codes=[], environment=[]),
         embedding_factory=lambda remaining: Embedding(), decision_fn=decide, corpus=corpus,
         judge_fn=lambda *args: {"passed": True, "violations": []})
     if failure:
         with pytest.raises(RunFailure) as error:
-            runner({"subject": "s", "body": "b"})
-        assert error.value.partial["understanding"].summary == "unit understanding"
+            runner(run_input())
+        assert "understanding" not in error.value.partial
         # M3 validates source contents inside retrieval, before any decision is possible.
         assert error.value.stage == {"embedding": "retrieval", "decision": "decision", "source": "retrieval"}[failure]
         if failure == "decision":
@@ -69,7 +72,7 @@ def test_real_graph_orchestration_and_partial_failure(monkeypatch, settings, fai
         else:
             assert not calls
     else:
-        result = runner({"subject": "s", "body": "b"})
+        result = runner(run_input())
         assert result.state["proposal"] == proposal()
         assert result.evidence[0]["corpus_version"] == runner.metadata["corpus_version"]
     assert client.closed
@@ -78,7 +81,8 @@ def test_real_graph_orchestration_and_partial_failure(monkeypatch, settings, fai
 def test_decision_cache_is_bound_to_actual_request(tmp_path, settings, monkeypatch):
     from ticketmind.agent import dev_decision_cache
     from ticketmind.retrieval.dense import RetrievalHit
-    state = {"subject": "s", "body": "b", "understanding": TicketUnderstanding(summary="unit", error_codes=[], environment=[]),
+    state = {"subject": "s", "messages": [AgentMessage(role="customer", content="b")],
+             "clarification_rounds": 0, "tool_calls": [],
              "retrieval_hits": [RetrievalHit(source_id="SYN-HIST-V2-007", text="unit evidence", score=0.5)]}
     monkeypatch.setattr(dev_decision_cache, "decide_ticket", lambda *args, **kwargs: proposal())
     cache = CachedDecision(settings, tmp_path / "decision.json", allow_call=True)
@@ -86,5 +90,5 @@ def test_decision_cache_is_bound_to_actual_request(tmp_path, settings, monkeypat
     assert cache(state, 1, {}).next_step == "ask_clarification"
     assert cache.calls == cache.cache_hits == 1
     with pytest.raises(ValueError, match="不匹配"):
-        cache({**state, "body": "different body"}, 1, {})
+        cache({**state, "messages": [AgentMessage(role="customer", content="different body")]}, 1, {})
     assert cache.calls == 1

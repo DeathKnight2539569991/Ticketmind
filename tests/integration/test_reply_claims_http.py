@@ -8,7 +8,6 @@ import test_m1_api as m1
 from test_m2_reviews import review
 from ticketmind.agent import decide, runtime, semantic_judge
 from ticketmind.agent.proposals import Escalation
-from ticketmind.agent.schemas import TicketUnderstanding
 from ticketmind.core.config import MilvusSettings, ProcessingSettings, QwenSettings
 from ticketmind.tickets.models import ProcessingResult
 
@@ -56,7 +55,6 @@ def test_semantic_guardrail_http_persistence(setup, monkeypatch, entry, outcome)
         QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
         MilvusSettings(_env_file=None, uri="http://unused.invalid"),
         ProcessingSettings(_env_file=None, retrieval_mode="bm25"),
-        understanding_fn=lambda **kwargs: TicketUnderstanding(summary="local", error_codes=[], environment=[]),
         decision_fn=(lambda *args: next_decision()) if entry == "injected_decision" else None,
         judge_fn=(lambda *args: next_judgment()) if entry == "injected_decision" else None,
         milvus_factory=lambda _: local_client, corpus=synthetic.corpus,

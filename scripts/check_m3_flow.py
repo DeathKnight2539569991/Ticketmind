@@ -12,7 +12,8 @@ from sqlalchemy import func, select
 from evaluate_retrieval import load_queries
 from ticketmind.agent.proposals import Clarification, SearchCases
 from ticketmind.agent.runtime import AgentRunner
-from ticketmind.agent.schemas import TicketUnderstanding
+from ticketmind.agent.schemas import AgentMessage
+from ticketmind.agent.retrieve import build_retrieval_query
 from ticketmind.core.config import AuthSettings, MilvusSettings, ProcessingSettings, QwenSettings
 from ticketmind.db.testing import isolated_database
 from ticketmind.knowledge.corpus import build_case_text
@@ -74,6 +75,13 @@ def main():
     original = next(row["query"] for row in queries if row["query"].startswith("标题：") and "[3 customer]" in row["query"])
     requery = next(row["query"] for row in queries if not row["query"].startswith("标题："))
     subject, body = original.removeprefix("标题：").split("\n\n问题描述：", 1)
+    current_query = build_retrieval_query(
+        subject=subject,
+        messages=[AgentMessage(role="customer", content=body)],
+    )
+    # M3 predates the structured-message query protocol. Reuse its historical vector
+    # only as a deterministic retrieval fixture; it is not an exact cache hit for current_query.
+    vectors[current_query] = vectors[original]
     native = build_milvus_client(milvus)
     try:
         name = validate_collection(native, corpus, timeout=milvus.timeout_seconds)
@@ -85,7 +93,7 @@ def main():
     finally:
         native.close()
     report = {"created_at": datetime.now(UTC).isoformat(), "real_dependencies": ["PostgreSQL", "checkpointer", "ASGI HTTP", "Milvus"],
-        "understanding_and_decision": "synthetic_test_doubles", "embedding": "exact_real_cache", "model_calls": 0,
+        "decision": "synthetic_test_double", "embedding": "historical_vector_fixture_for_query_protocol_migration", "model_calls": 0,
         "corpus_version": corpus.version, "collection": collection_for(corpus), "tokens": tokens,
         "legacy_dense_vectors_equal_new": True, "scenarios": []}
     auth = AuthSettings(_env_file=None, operator_token="m3-operator-" + "x"*32, reviewer_token="m3-reviewer-" + "y"*32)
@@ -110,7 +118,6 @@ def main():
                     evidence_ids=[state["retrieval_hits"][0].source_id])
 
             runner = AgentRunner(qwen, milvus, config.model_copy(update={"retrieval_mode": mode}),
-                understanding_fn=lambda **kw: TicketUnderstanding(summary="M3 工程验证替身", error_codes=["E_TIMEOUT"], environment=["Python 3.12"]),
                 decision_fn=decide, embedding_factory=lambda remaining: Embeddings(),
                 milvus_factory=lambda settings: FaultClient(build_milvus_client(settings), fault), corpus=corpus)
             app = create_app(session_factory=factory, runner=runner, auth_settings=auth)

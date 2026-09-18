@@ -60,7 +60,6 @@ class RunRead(BaseModel):
     reason: str | None
     final_reply: str | None
     confidence: float | None
-    extracted_information: dict[str, Any]
     retrieval_evidence: list[dict[str, Any]]
     proposal: dict[str, Any] | None
     agent_version: str

@@ -110,8 +110,6 @@ def run_view(api, ticket, run, reviewer):
     st.text(proposal.get("reply") or run.get("final_reply") or "尚无草稿")
     for question in proposal.get("questions", []):
         st.text("• " + question)
-    with st.expander("理解结果"):
-        st.json(run.get("extracted_information") or {})
     with st.expander("引用与检索证据"):
         st.caption("检索命中不等于适用；分数不是正确概率。以下为运行时保存的证据。")
         st.write("提案引用：" + "、".join(proposal.get("evidence_ids", [])))

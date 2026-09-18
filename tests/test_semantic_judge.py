@@ -9,7 +9,7 @@ from ticketmind.agent import runtime, semantic_judge, decide
 from ticketmind.agent.decide import decision_messages
 from ticketmind.agent.proposals import Escalation, Clarification
 from ticketmind.agent.runtime import AgentRunner, RunFailure
-from ticketmind.agent.schemas import TicketUnderstanding
+from ticketmind.agent.schemas import AgentMessage, AgentRunInput
 from ticketmind.agent.semantic_judge import JudgeResult
 from ticketmind.core.config import QwenSettings, ProcessingSettings, MilvusSettings
 from ticketmind.knowledge.sources import load_sources
@@ -21,10 +21,14 @@ FAIL = {"passed": False, "violations": [{"type": "unsupported_commitment", "text
                                        "reason": "系统不能保证人工未来采取行动"}]}
 
 
+def run_input(subject="s", content="b"):
+    return AgentRunInput(subject=subject, messages=[AgentMessage(role="customer", content=content)])
+
+
 def test_judge_payload_excludes_derived_context_without_changing_audit():
     state = {
-        "subject": "连接失败", "body": "当前使用本地代理。",
-        "understanding": TicketUnderstanding(summary="派生理解", error_codes=[], environment=[]),
+        "subject": "连接失败",
+        "messages": [AgentMessage(role="customer", content="当前使用本地代理。")],
         "tool_calls": [
             {"tool": "search_cases", "parameters": {"query": "连接失败"},
              "status": "succeeded", "result_source_ids": ["case-1"],
@@ -35,17 +39,16 @@ def test_judge_payload_excludes_derived_context_without_changing_audit():
     }
     original = deepcopy(state)
     _, user_prompt = semantic_judge.judge_messages(state, GOOD)
-    assert "understanding" not in json.loads(user_prompt)
     payload = json.loads(user_prompt)
-    assert set(payload) == {"subject", "body", "proposal", "tool_calls", "system_capabilities"}
-    assert payload["subject"] == state["subject"] and payload["body"] == state["body"]
+    assert "understanding" not in payload and "body" not in payload
+    assert set(payload) == {"subject", "messages", "proposal", "tool_calls", "system_capabilities"}
+    assert payload["subject"] == state["subject"]
+    assert payload["messages"] == [{"role": "customer", "content": "当前使用本地代理。"}]
     assert payload["proposal"] == GOOD.model_dump()
     for actual, source in zip(payload["tool_calls"], state["tool_calls"], strict=True):
         assert "result_summary" not in actual and "error" not in actual
         assert actual == {key: source[key] for key in ("tool", "parameters", "status", "result_source_ids")}
     assert state == original
-    # The Judge also works when no upstream understanding exists.
-    del state["understanding"]
     assert semantic_judge.judge_messages(state, GOOD)[1] == user_prompt
 
 
@@ -69,8 +72,7 @@ def make_runner(monkeypatch, decisions, judgments, **overrides):
             raise response
         return response
     config = ProcessingSettings(_env_file=None, retrieval_mode="bm25")
-    args = dict(understanding_fn=lambda **kwargs: TicketUnderstanding(summary="unit", error_codes=[], environment=[]),
-                decision_fn=decision, judge_fn=judge, milvus_factory=lambda _: client,
+    args = dict(decision_fn=decision, judge_fn=judge, milvus_factory=lambda _: client,
                 corpus=load_sources(config.corpus_path))
     args.update(overrides)
     runner = AgentRunner(QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
@@ -80,7 +82,7 @@ def make_runner(monkeypatch, decisions, judgments, **overrides):
 
 def test_rejected_then_repaired_once(monkeypatch):
     runner, seen, judged, client = make_runner(monkeypatch, [BAD, GOOD], [FAIL, PASS])
-    result = runner({"subject": "连接失败", "body": "操作失败"})
+    result = runner(run_input("连接失败", "操作失败"))
     assert len(seen) == len(judged) == 2 and client.closed
     assert result.state["proposal"] == GOOD
     assert seen[1]["guardrail_feedback"]["violations"] == FAIL["violations"]
@@ -96,7 +98,7 @@ def test_rejected_then_repaired_once(monkeypatch):
 def test_second_failure_safely_exits(monkeypatch):
     runner, seen, judged, client = make_runner(monkeypatch, [BAD], [FAIL])
     with pytest.raises(RunFailure) as error:
-        runner({"subject": "s", "body": "b"})
+        runner(run_input())
     assert len(seen) == len(judged) == 2 and client.closed
     failure = error.value
     assert failure.stage == "semantic_guardrail" and "proposal" not in failure.partial
@@ -111,7 +113,7 @@ def test_second_failure_safely_exits(monkeypatch):
 def test_judge_errors_fail_closed_without_repair(monkeypatch, response):
     runner, seen, judged, client = make_runner(monkeypatch, [BAD], [response])
     with pytest.raises(RunFailure) as error:
-        runner({"subject": "s", "body": "b"})
+        runner(run_input())
     assert len(seen) == len(judged) == 1 and client.closed
     assert error.value.__cause__.code == "semantic_judge_error"
     assert "secret" not in str(error.value.__cause__)
@@ -125,7 +127,7 @@ def test_judge_errors_fail_closed_without_repair(monkeypatch, response):
 def test_repair_cannot_bypass_deterministic_rules_or_execute_tools(monkeypatch, repair):
     runner, seen, judged, _ = make_runner(monkeypatch, [BAD, repair], [FAIL])
     with pytest.raises(RunFailure) as error:
-        runner({"subject": "s", "body": "b"})
+        runner(run_input())
     assert len(seen) == 2 and len(judged) == 1
     assert error.value.__cause__.code == "guardrail_repair_failed"
     assert len(error.value.partial["tool_calls"]) == 1
@@ -135,13 +137,13 @@ def test_invalid_evidence_fails_before_judge(monkeypatch):
     invalid = {"next_step": "propose_resolution", "reason": "x", "reply": "x", "evidence_ids": ["unknown"]}
     runner, _, judged, _ = make_runner(monkeypatch, [invalid], [PASS])
     with pytest.raises(RunFailure):
-        runner({"subject": "s", "body": "b"})
+        runner(run_input())
     assert not judged
 
 
 def test_input_risk_escalation_is_judged(monkeypatch):
     runner, seen, judged, _ = make_runner(monkeypatch, [GOOD], [PASS])
-    result = runner({"subject": "密钥泄露", "body": "请处理"})
+    result = runner(run_input("密钥泄露", "请处理"))
     assert not seen and len(judged) == 1
     assert result.state["proposal"].risk_flags == ["security"]
 
@@ -152,7 +154,7 @@ def test_injected_cache_never_silently_adds_paid_judge_call(monkeypatch):
         pytest.fail("unexpected paid judge call")
     monkeypatch.setattr(runtime, "judge_proposal", forbidden)
     with pytest.raises(RunFailure) as error:
-        runner({"subject": "s", "body": "b"})
+        runner(run_input())
     assert error.value.__cause__.code == "semantic_judge_error"
 
 
@@ -169,7 +171,7 @@ def test_real_adapters_use_distinct_models_and_record_usage(monkeypatch):
     monkeypatch.setattr(decide, "generate_text", decision_response)
     monkeypatch.setattr(semantic_judge, "generate_text", judge_response)
     runner, _, _, _ = make_runner(monkeypatch, [], [], decision_fn=None, judge_fn=None)
-    result = runner({"subject": "s", "body": "b"})
+    result = runner(run_input())
     assert [c["settings"].model for c in calls] == ["glm-5.3", "deepseek-v4.1-flash"]
     assert calls[0]["generation_options"]["extra_body"]["enable_thinking"] is True
     assert calls[0]["generation_options"]["max_tokens"] == 4096
@@ -182,8 +184,8 @@ def test_glm53_generation_options_are_in_cache_fingerprint(monkeypatch):
     captured = []
     monkeypatch.setattr(dev_decision_cache, "calculate_request_fingerprint", lambda request: captured.append(request))
     settings = QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused")
-    state = {"subject": "s", "body": "b", "retrieval_hits": [],
-             "understanding": TicketUnderstanding(summary="unit", error_codes=[], environment=[])}
+    state = {"subject": "s", "messages": [AgentMessage(role="customer", content="b")],
+             "retrieval_hits": [], "tool_calls": [], "clarification_rounds": 0}
     for model in ("glm-5.3", "glm-5.2"):
         dev_decision_cache.decision_fingerprint(settings.model_copy(update={"model": model}), state)
     assert captured[0]["extra_body"] == {"enable_thinking": True} and captured[0]["max_tokens"] == 4096
@@ -218,7 +220,7 @@ def test_repair_respects_total_step_budget(monkeypatch):
     runner, seen, judged, _ = make_runner(monkeypatch, [BAD], [FAIL])
     runner.config = runner.config.model_copy(update={"max_agent_steps": 3})
     with pytest.raises(RunFailure) as error:
-        runner({"subject": "s", "body": "b"})
+        runner(run_input())
     assert len(seen) == len(judged) == 1
     assert error.value.__cause__.code == "guardrail_step_limit"
 
@@ -233,7 +235,7 @@ def test_each_violation_blocks_the_proposal(monkeypatch, kind, reply):
     report = {"passed": False, "violations": [{"type": kind, "text": reply, "reason": "离线预设违规"}]}
     runner, seen, judged, _ = make_runner(monkeypatch, [value], [report])
     with pytest.raises(RunFailure) as error:
-        runner({"subject": "连接失败", "body": "已经使用代理"})
+        runner(run_input("连接失败", "已经使用代理"))
     assert len(seen) == len(judged) == 2 and "proposal" not in error.value.partial
     assert error.value.__cause__.code == "semantic_guardrail_failure"
 
@@ -249,5 +251,5 @@ def test_fabricated_quote_on_real_source_fails_before_judge(monkeypatch):
     runner, _, judged, _ = make_runner(monkeypatch, [proposal], [PASS])
     monkeypatch.setattr(runtime, "retrieve_cases", lambda *args, **kwargs: [hit])
     with pytest.raises(RunFailure) as error:
-        runner({"subject": "s", "body": "b"})
+        runner(run_input())
     assert not judged and "原文" in str(error.value.__cause__)

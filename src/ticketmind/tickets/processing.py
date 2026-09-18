@@ -92,15 +92,22 @@ def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCre
             ProcessingResult.ticket_id == ticket_id, ProcessingResult.run_status == ProcessingRunStatus.COMPLETED,
             ProcessingResult.action == AgentAction.ASK_CLARIFICATION)).all()
         previous = [run for run in previous if run.review and run.review.decision != "escalate"]
-        body = messages[0].body if len(messages) == 1 else "\n\n".join(
-            f"[{message.sequence_number} {message.author_type.value}]\n{message.body}" for message in messages)
-        snapshot = {"ticket_id": str(ticket.id), "ticket_version": ticket.version,
-                    "trigger_message_id": str(payload.trigger_message_id), "subject": ticket.subject,
-                    "body": body, "messages": [{"id": str(m.id), "sequence_number": m.sequence_number,
-                    "author_type": m.author_type.value, "body": m.body} for m in messages]}
-        snapshot.update(clarification_rounds=len(previous),
-                        asked_questions=[q for run in previous for q in (run.proposal or {}).get("questions", [])],
-                        approved_clarifications=[run.review.edited_reply or run.final_reply for run in previous])
+        snapshot = {
+            "ticket_id": str(ticket.id),
+            "ticket_version": ticket.version,
+            "trigger_message_id": str(payload.trigger_message_id),
+            "subject": ticket.subject,
+            "messages": [
+                {
+                    "id": str(message.id),
+                    "sequence_number": message.sequence_number,
+                    "author_type": message.author_type.value,
+                    "body": message.body,
+                }
+                for message in messages
+            ],
+            "clarification_rounds": len(previous),
+        }
         runner = runner_factory()
         sequence = session.scalar(select(func.max(ProcessingResult.run_sequence))
                                   .where(ProcessingResult.ticket_id == ticket_id)) or 0
@@ -136,8 +143,6 @@ def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCre
             if isinstance(cause, GuardrailFailure):
                 run.error_summary = str(cause)
             if isinstance(exc, RunFailure):
-                understanding = exc.partial.get("understanding")
-                run.extracted_information = understanding.model_dump() if understanding is not None else {}
                 run.retrieval_evidence, run.usage = exc.evidence, exc.usage
                 run.tool_calls = exc.partial.get("tool_calls", [])
             run.completed_at = datetime.now(UTC)
@@ -149,7 +154,7 @@ def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCre
         run = session.get(ProcessingResult, run_id)
         run.completed_at = None
         run.duration_ms = round((monotonic() - started) * 1000)
-        run.extracted_information = output.state["understanding"].model_dump()
+        run.extracted_information = {}
         run.retrieval_evidence, run.usage = output.evidence, output.usage
         run.tool_calls = output.state.get("tool_calls", [])
         if ticket.version != run.ticket_version:

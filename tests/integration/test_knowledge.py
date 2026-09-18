@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from ticketmind.agent.proposals import Clarification, GetCaseDetail
 from ticketmind.agent.runtime import AgentRunner
-from ticketmind.agent.schemas import TicketUnderstanding
+from ticketmind.agent.schemas import AgentMessage, AgentRunInput
 from ticketmind.core.auth import Actor
 from ticketmind.core.config import AuthSettings, MilvusSettings, ProcessingSettings, QwenSettings
 from ticketmind.db.testing import isolated_database
@@ -406,10 +406,12 @@ def test_runtime_and_detail_use_pg_without_jsonl(knowledge, monkeypatch):
     runner = AgentRunner(k.qwen, MilvusSettings(_env_file=None, uri="http://unused"),
         k.config.model_copy(update={"corpus_path": Path("does-not-exist"), "retrieval_mode": "bm25"}),
         session_factory=k.factory, milvus_factory=lambda _: client, decision_fn=decision,
-        judge_fn=lambda *args: {"passed": True, "violations": []},
-        understanding_fn=lambda **kw: TicketUnderstanding(summary="test", error_codes=[], environment=[]))
+        judge_fn=lambda *args: {"passed": True, "violations": []})
     assert not hasattr(runner.corpus, "cases")
-    output = runner({"subject": "登录", "body": "失败"})
+    output = runner(AgentRunInput(
+        subject="登录",
+        messages=[AgentMessage(role="customer", content="失败")],
+    ))
     assert output.evidence[0]["text"] == case["content"]
     assert output.state["tool_calls"][-1]["status"] == "succeeded"
     assert runner.metadata["corpus_version"] == PRODUCTION_DATASET

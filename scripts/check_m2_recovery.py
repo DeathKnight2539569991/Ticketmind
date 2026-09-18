@@ -21,7 +21,6 @@ import uvicorn
 from ticketmind.agent.proposals import Clarification
 from ticketmind.agent.review import ReviewWorkflow
 from ticketmind.agent.runtime import RunOutput
-from ticketmind.agent.schemas import TicketUnderstanding
 from ticketmind.core.config import AuthSettings, Settings
 from ticketmind.db.testing import isolated_database
 from ticketmind.main import create_app
@@ -47,12 +46,15 @@ def serve(args):
         metadata = {"agent_version": "m2-process-recovery-synthetic", "corpus_version": "synthetic-no-retrieval",
                     "retrieval_mode": "dense", "model_config": {"synthetic_test_double": True}}
 
-        def __call__(self, snapshot):
+        def __call__(self, agent_input, *, clarification_rounds=0):
             if args.phase == "compute_interrupted":
                 mark_boundary(boundary)
-            return RunOutput({"understanding": TicketUnderstanding(summary="合成测试输入", error_codes=[], environment=[]),
-                "proposal": Clarification(next_step="ask_clarification", reason="合成测试缺少环境信息",
-                    reply="请提供当前代理配置。", questions=["当前代理配置是什么？"])}, [], {"model_calls": 0})
+            return RunOutput({"proposal": Clarification(
+                next_step="ask_clarification",
+                reason="合成测试缺少环境信息",
+                reply="请提供当前代理配置。",
+                questions=["当前代理配置是什么？"],
+            ), "tool_calls": []}, [], {"model_calls": 0})
 
     original = ReviewWorkflow.resume
     def faulted_resume(self, thread_id, review):

@@ -89,8 +89,10 @@ def validate_label(label, corpus):
 
 def retrieval_queries(rows):
     from ticketmind.agent.retrieve import build_retrieval_query
+    from ticketmind.agent.schemas import AgentMessage
     return [{"case_id": row["case"]["case_id"], "query": build_retrieval_query(
-        **{key: row["case"]["input"][key] for key in ("subject", "body")}),
+        subject=row["case"]["input"]["subject"],
+        messages=[AgentMessage(role="customer", content=row["case"]["input"]["body"])]),
         "group_id": row["case"]["group_id"], "split": row["case"]["split"],
         "label_status": row["label_status"], "label_hash": row["label_hash"],
         "review_method": row.get("review_method"),

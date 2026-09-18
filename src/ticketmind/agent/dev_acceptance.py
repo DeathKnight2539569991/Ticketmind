@@ -11,16 +11,14 @@ from time import monotonic
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from ticketmind.agent.decide import decision_options, decision_messages
-from ticketmind.agent.dev_cache import CachedUnderstanding, CachedQueryEmbeddings
+from ticketmind.agent.dev_cache import CachedQueryEmbeddings
 from ticketmind.agent.dev_decision_cache import decision_fingerprint
 from ticketmind.agent.proposals import decision_adapter, validate_proposal, validate_decision_evidence
-from ticketmind.agent.run_cache import (UnderstandingCache, QueryVectorCache, load_cache,
-    save_cache, understanding_fingerprint, query_fingerprint)
+from ticketmind.agent.run_cache import QueryVectorCache, load_cache, save_cache, query_fingerprint
 from ticketmind.agent.runtime import build_budgeted_embeddings
-from ticketmind.agent.understand import understand_ticket
 from ticketmind.llm.client import generate_text
 
-CATEGORIES = ("understanding", "initial_embedding", "research_embedding", "decision")
+CATEGORIES = ("initial_embedding", "research_embedding", "decision")
 
 
 class Record(BaseModel):
@@ -46,9 +44,14 @@ def acceptance_lock(directory):
 
 class AttemptLedger:
     def __init__(self, path, ceilings):
-        if set(ceilings) != set(CATEGORIES) or any(type(v) is not int or v < 0 for v in ceilings.values()):
-            raise ValueError("必须分别指定四类非负整数上限")
-        self.path, self.ceilings = Path(path), ceilings
+        allowed = set(CATEGORIES) | {"understanding"}
+        if (not set(CATEGORIES) <= set(ceilings) or set(ceilings) - allowed or
+                any(type(v) is not int or v < 0 for v in ceilings.values())):
+            raise ValueError("必须分别指定 embedding/research/decision 三类非负整数上限")
+        # "understanding" is accepted only so historical evaluation commands remain readable;
+        # the runtime no longer has an understanding call or budget.
+        self.path = Path(path)
+        self.ceilings = {category: ceilings[category] for category in CATEGORIES}
         self.data = Record.model_validate_json(self.path.read_text(encoding="utf-8")).model_dump() if self.path.exists() else {"attempts": []}
         self.cache_hits = []
 
@@ -91,24 +94,6 @@ class AcceptanceAdapters:
     def path(self, kind, fingerprint):
         return self.directory / kind / f"{fingerprint}.json"
 
-    def understanding(self, *, settings, subject, body):
-        fp = understanding_fingerprint(settings=settings, subject=subject, body=body)
-        path = self.path("understanding", fp)
-        if self.legacy_directory:
-            cache = CachedUnderstanding(self.legacy_directory / "understanding.json").read(
-                settings=settings, subject=subject, body=body)
-        else:
-            cache = load_cache(path, UnderstandingCache, expected_fingerprint=fp)
-        if cache:
-            self.ledger.hit("understanding", fp)
-            return cache.understanding
-        def call(record):
-            result = understand_ticket(settings=settings, subject=subject, body=body, timeout=self.remaining(),
-                                       usage_callback=lambda value: record.update(usage=value))
-            save_cache(path, UnderstandingCache(subject=subject, body=body, model=settings.model,
-                                               request_fingerprint=fp, understanding=result))
-            return result
-        return self.ledger.attempt("understanding", fp, call)
 
     def embeddings(self, remaining):
         self.remaining, self.embedding_index = remaining, 0

@@ -6,7 +6,7 @@ from langgraph.types import Command, interrupt
 
 from ticketmind.agent.proposals import proposal_adapter, validate_proposal
 from ticketmind.agent.runtime import RunOutput
-from ticketmind.agent.schemas import TicketUnderstanding
+from ticketmind.agent.schemas import AgentRunInput
 
 
 class ReviewState(TypedDict, total=False):
@@ -16,10 +16,29 @@ class ReviewState(TypedDict, total=False):
 
 
 def review_node(state):
-    review = interrupt({"run_id": state["snapshot"]["run_id"],
-                        "proposal": state["output"]["state"]["proposal"]})
-    # The coordinator builds this only from the immutable database row.
+    review = interrupt(
+        {
+            "run_id": state["snapshot"]["run_id"],
+            "proposal": state["output"]["state"]["proposal"],
+        }
+    )
     return {"approved_review": review}
+
+
+def agent_input_from_snapshot(snapshot: dict) -> AgentRunInput:
+    """Project the durable run snapshot onto the minimal business input seen by the Agent."""
+    return AgentRunInput.model_validate(
+        {
+            "subject": snapshot["subject"],
+            "messages": [
+                {
+                    "role": "customer" if message["author_type"] == "customer" else "support",
+                    "content": message["body"],
+                }
+                for message in snapshot["messages"]
+            ],
+        }
+    )
 
 
 class ReviewWorkflow:
@@ -30,14 +49,23 @@ class ReviewWorkflow:
         def compute(state):
             if runner is None:
                 raise RuntimeError("审核恢复禁止重新计算 Agent")
-            output = runner(state["snapshot"])
+            snapshot = state["snapshot"]
+            output = runner(
+                agent_input_from_snapshot(snapshot),
+                clarification_rounds=snapshot.get("clarification_rounds", 0),
+            )
             proposal = proposal_adapter.validate_python(output.state["proposal"])
             validate_proposal(proposal, {hit["source_id"] for hit in output.evidence})
-            return {"output": {"state": {
-                "proposal": proposal.model_dump(mode="json"),
-                "understanding": output.state["understanding"].model_dump(mode="json"),
-                "tool_calls": output.state.get("tool_calls", []),
-            }, "evidence": output.evidence, "usage": output.usage}}
+            return {
+                "output": {
+                    "state": {
+                        "proposal": proposal.model_dump(mode="json"),
+                        "tool_calls": output.state.get("tool_calls", []),
+                    },
+                    "evidence": output.evidence,
+                    "usage": output.usage,
+                }
+            }
 
         builder = StateGraph(ReviewState)
         builder.add_node("compute", compute)
@@ -57,8 +85,10 @@ class ReviewWorkflow:
         if not result.get("__interrupt__"):
             raise RuntimeError("图未持久化审核中断")
         output = result["output"]
-        state = {**output["state"], "understanding": TicketUnderstanding.model_validate(output["state"]["understanding"]),
-                 "proposal": proposal_adapter.validate_python(output["state"]["proposal"])}
+        state = {
+            **output["state"],
+            "proposal": proposal_adapter.validate_python(output["state"]["proposal"]),
+        }
         return RunOutput(state, output["evidence"], output["usage"])
 
     def resume(self, thread_id, saved_review):

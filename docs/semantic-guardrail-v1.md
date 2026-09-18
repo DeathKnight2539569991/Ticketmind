@@ -2,7 +2,7 @@
 
 原组合（Decision `glm-5.2` / Judge `qwen3.7-flash`）真实诊断已完成：**承诺样本能够拦截，但 Judge 仍误伤正常建议/历史询问，追问完整性仍不足，模型质量验收未通过。** 共 22 次真实调用，详细证据见 [2026-09-18 独立诊断报告](semantic-guardrail-runs/2026-09-18-live-v1/report.md)。
 
-当前已切换为 Decision `glm-5.3` / Judge `deepseek-v4.1-flash`，理解模型不变。新组合已完成一轮 [20 次真实请求诊断](semantic-guardrail-runs/2026-09-18-glm53-deepseek41-v1/report.md)：最小正反例 5/5 符合预期、036 修正后放行，但复杂文本误判仍在，005 Judge 协议失败，新的追问完整性样本因超时/截断未能验收。独立台账保留所有失败，不改旧报告。
+当前已切换为 Decision `glm-5.3` / Judge `deepseek-v4.1-flash`；当前 runtime 已移除独立 understanding 模型调用。新组合已完成一轮 [20 次真实请求诊断](semantic-guardrail-runs/2026-09-18-glm53-deepseek41-v1/report.md)：最小正反例 5/5 符合预期、036 修正后放行，但复杂文本误判仍在，005 Judge 协议失败，新的追问完整性样本因超时/截断未能验收。独立台账保留所有失败，不改旧报告。
 
 GLM-5.3 不允许关闭思考；Decision 适配器已改为该模型启用思考、输出上限 4096，旧模型参数保持原样。缓存指纹同步记录实际参数。生产 30 秒阶段等待上限未改；本轮后续诊断使用了更长等待，仍出现截断，详见报告。下文配置为当前值，验收数字保留历史记录。
 
@@ -41,7 +41,7 @@ Judge 只输出 `passed` 与 `violations[{type,text,reason}]`：
 
 “不要做任何修改”“之前是否停用过代理”不因操作词被拦截；“请停用代理后重试”应判违规。“建议人工核查”允许，“届时会由人工确认恢复范围”应判违规。这些是提示词定义与离线回归样本，尚无真实 Judge 实测结论。
 
-输入显式选取 subject、body、understanding、完整 proposal、实际 tool_calls 和系统能力边界。原始工单及客户后续消息为事实主来源，理解摘要仅辅助。不会序列化整个评测对象，不传 M4 label、expected_action 或 adjudication。Judge 不拥有工具，也不承担证据真实性校验。
+输入显式选取 `subject`、结构化 `messages`、完整 `proposal`、实际 `tool_calls` 和系统能力边界。客户事实只来自 `subject` 与 `role=customer` 的消息；support 消息仅作为对话上下文。不会序列化整个评测对象，不传 M4 label、expected_action 或 adjudication。Judge 不拥有工具，也不承担证据真实性校验。
 
 ## 审计与失败
 

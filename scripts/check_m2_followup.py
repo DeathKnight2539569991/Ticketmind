@@ -16,13 +16,13 @@ from fastapi.testclient import TestClient
 from check_m2_acceptance import ROOT, OUTPUT, load_cases, apply_human_review
 from ticketmind.agent.decide import DECISION_PROTOCOL
 from ticketmind.agent.dev_acceptance import AcceptanceAdapters, AttemptLedger, CATEGORIES, acceptance_lock, write_json
-from ticketmind.agent.dev_cache import CachedUnderstanding, CachedQueryEmbeddings
+from ticketmind.agent.dev_cache import CachedQueryEmbeddings
 from ticketmind.agent.retrieve import build_retrieval_query
-from ticketmind.agent.run_cache import understanding_fingerprint, query_fingerprint, calculate_request_fingerprint
+from ticketmind.agent.run_cache import query_fingerprint, calculate_request_fingerprint
 from ticketmind.agent.runtime import AgentRunner
 from ticketmind.agent.runtime import RunOutput
 from ticketmind.agent.proposals import proposal_adapter
-from ticketmind.agent.schemas import TicketUnderstanding
+from ticketmind.agent.schemas import AgentMessage, AgentRunInput
 from ticketmind.core.config import QwenSettings, MilvusSettings, ProcessingSettings, AuthSettings
 from ticketmind.db.testing import isolated_database
 from ticketmind.main import create_app
@@ -32,12 +32,12 @@ from ticketmind.tickets.models import ProcessingResult
 
 ZERO = {c: 0 for c in CATEGORIES}
 # Original 7 attempts remain in the SAME ledger. This new scenario adds <=6.
-FOLLOWUP_CEILINGS = dict(zip(CATEGORIES, (3, 3, 1, 6)))
-RECHECK_CEILINGS = dict(zip(CATEGORIES, (3, 3, 1, 8)))  # 11 recorded attempts + <=4 new.
-BOUNDARY_CEILINGS = dict(zip(CATEGORIES, (3, 3, 1, 10)))  # 13 recorded attempts + <=4 new; separate approval.
-MODEL_COMPARISON_CEILINGS = dict(zip(CATEGORIES, (3, 3, 1, 12)))  # 15 attempts + <=4, qwen3.8-27b comparison.
-MAX_COMPARISON_CEILINGS = dict(zip(CATEGORIES, (3, 3, 1, 13)))  # 16 attempts + <=4, qwen3.8-max-0902 comparison.
-GLM_COMPARISON_CEILINGS = dict(zip(CATEGORIES, (3, 3, 1, 14)))  # 17 attempts + <=4, GLM-5.2; failed alias counts too.
+FOLLOWUP_CEILINGS = dict(zip(CATEGORIES, (3, 1, 6)))
+RECHECK_CEILINGS = dict(zip(CATEGORIES, (3, 1, 8)))  # 11 recorded attempts + <=4 new.
+BOUNDARY_CEILINGS = dict(zip(CATEGORIES, (3, 1, 10)))  # 13 recorded attempts + <=4 new; separate approval.
+MODEL_COMPARISON_CEILINGS = dict(zip(CATEGORIES, (3, 1, 12)))  # 15 attempts + <=4, qwen3.8-27b comparison.
+MAX_COMPARISON_CEILINGS = dict(zip(CATEGORIES, (3, 1, 13)))  # 16 attempts + <=4, qwen3.8-max-0902 comparison.
+GLM_COMPARISON_CEILINGS = dict(zip(CATEGORIES, (3, 1, 14)))  # 17 attempts + <=4, GLM-5.2; failed alias counts too.
 
 
 def load_case():
@@ -90,16 +90,22 @@ The fixed original report is historical evidence, not a current-model cache hit.
         self.metadata = {"agent_version": run["agent_version"], "corpus_version": run["corpus_version"],
             "retrieval_mode": run["retrieval_mode"], "model_config": {**run["models"], "historical_report_replay": True}}
 
-    def __call__(self, snapshot):
-        if any(snapshot[key] != self.report["input_snapshot"][key] for key in ("subject", "body")):
+    def __call__(self, agent_input: AgentRunInput, *, clarification_rounds=0):
+        agent_input = AgentRunInput.model_validate(agent_input)
+        expected = self.report["input_snapshot"]
+        customer_text = "\n\n".join(
+            message.content for message in agent_input.messages if message.role == "customer"
+        )
+        if agent_input.subject != expected["subject"] or customer_text != expected["body"]:
             raise ValueError("旧审核记录与当前初始输入不一致")
         run = self.report["run"]
         if run["proposal"]["next_step"] != "ask_clarification":
             raise ValueError("必须从已批准的旧追问接续")
-        return RunOutput({"proposal": proposal_adapter.validate_python(run["proposal"]),
-            "understanding": TicketUnderstanding.model_validate(run["extracted_information"]),
-            "tool_calls": run["tool_calls"]}, run["retrieval_evidence"],
-            {"historical_report_replay": True, "original_usage": run["usage"]})
+        return RunOutput(
+            {"proposal": proposal_adapter.validate_python(run["proposal"]), "tool_calls": run["tool_calls"]},
+            run["retrieval_evidence"],
+            {"historical_report_replay": True, "original_usage": run["usage"]},
+        )
 
 
 def start(client, ticket_id):
@@ -143,26 +149,32 @@ def verify(*, execute=False, ceilings=None, final_review=None, directory=OUTPUT,
                 ticket = client.get(f"/tickets/{ticket_id}").json()
                 assert ticket["version"] == 3 and ticket["status"] == "open" and len(ticket["messages"]) == 3
                 report["ticket_after_update"] = ticket
-                body = "\n\n".join(f'[{m["sequence_number"]} {m["author_type"]}]\n{m["body"]}' for m in ticket["messages"])
-                initial = {"subject": ticket["subject"], "body": body}
+                agent_messages = [
+                    AgentMessage(
+                        role="customer" if message["author_type"] == "customer" else "support",
+                        content=message["body"],
+                    )
+                    for message in ticket["messages"]
+                ]
                 adapters = AcceptanceAdapters(qwen, directory, ledger)
                 decision_settings = qwen.model_copy(update={"model": decision_model}) if decision_model else qwen
                 decision_adapters = AcceptanceAdapters(decision_settings, directory, ledger)
-                report["models"] = {"understanding": qwen.model, "decision": decision_settings.model,
-                                    "embedding": qwen.embedding_model}
-                uf = understanding_fingerprint(settings=qwen, **initial)
-                query = build_retrieval_query(**initial)
+                report["models"] = {"decision": decision_settings.model, "embedding": qwen.embedding_model}
+                query = build_retrieval_query(subject=ticket["subject"], messages=agent_messages)
                 qf = query_fingerprint(settings=qwen, query=query)
-                report["preflight"] = {"understanding_fingerprint": uf, "query_fingerprint": qf,
-                    "understanding_cache": bool(CachedUnderstanding(adapters.path("understanding", uf)).read(settings=qwen, **initial)),
-                    "initial_vector_cache": bool(CachedQueryEmbeddings(qwen, adapters.path("query", qf), factory=None).read(query))}
+                report["preflight"] = {
+                    "query_fingerprint": qf,
+                    "initial_vector_cache": bool(
+                        CachedQueryEmbeddings(qwen, adapters.path("query", qf), factory=None).read(query)
+                    ),
+                }
                 if not execute:
                     return report
                 def milvus(settings):
                     return FirstSearchMiss(build_milvus_client(settings), case["initial_search_fixture"]["source_id"],
                                            report["retrieval_fixture_audit"])
                 app.state.runner = FollowupRunner(qwen, MilvusSettings(), config,
-                    understanding_fn=adapters.understanding, embedding_factory=adapters.embeddings,
+                    embedding_factory=adapters.embeddings,
                     decision_fn=decision_adapters.decision, milvus_factory=milvus,
                     decision_model=decision_settings.model)
                 result = start(client, ticket_id)
@@ -171,9 +183,11 @@ def verify(*, execute=False, ceilings=None, final_review=None, directory=OUTPUT,
                 with factory() as session:
                     saved = session.get(ProcessingResult, UUID(result["id"]))
                     report["input_snapshot"] = saved.input_snapshot
-                    assert saved.input_snapshot["body"] == body
+                    assert "body" not in saved.input_snapshot
                     assert saved.input_snapshot["clarification_rounds"] == 1
-                    assert saved.input_snapshot["approved_clarifications"] == [original["final_reply"]]
+                    assert len(saved.input_snapshot["messages"]) == 3
+                    assert "approved_clarifications" not in saved.input_snapshot
+                    assert "asked_questions" not in saved.input_snapshot
                     assert saved.thread_id != original["thread_id"] and saved.run_sequence == 2
                 raw_decisions = []
                 report["raw_decision_responses"] = []
@@ -214,13 +228,13 @@ def main():
     parser.add_argument("--prepare", action="store_true", help="真实 DB/只读 Milvus + 旧结果缓存；只准备新快照，新增调用0")
     parser.add_argument("--execute", action="store_true")
     budgets = parser.add_mutually_exclusive_group()
-    budgets.add_argument("--allow-followup-budget", action="store_true", help="首次实验历史预算，累计上限3/3/1/6")
-    budgets.add_argument("--allow-recheck-budget", action="store_true", help="修复后另获≤4次授权才可用，累计上限3/3/1/8")
-    budgets.add_argument("--allow-boundary-budget", action="store_true", help="动作边界复验另获≤4次授权才可用，累计上限3/3/1/10")
-    budgets.add_argument("--allow-model-comparison-budget", action="store_true", help="qwen3.8-27b对比授权≤4次，累计上限3/3/1/12")
-    budgets.add_argument("--allow-max-comparison-budget", action="store_true", help="qwen3.8-max-0902对比授权≤4次，累计上限3/3/1/13")
-    budgets.add_argument("--allow-glm-comparison-budget", action="store_true", help="GLM-5.2对比授权≤4次（含失败别名请求），累计上限3/3/1/14")
-    parser.add_argument("--decision-model", help="只替换决策模型；理解与Embedding设置保持原值")
+    budgets.add_argument("--allow-followup-budget", action="store_true", help="首次实验历史预算，累计上限3/1/6")
+    budgets.add_argument("--allow-recheck-budget", action="store_true", help="修复后另获≤4次授权才可用，累计上限3/1/8")
+    budgets.add_argument("--allow-boundary-budget", action="store_true", help="动作边界复验另获≤4次授权才可用，累计上限3/1/10")
+    budgets.add_argument("--allow-model-comparison-budget", action="store_true", help="qwen3.8-27b对比授权≤4次，累计上限3/1/12")
+    budgets.add_argument("--allow-max-comparison-budget", action="store_true", help="qwen3.8-max-0902对比授权≤4次，累计上限3/1/13")
+    budgets.add_argument("--allow-glm-comparison-budget", action="store_true", help="GLM-5.2对比授权≤4次（含失败别名请求），累计上限3/1/14")
+    parser.add_argument("--decision-model", help="只替换决策模型；Embedding设置保持原值")
     parser.add_argument("--review", type=Path, help="对新提案摘要的具体人工审核，默认不发布新回复")
     args = parser.parse_args()
     if args.allow_model_comparison_budget and args.decision_model != "qwen3.8-27b":
@@ -230,7 +244,7 @@ def main():
     if args.allow_glm_comparison_budget and args.decision_model not in ("glm5.2", "glm-5.2"):
         parser.error("本次GLM对比授权仅适用于 --decision-model glm-5.2（旧别名glm5.2保留历史记录）")
     if not args.prepare and not args.execute:
-        print(json.dumps({"case": load_case(), "additional_maximum": {"understanding": 1,
+        print(json.dumps({"case": load_case(), "additional_maximum": {
             "initial_embedding": 1, "research_embedding": 1, "decision": 3}}, ensure_ascii=False))
         return
     review = json.loads(args.review.read_text(encoding="utf-8")) if args.review else None

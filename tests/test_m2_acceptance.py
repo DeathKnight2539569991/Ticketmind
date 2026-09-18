@@ -8,7 +8,7 @@ import pytest
 from ticketmind.agent import dev_acceptance as acceptance
 from ticketmind.agent.decide import decision_messages
 from ticketmind.agent.dev_acceptance import AcceptanceAdapters, AttemptLedger, CATEGORIES, acceptance_lock
-from ticketmind.agent.schemas import TicketUnderstanding
+from ticketmind.agent.schemas import AgentMessage
 from ticketmind.core.config import QwenSettings
 
 
@@ -22,8 +22,8 @@ def ledger(path, **limits):
 
 
 def state():
-    return {"subject": "unit", "body": "unit", "agent_steps": 3, "retrieval_hits": [],
-            "understanding": TicketUnderstanding(summary="unit", error_codes=[], environment=[]),
+    return {"subject": "unit", "messages": [AgentMessage(role="customer", content="unit")],
+            "agent_steps": 3, "retrieval_hits": [], "tool_calls": [], "clarification_rounds": 0,
             "execution_limits": {"max_agent_steps": 3, "max_search_rounds": 1}}
 
 
@@ -171,4 +171,4 @@ def test_preflight_is_offline_and_labels_are_separate(settings):
         assert not input_risks(case["input"]["body"])
     # Nonlegacy inputs have no exact caches under the synthetic unit model endpoint.
     rows = script.preflight(settings, cases[1:])
-    assert all(not row["understanding_cache"] and not row["initial_vector_cache"] for row in rows)
+    assert all(not row["initial_vector_cache"] for row in rows)

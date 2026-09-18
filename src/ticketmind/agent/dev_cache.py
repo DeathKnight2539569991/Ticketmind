@@ -4,17 +4,12 @@ from collections.abc import Callable
 from pathlib import Path
 
 from langchain_core.embeddings import Embeddings
-from ticketmind.retrieval.transport import SingleRequestSession
 
-from ticketmind.agent.run_cache import (
-    QueryVectorCache, UnderstandingCache, load_cache, query_fingerprint,
-    save_cache, understanding_fingerprint,
-)
-from ticketmind.agent.schemas import TicketUnderstanding
-from ticketmind.agent.understand import understand_ticket
+from ticketmind.agent.run_cache import QueryVectorCache, load_cache, query_fingerprint, save_cache
 from ticketmind.core.config import QwenSettings
 from ticketmind.retrieval.case_collection import EMBEDDING_DIMENSION
 from ticketmind.retrieval.embeddings import build_embedding_client
+from ticketmind.retrieval.transport import SingleRequestSession
 
 
 def build_single_attempt_embeddings(settings: QwenSettings) -> Embeddings:
@@ -26,50 +21,26 @@ def build_single_attempt_embeddings(settings: QwenSettings) -> Embeddings:
         def call(**kwargs):
             with SingleRequestSession() as session:
                 return sdk_client.call(
-                    **kwargs, api_key=settings.api_key.get_secret_value(),
-                    dimension=EMBEDDING_DIMENSION, request_timeout=30, session=session,
+                    **kwargs,
+                    api_key=settings.api_key.get_secret_value(),
+                    dimension=EMBEDDING_DIMENSION,
+                    request_timeout=30,
+                    session=session,
                 )
 
     embeddings.client = SingleAttemptClient
     return embeddings
 
 
-class CachedUnderstanding:
-    def __init__(self, path: Path, *, allow_call: bool = False):
-        self.path = path
-        self.allow_call = allow_call
-        self.calls = 0
-        self.cache_hits = 0
-
-    def read(self, *, settings: QwenSettings, subject: str, body: str) -> UnderstandingCache | None:
-        cache = load_cache(self.path, UnderstandingCache, expected_fingerprint=
-                           understanding_fingerprint(settings=settings, subject=subject, body=body))
-        if cache is not None and (cache.subject, cache.body, cache.model) != (
-            subject, body, settings.model,
-        ):
-            raise ValueError("理解缓存元数据与请求不匹配")
-        return cache
-
-    def __call__(self, *, settings: QwenSettings, subject: str, body: str) -> TicketUnderstanding:
-        cache = self.read(settings=settings, subject=subject, body=body)
-        if cache is not None:
-            self.cache_hits += 1
-            return cache.understanding
-        if not self.allow_call or self.calls >= 1:
-            raise RuntimeError("理解缓存缺失；需明确授权 --allow-understanding，每次运行最多一次尝试")
-        self.calls += 1
-        result = understand_ticket(settings=settings, subject=subject, body=body)
-        save_cache(self.path, UnderstandingCache(
-            subject=subject, body=body, model=settings.model,
-            request_fingerprint=understanding_fingerprint(settings=settings, subject=subject, body=body),
-            understanding=result,
-        ))
-        return result
-
-
 class CachedQueryEmbeddings(Embeddings):
-    def __init__(self, settings: QwenSettings, path: Path, *,
-                 factory: Callable[[], Embeddings], allow_call: bool = False):
+    def __init__(
+        self,
+        settings: QwenSettings,
+        path: Path,
+        *,
+        factory: Callable[[], Embeddings],
+        allow_call: bool = False,
+    ):
         self.settings = settings
         self.path = path
         self.factory = factory
@@ -78,9 +49,15 @@ class CachedQueryEmbeddings(Embeddings):
         self.cache_hits = 0
 
     def read(self, query: str) -> QueryVectorCache | None:
-        cache = load_cache(self.path, QueryVectorCache, expected_fingerprint=
-                           query_fingerprint(settings=self.settings, query=query))
-        if cache is not None and (cache.query, cache.model) != (query, self.settings.embedding_model):
+        cache = load_cache(
+            self.path,
+            QueryVectorCache,
+            expected_fingerprint=query_fingerprint(settings=self.settings, query=query),
+        )
+        if cache is not None and (cache.query, cache.model) != (
+            query,
+            self.settings.embedding_model,
+        ):
             raise ValueError("查询缓存元数据与请求不匹配")
         return cache
 
@@ -94,8 +71,10 @@ class CachedQueryEmbeddings(Embeddings):
         self.calls += 1
         vector = self.factory().embed_query(text)
         cache = QueryVectorCache(
-            query=text, model=self.settings.embedding_model,
-            request_fingerprint=query_fingerprint(settings=self.settings, query=text), vector=vector,
+            query=text,
+            model=self.settings.embedding_model,
+            request_fingerprint=query_fingerprint(settings=self.settings, query=text),
+            vector=vector,
         )
         save_cache(self.path, cache)
         return cache.vector

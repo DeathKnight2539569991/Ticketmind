@@ -9,7 +9,6 @@ from test_m1_api import pytestmark
 from ticketmind.agent import dev_acceptance, runtime
 from ticketmind.agent.proposals import proposal_adapter
 from ticketmind.agent.run_cache import calculate_request_fingerprint
-from ticketmind.agent.schemas import TicketUnderstanding
 from ticketmind.core.config import QwenSettings, ProcessingSettings
 from ticketmind.knowledge.corpus import build_case_text
 from ticketmind.knowledge.sources import load_sources
@@ -52,8 +51,6 @@ def test_acceptance_exports_raw_and_reviewed_results(tmp_path, monkeypatch, case
     monkeypatch.setattr(runtime, "build_milvus_client", lambda settings: Milvus())
     monkeypatch.setattr(dev_acceptance, "build_budgeted_embeddings", lambda *args:
         SimpleNamespace(embed_query=lambda text: [1.0] * 1024))
-    monkeypatch.setattr(dev_acceptance, "understand_ticket", lambda **kwargs:
-        TicketUnderstanding(summary="合成理解", error_codes=[], environment=[]))
     def generate(**kwargs):
         kwargs["response_callback"]({"request_id": "synthetic-id", "usage": {"total_tokens": 1},
             "choices": [{"content": proposal.model_dump_json(), "finish_reason": "stop"}]})
@@ -64,15 +61,15 @@ def test_acceptance_exports_raw_and_reviewed_results(tmp_path, monkeypatch, case
     if review_decision == "edit":
         review["request"].update(edited_reply="人工修改后的预览核对建议。", comment="合成人工审核")
     qwen = QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unit-only", DASHSCOPE_WORKSPACE_ID="unit-only")
-    budget = ledger(tmp_path, understanding=1, initial_embedding=1, decision=1)
+    budget = ledger(tmp_path, initial_embedding=1, decision=1)
     report = script.execute_case(case, qwen, config, budget, tmp_path, review)
     assert report["model_action_match"] and report["expected_action_match"]
     assert report["model_quality"] == "pending_human_review"
     assert report["business_review"]["ticket"]["status"] == status
-    assert len(budget.data["attempts"]) == 3
+    assert len(budget.data["attempts"]) == 2
     assert len(list((tmp_path / "reports").glob("*.json"))) == 1
     # A second isolated workflow can replay the same raw proposal at zero new budget.
     replay = ledger(tmp_path)
     repeated = script.execute_case(case, qwen, config, replay, tmp_path, review)
     assert repeated["business_review"]["run"]["run_status"] == "completed"
-    assert len(replay.data["attempts"]) == 3 and len(replay.cache_hits) == 3
+    assert len(replay.data["attempts"]) == 2 and len(replay.cache_hits) == 2

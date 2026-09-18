@@ -100,8 +100,8 @@ def test_changed_corpus_never_falls_back_to_old_dense():
 
 def test_audit_latency_and_nonselected_candidates_do_not_enter_model_prompt():
     from ticketmind.agent.decide import decision_messages
-    from ticketmind.agent.schemas import TicketUnderstanding
-    state = {"subject": "s", "body": "b", "understanding": TicketUnderstanding(summary="test", error_codes=[], environment=[]),
+    from ticketmind.agent.schemas import AgentMessage
+    state = {"subject": "s", "messages": [AgentMessage(role="customer", content="b")],
         "retrieval_hits": [hit("a")], "tool_calls": [{"tool": "search_cases", "status": "succeeded",
             "duration_ms": 10, "channels": {"dense": {"duration_ms": 12, "candidates": ["unselected"]}}}]}
     first = decision_messages(state)

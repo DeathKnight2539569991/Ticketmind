@@ -1,7 +1,7 @@
 """Bounded, separately recorded live diagnostic; frozen M4 files are read-only.
 
 No labels/adjudications are loaded here. --execute needs explicit user authority.
-Understanding/retrieval are frozen inputs, not new live integrations.
+Ticket input/retrieval are frozen inputs, not new live integrations.
 """
 import argparse
 import hashlib
@@ -15,7 +15,8 @@ from openai import APITimeoutError
 from ticketmind.agent import decide, semantic_judge
 from ticketmind.agent.decide import DECISION_PROTOCOL
 from ticketmind.agent.proposals import proposal_adapter, validate_proposal, validate_decision_evidence
-from ticketmind.agent.schemas import TicketUnderstanding
+from ticketmind.agent.schemas import AgentMessage
+from ticketmind.agent.retrieve import build_retrieval_query
 from ticketmind.agent.tools import bounded_decision
 from ticketmind.core.config import ProcessingSettings, QwenSettings
 from ticketmind.llm.client import generate_text
@@ -60,12 +61,18 @@ def load_case(number):
             continue
         if raw == proposal:
             original = json.loads(response["user_prompt"])
-            allowed = ("subject", "body", "case_details", "tool_calls", "search_rounds", "agent_steps",
-                       "execution_limits", "clarification_rounds", "asked_questions", "approved_clarifications")
+            allowed = ("subject", "case_details", "tool_calls", "search_rounds", "agent_steps",
+                       "execution_limits", "clarification_rounds")
             state = {key: original[key] for key in allowed if key in original}
-            state["understanding"] = TicketUnderstanding.model_validate(original["understanding"])
+            # Frozen M4 requests predate structured messages. Their body is migrated
+            # into one customer message for this diagnostic without changing frozen files.
+            state["messages"] = [AgentMessage(role="customer", content=original["body"])]
             state["retrieval_hits"] = [EvidenceHit.model_validate(hit) for hit in original["evidence"]]
-            state["retrieval_query"] = state["subject"] + " " + state["body"]
+            state["retrieval_query"] = build_retrieval_query(
+                subject=state["subject"], messages=state["messages"]
+            )
+            state.setdefault("tool_calls", [])
+            state.setdefault("clarification_rounds", 0)
             return state, proposal_adapter.validate_python(proposal)
     raise ValueError(f"No matching frozen decision for {number}")
 
@@ -146,7 +153,7 @@ def main():
     report = {"run_id": OUTPUT.name, "started_at": datetime.now(UTC).isoformat(),
               "decision_model": config.decision_model, "judge_model": config.judge_model,
               "decision_protocol": DECISION_PROTOCOL, "judge_protocol": semantic_judge.JUDGE_PROTOCOL,
-              "scope": "live Decision/Judge; frozen understanding and retrieval; no business writes",
+              "scope": "live Decision/Judge; frozen ticket input and retrieval; no business writes",
               "decision_diagnostic_timeout_seconds": DECISION_DIAGNOSTIC_TIMEOUT,
               "ceilings": CEILINGS, "historical": {}, "controls": {}, "fresh": {}, "repair": {}}
     def checkpoint():
@@ -176,9 +183,13 @@ def main():
                 row["judge_error"] = judge_error(exc)
             checkpoint()
         # Synthetic minimal pairs: all prompts use fact-only ticket inputs.
-        control_state = {"subject": "连接失败", "body": "连接失败，未说明代理排查经历。",
-                         "understanding": TicketUnderstanding(summary="连接失败", error_codes=[], environment=[]),
-                         "retrieval_hits": [], "tool_calls": []}
+        control_state = {
+            "subject": "连接失败",
+            "messages": [AgentMessage(role="customer", content="连接失败，未说明代理排查经历。")],
+            "retrieval_hits": [],
+            "tool_calls": [],
+            "clarification_rounds": 0,
+        }
         for name, text, action in (
             ("negation", "不要做任何修改。请提供当前错误码。", "ask_clarification"),
             ("historical", "之前是否尝试过停用代理？", "ask_clarification"),

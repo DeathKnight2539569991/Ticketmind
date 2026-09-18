@@ -2,6 +2,7 @@
 from time import monotonic
 
 from ticketmind.agent.policy import escalation, input_risks, validate_query
+from ticketmind.agent.state import customer_fact_text
 from ticketmind.agent.proposals import decision_adapter, proposal_adapter, validate_proposal, validate_decision_evidence
 from ticketmind.agent.semantic_judge import GuardrailFailure, validate_judgment
 from ticketmind.retrieval.dense import search_case_vectors
@@ -14,7 +15,7 @@ def bounded_decision(state, *, decide, judge, embeddings, client, corpus, config
         "max_search_rounds", "max_case_details", "max_agent_steps", "max_clarification_rounds"})
     seen_queries = {state["retrieval_query"].strip().casefold()}
     details = set()
-    risks = input_risks(state["subject"] + "\n" + state["body"])
+    risks = input_risks(customer_fact_text(state))
 
     def finish(proposal):
         # At most one final-proposal repair, with no tools or new retrieval.

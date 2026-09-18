@@ -15,7 +15,7 @@ uv run --no-sync python scripts/knowledge.py reconcile --dataset production-v1
 
 `import-cache` 仅导入已有精确向量，缺失即停止；不调用模型。生产知识初始为空，合成 seed 不混入生产检索。固定合成数据集的同步和选择方式见报告。HTTP 发布/重试仅使用缓存；新工单缺向量时返回 `index_failed / embedding_cache_missing`，管理员必须在明确授权后通过带累计台账的命令生成向量。
 
-面向合成 SaaS 技术支持工单的单 Agent 项目。M2 已支持：身份认证 → 工单与客户消息 → 理解、Dense 检索和有界决策 → 持久化暂停 → 人工审核 → 保存回复 → 客服明确关闭。
+面向合成 SaaS 技术支持工单的单 Agent 项目。当前 Agent 业务输入已收敛为 `subject + messages[{role, content}]`：身份认证 → 工单与客户消息 → 检索和有界决策 → 独立 Semantic Judge → 持久化暂停 → 人工审核 → 保存回复 → 客服明确关闭。
 
 三类提案都先进入 waiting_review。**生成建议不会关闭工单；发布仅指本地数据库消息，没有接入邮件或外部客服平台。** 本轮 M2 验收收尾已完成：历史三类真实提案及审核、客户补充后真实重检索与建议、用户批准编辑后的业务应用均有证据，工程验证已覆盖审核与进程恢复。
 
@@ -45,7 +45,7 @@ uv run --no-sync python scripts/start_local.py --demo
 - [M5 验收与限制](docs/m5-workbench.md)
 - [上游来源、贡献范围与简历措辞](docs/sources-and-contributions.md)
 
-历史验收入口通过 `--decision-model` 只切换决策模型，理解缓存保留真实模型身份。旧验收适配器没有 Judge 调用额度，新协议下需显式接入 Judge 适配器并使用独立新 run，不可直接复用旧额度启动真实评测。历史端点测试中 `glm-5.2` 可用，`glm5.2` 返回 NotFoundError；失败请求仍计入历史台账。
+历史验收资料中仍可能包含旧 `understanding` 缓存和调用记录；它们仅作为冻结实验来源保留，不属于当前 runtime。旧验收适配器没有 Judge 调用额度，新协议下需显式接入 Judge 适配器并使用独立新 run，不可直接复用旧额度启动真实评测。历史端点测试中 `glm-5.2` 可用，`glm5.2` 返回 NotFoundError；失败请求仍计入历史台账。
 
 ## 安装与配置
 
@@ -64,7 +64,6 @@ uv run --no-sync python scripts/configure_local_auth.py
 | --- | --- |
 | TICKETMIND_DATABASE_URL | postgresql+psycopg://...；账号需业务迁移及检查点建表权限 |
 | DASHSCOPE_API_KEY、DASHSCOPE_WORKSPACE_ID | 阿里云北京业务空间；预检不证明凭据有效 |
-| TICKETMIND_MODEL | 默认 qwen3.7-flash，用于理解 |
 | TICKETMIND_DECISION_MODEL | 默认 glm-5.3，用于决策及唯一一次护栏修正 |
 | TICKETMIND_JUDGE_MODEL | 默认 deepseek-v4.1-flash，必须与 Decision 不同 |
 | TICKETMIND_EMBEDDING_MODEL | 现有集合固定 text-embedding-v4、1024 维 |
@@ -77,12 +76,12 @@ uv run --no-sync python scripts/configure_local_auth.py
 | TICKETMIND_PROCESSING_TIMEOUT_SECONDS | 默认 90 秒，阶段检查/SDK 超时，非进程硬截止 |
 | TICKETMIND_MAX_SEARCH_ROUNDS | 检索含首次最多 2 轮，可调低 |
 | TICKETMIND_MAX_CASE_DETAILS | 最多 2 个不同候选详情，可调低或设 0 |
-| TICKETMIND_MAX_AGENT_STEPS | 理解、首次检索、每次决策（含护栏修正）、每次工具分别计步，最多 8 步；Judge 最多两次，另受总超时约束 |
+| TICKETMIND_MAX_AGENT_STEPS | 首次检索、每次决策（含护栏修正）和每次工具调用共同受总步数预算约束，最多 8 步；Judge 最多两次，另受总超时约束 |
 | TICKETMIND_MAX_CLARIFICATION_ROUNDS | 最多 2 轮，按成功应用的追问审核计数 |
 | TICKETMIND_CORPUS_PATH | 仅 seed / evaluation；可选，默认项目内 v2 历史案例 |
 | TICKETMIND_KNOWLEDGE_DATASET | 正式 Agent 的 PostgreSQL 数据集；默认 production-v1，可显式选择冻结合成版本 |
 
-模型地址由业务空间拼接为 https://&lt;workspace&gt;.cn-beijing.maas.aliyuncs.com/compatible-mode/v1（理解/决策/Judge）和 /api/v1（Embedding）。本地 Milvus 适配尚无鉴权，不直接暴露公网。
+模型地址由业务空间拼接为 https://&lt;workspace&gt;.cn-beijing.maas.aliyuncs.com/compatible-mode/v1（Decision/Judge）和 /api/v1（Embedding）。本地 Milvus 适配尚无鉴权，不直接暴露公网。
 
 ## 数据库与启动
 
@@ -154,7 +153,7 @@ escalated 可接收客户补充、人工回复，仍留在人工队列，由 rev
 
 ## 审核与恢复
 
-先以短事务保存 running 和快照，在事务外计算，再保存 waiting_review。外层持久化图为 compute → review(interrupt) → END；compute 内执行理解/检索图和受限决策循环。检查点只保存可序列化数据，不放 ORM Session 或客户端。
+先以短事务保存 running 和快照，在事务外计算，再保存 waiting_review。外层持久化图为 compute → review(interrupt) → END；compute 先把持久化 snapshot 投影为最小 `AgentRunInput`，再执行检索图和受限决策循环。检查点只保存可序列化数据，不放 ORM Session 或客户端。
 
 审核顺序：短事务保存不可变审核并领取 running → 事务外从该记录构造 Command(resume=...) → 短事务同时追加消息、更新工单、标记审核 applied 和运行 completed。interrupt 节点没有模型调用或业务写入。
 
@@ -199,11 +198,11 @@ uv run --no-sync python scripts/check_ticket_graph.py
 uv run --no-sync python scripts/check_ticket_flow.py --check-only
 ```
 
-不带 --allow-* 时，缓存缺失/损坏/指纹不匹配均失败，禁止补调模型。M0 固定样本是“API 调用失败 / 今天上午调用订单查询接口时多次返回 E_TIMEOUT。运行环境是 Python 3.12，昨天还可以正常调用。”缓存为 data/cache/graph/api_timeout/{understanding,query}.json；不能修改指纹或混用旧 CSV 样本。
+不带 --allow-* 时，缓存缺失/损坏/指纹不匹配均失败，禁止补调模型。M0 固定样本是“API 调用失败 / 今天上午调用订单查询接口时多次返回 E_TIMEOUT。运行环境是 Python 3.12，昨天还可以正常调用。”当前图缓存只保留查询向量缓存；旧 `understanding` 缓存属于历史证据，不再参与当前 Agent 运行。不能修改指纹或混用旧 CSV 样本。
 
 M2 提示词和工具协议变更后，原 decision_m1.json 不再匹配，保留为历史证据。check_ticket_flow.py 默认使用独立 decision_m2.json，报告使用 m2_flow_verification.json；只验证到待审，--allow-decision 仍限明确授权的一次决策尝试。若模型请求新查询或下一次决策，缺少匹配缓存/额度便失败，不能视为完整多轮验收。不要覆盖旧 M1 缓存。
 
-**M0/M1 一次性授权均已用完。M2累计21次请求尝试：理解3、首次Embedding3、重检索Embedding1、决策14（含1次模型名称NotFound失败）。20次有返回，失败请求无usage，不将尝试数等同于收费账单或业务成功数。** 最新GLM验收含1次失败名称请求、2次有效决策、1次重检索向量；审核缓存回放新增0。失败样本保留，不自动重试或挪用预算；新输入、提示词和额外实验需另行核对授权范围。旧 check_qwen.py、check_understanding.py、check_embeddings.py 及缺缓存的 check_dense_retrieval.py 会调用模型，不是无付费预检。
+**M0/M1 一次性授权均已用完。M2累计21次请求尝试：理解3、首次Embedding3、重检索Embedding1、决策14（含1次模型名称NotFound失败）。20次有返回，失败请求无usage，不将尝试数等同于收费账单或业务成功数。** 最新GLM验收含1次失败名称请求、2次有效决策、1次重检索向量；审核缓存回放新增0。失败样本保留，不自动重试或挪用预算；新输入、提示词和额外实验需另行核对授权范围。旧 check_qwen.py、check_embeddings.py 及缺缓存的 check_dense_retrieval.py 会调用模型，不是无付费预检；`check_understanding.py` 已随 understanding 阶段删除。
 
 追问新增中英文操作建议负例约束；解决提案要求实际证据；输入风险规则独立于模型自报。这些是保守启发式，可能误拒绝或漏检，不能证明所有建议安全且适用于客户环境，仍须人工审核。三例真实输出与逐项质量核对见 [审核单](docs/m2-acceptance-review.md)，不作为准确率评测。
 
@@ -230,7 +229,7 @@ uv run --no-sync python -m pytest -q -p no:cacheprovider --basetemp $m2Temp
 
 新验收测试为 tests/test_m2_acceptance.py（逻辑/模型替身）和 tests/integration/test_m2_acceptance_http.py（真实 PostgreSQL，模型与 Milvus 替身）；真实数据库测试仍需 TICKETMIND_RUN_DB_TESTS=1。
 
-剩余“客户补充后继续处理＋真实重检索”合并方案见 [M2 补充验收](docs/m2-followup.md)。新入口 `scripts/check_m2_followup.py --prepare` 只复用旧缓存、写临时客户补充并核对新快照指纹；实际新模型阶段需要该场景独立授权，最多理解1、Embedding2、决策3。首次漏掉006是明确记录的验收注入，不是对自然首检效果的测量。
+剩余“客户补充后继续处理＋真实重检索”合并方案见 [M2 补充验收](docs/m2-followup.md)。新入口 `scripts/check_m2_followup.py --prepare` 只复用旧缓存、写临时客户补充并核对新快照指纹；实际新模型阶段需要该场景独立授权，当前 runtime 不再包含 understanding 调用。首次漏掉006是明确记录的验收注入，不是对自然首检效果的测量。
 
 ## Milvus 与历史案例
 

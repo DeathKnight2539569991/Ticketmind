@@ -14,11 +14,12 @@ from fastapi.testclient import TestClient
 
 from ticketmind.agent.dev_acceptance import (AcceptanceAdapters, AttemptLedger, CATEGORIES,
                                             acceptance_lock, write_json)
-from ticketmind.agent.dev_cache import CachedUnderstanding, CachedQueryEmbeddings
+from ticketmind.agent.dev_cache import CachedQueryEmbeddings
 from ticketmind.agent.policy import input_risks
 from ticketmind.agent.retrieve import build_retrieval_query
-from ticketmind.agent.run_cache import calculate_request_fingerprint, understanding_fingerprint, query_fingerprint
+from ticketmind.agent.run_cache import calculate_request_fingerprint, query_fingerprint
 from ticketmind.agent.runtime import AgentRunner
+from ticketmind.agent.schemas import AgentMessage
 from ticketmind.api.schemas.runs import ReviewCreate
 from ticketmind.core.config import AuthSettings, MilvusSettings, ProcessingSettings, QwenSettings
 from ticketmind.db.testing import isolated_database
@@ -39,22 +40,29 @@ def load_cases():
 def preflight(settings, cases):
     rows = []
     for case in cases:
-        initial = {key: case["input"][key] for key in ("subject", "body")}
-        query = build_retrieval_query(**initial)
-        uf = understanding_fingerprint(settings=settings, **initial)
+        subject, body = case["input"]["subject"], case["input"]["body"]
+        messages = [AgentMessage(role="customer", content=body)]
+        query = build_retrieval_query(subject=subject, messages=messages)
         qf = query_fingerprint(settings=settings, query=query)
-        adapter = AcceptanceAdapters(settings, OUTPUT, None,
-            legacy_directory=LEGACY if case["id"] == "clarification" else None)
-        u_path = LEGACY / "understanding.json" if case["id"] == "clarification" else adapter.path("understanding", uf)
+        adapter = AcceptanceAdapters(
+            settings,
+            OUTPUT,
+            None,
+            legacy_directory=LEGACY if case["id"] == "clarification" else None,
+        )
         q_path = LEGACY / "query.json" if case["id"] == "clarification" else adapter.path("query", qf)
-        understanding = CachedUnderstanding(u_path).read(settings=settings, **initial)
         vector = CachedQueryEmbeddings(settings, q_path, factory=None).read(query)
-        if case["id"] == "clarification" and (understanding is None or vector is None):
-            raise RuntimeError("必须保留并复用匹配的 M0 缓存；本方案不授权补调该输入")
-        rows.append({"case": case["id"], "understanding_cache": bool(understanding),
-                     "initial_vector_cache": bool(vector), "understanding_fingerprint": uf,
-                     "query_fingerprint": qf, "input_risk_short_circuit": input_risks(initial["subject"] + initial["body"]),
-                     "decision_cache": "requires_actual_evidence_and_loop_state"})
+        if case["id"] == "clarification" and vector is None:
+            raise RuntimeError("必须保留并复用匹配的 M0 查询向量缓存；本方案不授权补调该输入")
+        rows.append(
+            {
+                "case": case["id"],
+                "initial_vector_cache": bool(vector),
+                "query_fingerprint": qf,
+                "input_risk_short_circuit": input_risks(subject + body),
+                "decision_cache": "requires_actual_evidence_and_loop_state",
+            }
+        )
     return rows
 
 
@@ -85,8 +93,9 @@ def apply_human_review(client, ticket_id, result, review, auth):
 def execute_case(case, qwen, config, ledger, directory, review=None):
     adapters = AcceptanceAdapters(qwen, directory, ledger,
         legacy_directory=LEGACY if case["id"] == "clarification" else None)
-    runner = AgentRunner(qwen, MilvusSettings(), config, understanding_fn=adapters.understanding,
-                         embedding_factory=adapters.embeddings, decision_fn=adapters.decision, corpus=load_sources(config.corpus_path))
+    runner = AgentRunner(qwen, MilvusSettings(), config,
+                         embedding_factory=adapters.embeddings, decision_fn=adapters.decision,
+                         corpus=load_sources(config.corpus_path))
     auth = AuthSettings(_env_file=None, operator_token=secrets.token_urlsafe(32), reviewer_token=secrets.token_urlsafe(32))
     report = {"case": case, "verification": "asgi_http_real_postgresql_checkpointer_milvus_model_or_exact_cache",
               "model_quality": "pending_human_review", "business_review": "not_executed"}
@@ -145,9 +154,9 @@ def main():
         parser.add_argument("--" + category.replace("_", "-") + "-ceiling", type=int, default=0)
     args = parser.parse_args()
     ceilings = {c: getattr(args, c + "_ceiling") for c in CATEGORIES}
-    maximum = dict(zip(CATEGORIES, (2, 2, 3, 9)))
+    maximum = dict(zip(CATEGORIES, (2, 3, 9)))
     if any(v < 0 or v > maximum[c] for c, v in ceilings.items()):
-        parser.error("上限须在方案范围内：理解 2、首次向量 2、重检索向量 3、决策 9")
+        parser.error("上限须在方案范围内：首次向量 2、重检索向量 3、决策 9")
     cases = [c for c in load_cases() if not args.case or c["id"] in args.case]
     qwen, config = QwenSettings(), ProcessingSettings()
     print(json.dumps({"preflight": preflight(qwen, cases), "new_call_ceilings": ceilings}, ensure_ascii=False))

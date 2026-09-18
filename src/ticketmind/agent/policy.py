@@ -1,6 +1,7 @@
 """Conservative deterministic guards, not a claim of semantic safety completeness."""
 import re
 from ticketmind.agent.proposals import Escalation
+from ticketmind.agent.state import customer_fact_text
 
 
 def validate_questions(proposal):
@@ -25,6 +26,6 @@ def input_risks(text):
 def validate_query(query, state):
     # Reject invented error codes / versions; other facts remain a model + review obligation.
     tokens = re.findall(r"\b(?:[A-Z][A-Z0-9]*_[A-Z0-9_]+|[vV]?\d+(?:\.\d+)+)\b", query)
-    facts = state["subject"] + "\n" + state["body"]
+    facts = customer_fact_text(state)
     if any(token not in facts for token in tokens):
         raise ValueError("重检索不得补造错误码或版本")

@@ -11,7 +11,6 @@ from ticketmind.agent import dev_acceptance
 from ticketmind.agent.proposals import Clarification, Resolution
 from ticketmind.agent.run_cache import calculate_request_fingerprint
 from ticketmind.agent.runtime import RunOutput
-from ticketmind.agent.schemas import TicketUnderstanding
 from ticketmind.core.config import QwenSettings, ProcessingSettings
 from ticketmind.knowledge.sources import load_sources
 from ticketmind.knowledge.corpus import build_case_text
@@ -43,14 +42,13 @@ def test_followup_snapshot_and_model_selected_research(tmp_path, monkeypatch, ex
     corpus = load_sources(ProcessingSettings().corpus_path)
     old = Clarification(next_step="ask_clarification", reason="合成追问", reply="当前代理配置和超时设置是什么？",
                         questions=["当前代理配置和超时设置是什么？"])
-    understanding = TicketUnderstanding(summary="合成理解", error_codes=[], environment=[])
     class BaseRunner:
         def __init__(self, *args, **kwargs):
             pass
         metadata = {"agent_version": "synthetic", "corpus_version": corpus.version,
                     "retrieval_mode": "dense", "model_config": {"synthetic": True}}
-        def __call__(self, snapshot):
-            return RunOutput({"proposal": old, "understanding": understanding}, [], {"synthetic": True})
+        def __call__(self, agent_input, *, clarification_rounds=0):
+            return RunOutput({"proposal": old, "tool_calls": []}, [], {"synthetic": True})
     monkeypatch.setattr(script, "HistoricalClarificationRunner", BaseRunner)
     dev_acceptance.write_json(tmp_path / "reviews.json", {"clarification": {
         "proposal_hash": calculate_request_fingerprint(old.model_dump()), "request": {"decision": "approve"}}})
@@ -59,10 +57,6 @@ def test_followup_snapshot_and_model_selected_research(tmp_path, monkeypatch, ex
         vectors.append(text)
         return [1.0] * 1024
     monkeypatch.setattr(dev_acceptance, "build_budgeted_embeddings", lambda *args: SimpleNamespace(embed_query=embed))
-    def understand(**kwargs):
-        assert kwargs["settings"].model == "qwen3.7-flash"
-        return understanding
-    monkeypatch.setattr(dev_acceptance, "understand_ticket", understand)
     class Milvus:
         def search(self, **kwargs):
             return [[{"entity": {"source_id": source, "text": build_case_text(corpus.cases[source])}, "distance": 0.7}
@@ -84,7 +78,9 @@ def test_followup_snapshot_and_model_selected_research(tmp_path, monkeypatch, ex
         else:
             assert any(h["source_id"] == "SYN-HIST-V2-006" for h in state["evidence"])
             assert state["clarification_rounds"] == 1
-            assert state["approved_clarifications"] == [old.reply]
+            assert any(message["role"] == "support" and message["content"] == old.reply for message in state["messages"])
+            assert any(message["role"] == "customer" and message["content"] == script.load_case()["customer_update"]
+                       for message in state["messages"])
             result = resolution.model_dump()
         raw = bad_output or json.dumps(result, ensure_ascii=False)
         kwargs["response_callback"]({"request_id": "synthetic", "usage": None,
@@ -93,7 +89,7 @@ def test_followup_snapshot_and_model_selected_research(tmp_path, monkeypatch, ex
     monkeypatch.setattr(dev_acceptance, "generate_text", generate)
     qwen = QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unit", DASHSCOPE_WORKSPACE_ID="unit")
     review = {"proposal_hash": calculate_request_fingerprint(resolution.model_dump()), "request": {"decision": "approve"}}
-    arguments = dict(execute=execute, ceilings=dict(zip(script.CATEGORIES, (1, 1, 1, 2))),
+    arguments = dict(execute=execute, ceilings=dict(zip(script.CATEGORIES, (1, 1, 2))),
                      final_review=review if execute else None, directory=tmp_path, qwen=qwen,
                      decision_model="qwen3.8-27b")
     if bad_output:
@@ -110,15 +106,14 @@ def test_followup_snapshot_and_model_selected_research(tmp_path, monkeypatch, ex
         assert not report["research_exercised"] and not report["expected_action_match"]
         assert report["ticket_before_review"]["version"] == 3
         assert len(report["ticket_before_review"]["messages"]) == 3
-        assert len(decisions) == 1 and len(report["new_attempts"]) == 3
+        assert len(decisions) == 1 and len(report["new_attempts"]) == 2
         return
     report = script.verify(**arguments)
     assert report["ticket_after_update"]["version"] == 3
     assert report["ticket_after_update"]["status"] == "open"
-    assert len(report["new_attempts"]) == (5 if execute else 0)
+    assert len(report["new_attempts"]) == (4 if execute else 0)
     if execute:
         assert report["run"]["models"]["decision"] == "qwen3.8-27b"
-        assert report["run"]["models"]["understanding"] == "qwen3.7-flash"
         assert report["research_exercised"] and report["required_evidence_cited"]
         assert len(vectors) == len(decisions) == 2
         assert len(report["retrieval_fixture_audit"][0]["visible_results"][0]) == 1

@@ -8,7 +8,7 @@ flowchart LR
   API --> B[工单业务层]
   B --> PG[(PostgreSQL)]
   B --> AG[单 Agent 有界编排]
-  AG --> M[理解与决策模型]
+  AG --> M[Decision / Semantic Judge]
   AG --> R[Dense / BM25 / Hybrid]
   R --> MV[(Milvus)]
   MV -->|source_id / score / rank| HY[批量 hydration]
@@ -26,8 +26,9 @@ flowchart LR
 
 - `workbench` 仅持有当前会话凭据，通过 HTTP 读取和写入，不访问业务数据库或模型。
 - `api` 校验身份和输入；`tickets` 管理版本、事务、幂等和状态。
-- `agent` 负责理解、有界工具循环及提案；模型只可选择 `search_cases`、`get_case_detail` 两个只读工具。
+- `agent` 接收最小业务输入 `subject + messages[{role, content}]`，执行检索、有界工具循环、Decision 与独立 Semantic Judge；模型只可选择 `search_cases`、`get_case_detail` 两个只读工具。
 - `retrieval` 只从 Milvus 取来源身份和分数，再经 `knowledge` 批量读取 PostgreSQL 正文；JSONL 仅作为 seed/evaluation。生产知识和固定合成版本分别登记集合。
+- 持久化 snapshot 只用于审计、恢复与重放；进入 Agent 前投影为最小 `AgentRunInput`，不会把运行元数据直接塞进模型业务输入。
 - 模型调用发生在数据库事务外。审核记录不可变，恢复执行后原子写入发布消息、工单状态和已应用标记。
 - 一实例一 worker。没有可靠后台队列、多租户或外部邮件发布。
 

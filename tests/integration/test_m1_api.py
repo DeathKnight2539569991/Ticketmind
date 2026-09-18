@@ -11,7 +11,6 @@ from sqlalchemy.exc import IntegrityError
 
 from ticketmind.agent.proposals import Clarification
 from ticketmind.agent.runtime import RunOutput
-from ticketmind.agent.schemas import TicketUnderstanding
 from ticketmind.core.config import AuthSettings, ProcessingSettings
 from ticketmind.db.testing import isolated_database
 from ticketmind.knowledge.corpus import build_case_text
@@ -35,7 +34,7 @@ def database():
 
 class SyntheticRunner:
     def __init__(self, factory):
-        self.factory, self.calls, self.snapshots = factory, 0, []
+        self.factory, self.calls, self.inputs = factory, 0, []
         self.corpus = load_sources(ProcessingSettings().corpus_path)
         self.metadata = {"agent_version": "m1-integration-double", "corpus_version": self.corpus.version,
                          "retrieval_mode": "dense", "model_config": {"synthetic_test_double": True}}
@@ -44,15 +43,18 @@ class SyntheticRunner:
         self.change_version = False
         self.proposal_override = None
 
-    def __call__(self, snapshot):
+    def __call__(self, agent_input, *, clarification_rounds=0):
         self.calls += 1
-        self.snapshots.append(snapshot)
+        self.inputs.append(agent_input)
         with self.factory() as session, session.begin():
             # NOWAIT proves the processing transaction released its ticket row lock.
             session.execute(text("SET LOCAL lock_timeout = '500ms'"))
-            ticket = session.scalar(select(Ticket).where(Ticket.id == UUID(snapshot["ticket_id"])).with_for_update(nowait=True))
-            assert session.scalar(select(ProcessingResult.run_status).where(ProcessingResult.ticket_id == ticket.id)
-                                   .order_by(ProcessingResult.run_sequence.desc()).limit(1)) == ProcessingRunStatus.RUNNING
+            active = session.scalar(select(ProcessingResult).where(
+                ProcessingResult.run_status == ProcessingRunStatus.RUNNING
+            ).order_by(ProcessingResult.created_at.desc()).limit(1))
+            assert active is not None
+            ticket = session.scalar(select(Ticket).where(Ticket.id == active.ticket_id).with_for_update(nowait=True))
+            assert active.run_status == ProcessingRunStatus.RUNNING
             if self.change_version:
                 ticket.version += 1
         if self.entered:
@@ -66,8 +68,8 @@ class SyntheticRunner:
                                   reply="请补充是否使用本机代理。", questions=["是否使用本机代理？"],
                                   evidence_ids=[case.source_id])
         proposal = self.proposal_override or proposal
-        return RunOutput({"understanding": TicketUnderstanding(summary="synthetic test", error_codes=[], environment=[]),
-                          "proposal": proposal}, self.corpus.evidence([hit]), {"synthetic_test_double": True})
+        return RunOutput({"proposal": proposal, "tool_calls": []},
+                         self.corpus.evidence([hit]), {"synthetic_test_double": True})
 
 
 @pytest.fixture
@@ -106,8 +108,8 @@ def test_http_to_run_and_database_are_consistent(setup):
     result = response.json()
     assert result["run_status"] == "waiting_review" and result["action"] == "ask_clarification"
     assert result["actor_id"] == "operator"  # requester_role cannot grant reviewer identity.
-    assert runner.snapshots[0]["body"] == ticket["messages"][0]["body"]
-    assert runner.snapshots[0]["subject"] == ticket["subject"]
+    assert runner.inputs[0].messages[0].content == ticket["messages"][0]["body"]
+    assert runner.inputs[0].subject == ticket["subject"]
     detail = client.get(f'/tickets/{ticket["id"]}').json()
     assert detail["status"] == "open" and detail["version"] == 1
     assert len(detail["messages"]) == 1 and detail["latest_run"]["id"] == result["id"]
@@ -267,7 +269,7 @@ def test_real_local_dependency_failure_is_persisted_without_model_calls(setup, m
     def forbidden(**kwargs):
         raise AssertionError("No model request is authorized in this test")
 
-    monkeypatch.setattr(runtime, "understand_ticket", forbidden)
+    monkeypatch.setattr(runtime, "decide_ticket", forbidden)
     with socket.socket() as unavailable:
         unavailable.bind(("127.0.0.1", 0))  # Own the port, but deliberately do not listen.
         port = unavailable.getsockname()[1]

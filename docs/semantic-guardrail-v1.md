@@ -28,7 +28,7 @@ MODEL 用于理解。Decision 与 Judge 复用现有业务空间和凭据，但�
 
 ## 职责划分
 
-确定性代码保留 schema、risk_flags → escalate、证据 ID、逐字引用与来源匹配、工具白名单/参数/执行次数、来源正文验证和状态事务。`validate_questions()` 只拒绝列表中完全重复的字符串；重复询问已有事实交给 Judge。原来的操作关键词和回复声明正则已移除。
+确定性代码保留 schema、risk_flags → escalate、证据 ID、逐字引用与来源匹配、工具白名单/参数/执行次数、来源正文验证和状态事务。`ask_clarification` 不再维护独立 `questions[]`；实际进入 HITL 并发布给客户的 `reply` 是唯一追问文本，重复询问已有事实及要求客户执行新操作由 Judge 审查。原来的操作关键词和回复声明正则已移除。
 
 当前 Judge v2 的模型输出只包含 `violations[{type,text,reason}]`；`passed` 由程序按 violations 是否为空计算：
 

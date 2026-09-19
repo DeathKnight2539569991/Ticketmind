@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 
+from ticketmind.agent.proposals import proposal_adapter
 from ticketmind.api.schemas.runs import RunRead
 from ticketmind.core.errors import AppError
 from ticketmind.tickets.enums import AgentAction, MessageAuthorType, ProcessingRunStatus as RunStatus, TicketStatus
@@ -88,8 +89,9 @@ def apply_review(factory, ticket_id, run_id):
             return
         if run.run_status != RunStatus.RUNNING or ticket.version != review.expected_version or ticket.version != run.ticket_version:
             raise AppError(409, "stale_review", "版本已变化，审核未应用")
+        proposal = proposal_adapter.validate_python(run.proposal)
         action = AgentAction.ESCALATE if review.decision == "escalate" else run.action
-        reply = review.edited_reply if review.decision == "edit" else run.final_reply
+        reply = review.edited_reply if review.decision == "edit" else proposal.reply
         if review.decision == "escalate":
             reply = "人工审核转交人工处理：" + review.comment
         message = append_message(session, ticket,

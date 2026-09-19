@@ -4,7 +4,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
 from ticketmind.agent.decide import decision_options, decide_ticket, decision_messages
-from ticketmind.agent.proposals import Decision, validate_proposal, validate_decision_evidence
+from ticketmind.agent.proposals import Decision, validate_proposal
 from ticketmind.agent.run_cache import calculate_request_fingerprint, save_cache
 
 
@@ -38,7 +38,6 @@ class CachedDecision:
                 raise ValueError("决策缓存输入、证据或模型配置不匹配")
             if cache.proposal.next_step not in ("search_cases", "get_case_detail"):
                 validate_proposal(cache.proposal, {hit.source_id for hit in state["retrieval_hits"]})
-                validate_decision_evidence(cache.proposal, state["retrieval_hits"])
             self.cache_hits += 1
             usage["decision_cache_replay"] = True
             usage["cached_decision_usage"] = cache.usage

@@ -128,7 +128,7 @@ def test_judge_errors_fail_closed_without_repair(monkeypatch, response):
     {"next_step": "search_cases", "query": "q", "reason": "x"},
     Escalation(next_step="escalate", reply="建议人工核查", reason="x", evidence_ids=["invented"]),
     {"next_step": "ask_clarification", "reply": "当前配置？", "reason": "x",
-     "questions": ["当前配置？"], "risk_flags": ["security"]},
+     "risk_flags": ["security"]},
 ])
 def test_repair_cannot_bypass_deterministic_rules_or_execute_tools(monkeypatch, repair):
     runner, seen, judged, _ = make_runner(monkeypatch, [BAD, repair], [FAIL])
@@ -229,14 +229,6 @@ def test_legacy_internal_judge_shape_is_only_accepted_when_consistent():
         semantic_judge.validate_judgment({"passed": True, "violations": FAIL["violations"]}, BAD)
 
 
-def test_question_duplicates_remain_deterministic():
-    from ticketmind.agent.proposals import validate_proposal
-    proposal = Clarification(next_step="ask_clarification", reason="x", reply="不要做任何修改",
-                             questions=["之前是否停用过代理", "之前是否停用过代理"])
-    with pytest.raises(ValueError, match="完全重复"):
-        validate_proposal(proposal, set())
-
-
 def test_repair_fits_three_step_budget_after_understanding_removal(monkeypatch):
     runner, seen, judged, _ = make_runner(monkeypatch, [BAD], [FAIL])
     runner.config = runner.config.model_copy(update={"max_agent_steps": 3})
@@ -252,7 +244,7 @@ def test_repair_fits_three_step_budget_after_understanding_removal(monkeypatch):
     ("false_status_claim", "我们已通知团队"),
 ])
 def test_each_violation_blocks_the_proposal(monkeypatch, kind, reply):
-    value = Clarification(next_step="ask_clarification", reply=reply, reason="核对", questions=[reply])
+    value = Clarification(next_step="ask_clarification", reply=reply, reason="核对")
     report = {"passed": False, "violations": [{"type": kind, "text": reply, "reason": "离线预设违规"}]}
     runner, seen, judged, _ = make_runner(monkeypatch, [value], [report])
     with pytest.raises(RunFailure) as error:

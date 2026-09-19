@@ -26,7 +26,15 @@ def proposal():
 
 @pytest.mark.parametrize("failure", [None, "embedding", "decision", "source"])
 def test_real_graph_orchestration_and_partial_failure(monkeypatch, settings, failure):
-    corpus = load_sources(ProcessingSettings().corpus_path)
+    # This unit test exercises the original frozen synthetic fixture, not the
+    # optional live-E2E dataset selected in the developer's shell or .env.
+    from pathlib import Path
+    fixture_path = Path(__file__).resolve().parents[1] / "data/synthetic/v2/historical_cases.jsonl"
+    config = ProcessingSettings(
+        _env_file=None, corpus_path=fixture_path, retrieval_mode="dense",
+        decision_model="glm-5.3", judge_model="deepseek-v4.1-flash",
+    )
+    corpus = load_sources(config.corpus_path)
     case = corpus.cases["SYN-HIST-V2-007"]
 
     class Client:
@@ -58,7 +66,7 @@ def test_real_graph_orchestration_and_partial_failure(monkeypatch, settings, fai
             raise RuntimeError("synthetic decision failure")
         return proposal()
 
-    runner = AgentRunner(settings, MilvusSettings(_env_file=None, uri="http://unit.invalid"), ProcessingSettings(),
+    runner = AgentRunner(settings, MilvusSettings(_env_file=None, uri="http://unit.invalid"), config,
         embedding_factory=lambda remaining: Embedding(), decision_fn=decide, corpus=corpus,
         judge_fn=lambda *args: {"passed": True, "violations": []})
     if failure:

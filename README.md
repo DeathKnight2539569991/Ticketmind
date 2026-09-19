@@ -137,7 +137,7 @@ uv run --no-sync uvicorn ticketmind.main:app --host 127.0.0.1 --port 8000 --work
 {"decision":"escalate","expected_version":1,"comment":"需要人工核实环境与权限"}
 ```
 
-edit 保留原动作，必须同时提供文本和理由；escalate 必须有理由。一条运行仅接受一份不可变审核。proposal/final_reply 保留 Agent 原文，人工修改在 review.edited_reply，实际消息由 published_message_id 关联。
+edit 保留原动作，必须同时提供文本和理由；escalate 必须有理由。一条运行仅接受一份不可变审核。`proposal` 保留 Agent 原始提案与草稿，人工修改在 `review.edited_reply`，实际发布消息由 `published_message_id` 关联；不再维护重复的顶层 `reason/final_reply` 副本。
 
 | 事件 | 工单状态 |
 | --- | --- |

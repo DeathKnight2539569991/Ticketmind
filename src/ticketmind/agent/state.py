@@ -27,6 +27,8 @@ class ToolCallRecord(TypedDict, total=False):
     retrieval_mode: str
     collection: str
     candidate_k: int
+    top_k: int
+    rrf_k: int
     channels: dict[str, Any]
 
 

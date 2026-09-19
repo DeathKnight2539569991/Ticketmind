@@ -94,12 +94,12 @@ def validate_judgment(result, proposal):
     # Internal/custom adapters and frozen historical reports may still use the
     # v1 shape. Model-facing v2 JSON never accepts "passed"; when legacy data
     # reaches this boundary, keep it only if it agrees with the derived value.
-    supplied_passed = None
-    if isinstance(result, dict) and "passed" in result:
-        supplied_passed = result["passed"]
+    has_legacy_passed = isinstance(result, dict) and "passed" in result
+    supplied_passed = result.get("passed") if has_legacy_passed else None
+    if has_legacy_passed:
         result = {key: value for key, value in result.items() if key != "passed"}
     result = JudgeResult.model_validate(result)
-    if supplied_passed is not None and (
+    if has_legacy_passed and (
         type(supplied_passed) is not bool or supplied_passed != result.passed
     ):
         raise ValueError("旧 Judge passed 与 violations 不一致")

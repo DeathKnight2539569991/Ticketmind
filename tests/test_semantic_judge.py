@@ -123,7 +123,7 @@ def test_judge_errors_fail_closed_without_repair(monkeypatch, response):
 
 
 @pytest.mark.parametrize("repair", [
-    {"next_step": "search_cases", "query": "q", "missing_evidence": "x", "reason": "x"},
+    {"next_step": "search_cases", "query": "q", "reason": "x"},
     Escalation(next_step="escalate", reply="建议人工核查", reason="x", evidence_ids=["invented"]),
     Clarification(next_step="ask_clarification", reply="当前配置？", reason="x", questions=["当前配置？"], risk_flags=["security"]),
 ])

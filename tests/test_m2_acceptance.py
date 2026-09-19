@@ -68,7 +68,7 @@ def test_single_acceptance_session_lock(tmp_path):
 @pytest.mark.parametrize("content", [
     '{"next_step":"ask_clarification","reason":"unit","reply":"请提供现有配置。","questions":["当前配置是什么？","当前配置是什么？"]}',
     '{"next_step":',
-    '{"reason":"需要更多证据","query":"只读查询超时","missing_evidence":"适用案例"}',
+    '{"reason":"需要更多证据","query":"只读查询超时"}',
 ])
 def test_rejected_raw_decision_saved_and_replayed_without_new_call(tmp_path, settings, monkeypatch, content):
     sends = []

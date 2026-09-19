@@ -64,7 +64,8 @@ def test_review_paths_preserve_original_and_apply_once(setup, proposal, decision
     assert first.status_code == 201, first.text
     result = first.json()
     assert result["run_status"] == "completed" and result["review"]["applied_at"]
-    assert result["proposal"] == run["proposal"] and result["final_reply"] == "原始草稿"
+    assert result["proposal"] == run["proposal"]
+    assert "reason" not in result and "final_reply" not in result
     second = review(client, ticket, run, key=key, decision=decision, **changes)
     assert second.status_code == 200 and second.json() == result
     assert review(client, ticket, run, decision=decision, **changes).status_code == 409

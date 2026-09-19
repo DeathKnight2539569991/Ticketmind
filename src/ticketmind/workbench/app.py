@@ -105,9 +105,9 @@ def run_view(api, ticket, run, reviewer):
         st.info("草稿尚未发布。请核对事实、引用及状态承诺。")
     proposal = run.get("proposal") or {}
     st.write(ACTION.get(proposal.get("next_step"), proposal.get("next_step") or "尚无提案"))
-    st.text(proposal.get("reason") or run.get("reason") or "")
+    st.text(proposal.get("reason") or "")
     st.markdown("**原始提案 / 草稿**")
-    st.text(proposal.get("reply") or run.get("final_reply") or "尚无草稿")
+    st.text(proposal.get("reply") or "尚无草稿")
     for question in proposal.get("questions", []):
         st.text("• " + question)
     with st.expander("引用与检索证据"):

@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, TypeAdapte
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8000)]
 SourceId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
 RiskFlag = Literal["security", "payment", "permissions", "data_loss"]
+EvidenceQuote = Annotated[str, StringConstraints(strip_whitespace=True, min_length=12, max_length=2000)]
 
 
 class ProposalBase(BaseModel):
@@ -25,10 +26,12 @@ class Resolution(ProposalBase):
     evidence_ids: list[SourceId] = Field(min_length=1, max_length=100)
     # Optional for reading historical M1/M2 rows; new model responses must provide
     # one verbatim support excerpt per citation (validated with actual hit text).
-    evidence_quotes: dict[
-        SourceId,
-        Annotated[str, StringConstraints(strip_whitespace=True, min_length=12, max_length=2000)],
-    ] = Field(default_factory=dict)
+    evidence_quotes: dict[SourceId, EvidenceQuote] = Field(default_factory=dict)
+
+
+class ModelResolution(Resolution):
+    """Current model-output contract; historical stored rows may omit quotes."""
+    evidence_quotes: dict[SourceId, EvidenceQuote]
 
 
 class Clarification(ProposalBase):
@@ -43,6 +46,9 @@ class Escalation(ProposalBase):
 
 Proposal = Annotated[Resolution | Clarification | Escalation, Field(discriminator="next_step")]
 proposal_adapter = TypeAdapter(Proposal)
+
+ModelProposal = Annotated[ModelResolution | Clarification | Escalation, Field(discriminator="next_step")]
+model_proposal_adapter = TypeAdapter(ModelProposal)
 
 
 class SearchCases(BaseModel):
@@ -60,7 +66,7 @@ class GetCaseDetail(BaseModel):
 
 
 Decision = Annotated[
-    Resolution | Clarification | Escalation | SearchCases | GetCaseDetail,
+    ModelResolution | Clarification | Escalation | SearchCases | GetCaseDetail,
     Field(discriminator="next_step"),
 ]
 decision_adapter = TypeAdapter(Decision)

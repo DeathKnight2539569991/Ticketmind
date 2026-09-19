@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from ticketmind.agent.policy import input_risks
+from ticketmind.agent.schemas import AgentMessage
 from ticketmind.agent.proposals import decision_adapter, proposal_adapter, validate_proposal, validate_decision_evidence
 from ticketmind.agent.tools import bounded_decision
 from ticketmind.core.config import ProcessingSettings
@@ -40,8 +41,8 @@ def execute(decisions, *, changes=None, limits=None, tool_error=False):
     corpus = load_sources(config.corpus_path)
     ids = list(corpus.cases)[:3]
     hits = [RetrievalHit(source_id=i, text=build_case_text(corpus.cases[i]), score=0.5) for i in ids]
-    state = {"subject": "API 超时", "body": "Python 3.12，E_TIMEOUT", "retrieval_query": "original",
-             "retrieval_hits": hits[:2], **(changes or {})}
+    state = {"subject": "API 超时", "messages": [AgentMessage(role="customer", content="Python 3.12，E_TIMEOUT")],
+             "retrieval_query": "original", "retrieval_hits": hits[:2], **(changes or {})}
     seen, searches, vectors, audit = [], [], [], []
     def decide(current):
         seen.append(dict(current))
@@ -138,7 +139,8 @@ def test_expired_budget_stops_before_decision_or_tool():
     def forbidden(*args):
         pytest.fail("expired budget executed a decision")
     with pytest.raises(TimeoutError):
-        bounded_decision({"subject": "s", "body": "b", "retrieval_query": "q", "retrieval_hits": []},
+        bounded_decision({"subject": "s", "messages": [AgentMessage(role="customer", content="b")],
+                          "retrieval_query": "q", "retrieval_hits": []},
             decide=forbidden, judge=forbidden, embeddings=None, client=None, corpus=None,
             config=ProcessingSettings(_env_file=None), remaining=expired, audit=[])
 

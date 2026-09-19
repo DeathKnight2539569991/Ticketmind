@@ -66,7 +66,7 @@ class SyntheticRunner:
         case = self.corpus.cases["SYN-HIST-V2-007"]
         hit = RetrievalHit(source_id=case.source_id, text=build_case_text(case), score=0.5)
         proposal = Clarification(next_step="ask_clarification", reason="缺少必要环境信息",
-                                  reply="请补充是否使用本机代理。", questions=["是否使用本机代理？"],
+                                  reply="请补充是否使用本机代理。",
                                   evidence_ids=[case.source_id])
         proposal = self.proposal_override or proposal
         return RunOutput({"proposal": proposal, "tool_calls": []},

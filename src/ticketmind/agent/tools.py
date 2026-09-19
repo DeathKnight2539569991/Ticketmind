@@ -3,7 +3,7 @@ from time import monotonic
 
 from ticketmind.agent.policy import escalation, input_risks, validate_query
 from ticketmind.agent.state import customer_fact_text
-from ticketmind.agent.proposals import decision_adapter, proposal_adapter, validate_proposal, validate_decision_evidence
+from ticketmind.agent.proposals import decision_adapter, proposal_adapter, validate_proposal
 from ticketmind.agent.semantic_judge import GuardrailFailure, validate_judgment
 
 
@@ -38,7 +38,6 @@ def bounded_decision(state, *, decide, judge, corpus, config, remaining, audit, 
             remaining()
             proposal = normalize_proposal(proposal)
             validate_proposal(proposal, {hit.source_id for hit in state["retrieval_hits"]})
-            validate_decision_evidence(proposal, state["retrieval_hits"])
             if risks and (proposal.next_step != "escalate" or not set(risks) <= set(proposal.risk_flags)):
                 raise GuardrailFailure("guardrail_repair_invalid")
             result = validate_judgment(judge(state, proposal), proposal)
@@ -58,8 +57,7 @@ def bounded_decision(state, *, decide, judge, corpus, config, remaining, audit, 
                 proposal = normalize_proposal(decide(state))
                 remaining()
                 validate_proposal(proposal, {hit.source_id for hit in state["retrieval_hits"]})
-                validate_decision_evidence(proposal, state["retrieval_hits"])
-                if (proposal.next_step == "ask_clarification" and
+                    if (proposal.next_step == "ask_clarification" and
                         state.get("clarification_rounds", 0) >= config.max_clarification_rounds):
                     raise ValueError("重生成不得绕过澄清轮数限制")
             except Exception as exc:

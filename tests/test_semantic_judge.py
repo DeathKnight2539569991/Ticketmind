@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from ticketmind.agent import runtime, semantic_judge, decide
 from ticketmind.agent.decide import decision_messages, decision_response_adapter
-from ticketmind.agent.proposals import Escalation, Clarification, proposal_adapter, decision_adapter
+from ticketmind.agent.proposals import Escalation, Clarification, proposal_adapter, decision_adapter, model_proposal_adapter
 from ticketmind.agent.runtime import AgentRunner, RunFailure
 from ticketmind.agent.schemas import AgentMessage, AgentRunInput
 from ticketmind.agent.semantic_judge import JudgeResult
@@ -89,7 +89,7 @@ def test_rejected_then_repaired_once(monkeypatch):
     assert seen[1]["guardrail_feedback"]["proposal"] == BAD.model_dump()
     assert set(seen[1]["guardrail_feedback"]) == {"proposal", "violations"}
     assert decision_response_adapter(seen[0]) is decision_adapter
-    assert decision_response_adapter(seen[1]) is proposal_adapter
+    assert decision_response_adapter(seen[1]) is model_proposal_adapter
     _, user = decision_messages(seen[1])
     assert json.loads(user)["guardrail_feedback"]["violations"] == FAIL["violations"]
     assert [a["status"] for a in result.usage["semantic_judge"]] == ["rejected", "passed"]

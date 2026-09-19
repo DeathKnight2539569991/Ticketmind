@@ -46,6 +46,8 @@ def pending_panel(api):
     st.write(pending.label)
     if pending.path.endswith("/runs") and st.session_state.actor.get("mode") != "synthetic_demo":
         st.warning("正式处理会调用模型与向量服务，可能产生费用。请仅在已授权额度内执行。")
+    if pending.path.endswith("/retire"):
+        st.warning("确认停用此知识？数据库会保留历史正文，但 Agent 将无法再将其作为有效知识检索。当前不提供重新启用入口。")
     labels = {"subject": "工单标题", "body": "正文", "edited_reply": "编辑后的回复", "comment": "审核理由", "reason": "解决说明"}
     for field, label in labels.items():
         if pending.payload.get(field):
@@ -243,12 +245,27 @@ def knowledge_view(api, ticket, reviewer):
         st.code(case["source_id"], language=None)
         st.caption(f"知识版本 {case['revision']} · 状态版本 {case['version']} · 审核者 {case['reviewer_id']}")
         st.write("Index state：" + ("已验证" if case["status"] == "active" else case["status"]))
+        with st.expander("查看当前知识全文"):
+            st.text(case["content"])
+        if case["status"] == "retired":
+            st.warning("该知识已停用，不再作为 Agent 检索证据；历史正文仍保留。")
         if case.get("index_error"):
             st.error("索引失败原因：" + case["index_error"])
+        case_path = f"/knowledge/{quote(case['dataset_version'], safe='')}/{quote(case['source_id'], safe='')}"
         if reviewer and (case["status"] in ("pending_index", "index_failed") or case.get("index_error")):
-            if st.button("重试知识索引（仅使用已有向量）"):
-                queue(f"/knowledge/{quote(case['dataset_version'], safe='')}/{quote(case['source_id'], safe='')}/retry",
-                      {"expected_version": case["version"]}, "重试索引；缺少向量时保持可观察失败，由管理员按授权预算处理")
+            retiring_cleanup = case["status"] == "retired"
+            retry_label = "重试清理停用知识的索引" if retiring_cleanup else "重试知识索引（仅使用已有向量）"
+            if st.button(retry_label):
+                queue(f"{case_path}/retry", {"expected_version": case["version"]},
+                      "重试清理停用知识的索引（不重新启用知识）" if retiring_cleanup
+                      else "重试索引；缺少向量时保持可观察失败，由管理员按授权预算处理")
+        if reviewer and case["status"] != "retired":
+            st.caption("停用后将不再参与 Agent 检索；数据库保留全文与历史记录，当前无法重新启用。")
+            confirmed = st.checkbox("我已核对知识全文，确认停用此知识",
+                                    key=f"retire_confirm-{ticket['id']}-{case['version']}")
+            if st.button("停用这条知识", disabled=not confirmed, key=f"retire_knowledge-{ticket['id']}"):
+                queue(f"{case_path}/retire", {"expected_version": case["version"]},
+                      f"停用知识 {case['source_id']}；保留历史正文并从后续 Agent 检索中下架")
         return
     candidate = result.get("candidate")
     if not candidate:

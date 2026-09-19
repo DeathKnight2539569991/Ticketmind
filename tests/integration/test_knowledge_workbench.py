@@ -49,3 +49,109 @@ def test_operator_sees_candidate_but_has_no_publish_control(ui):
     click(at, "刷新当前工单")
     assert any("知识沉淀" in s.value for s in at.subheader)
     assert not any(b.label == "Publish to Knowledge Base" for b in at.button)
+
+
+def test_reviewer_can_retire_knowledge_from_workbench(ui):
+    at, client, factory, auth = ui
+    sync = demo_knowledge_sync(factory)
+    client.app.state.knowledge_sync = sync
+    login(at, auth.reviewer_token.get_secret_value())
+    ticket_id = create(at, "知识停用 " + uuid4().hex[:8])
+    widget(at, "text_area", "解决说明").set_value("客户确认解决")
+    widget(at, "checkbox", "我已确认问题解决，可以关闭工单").check()
+    click(at, "确认解决并关闭")
+    click(at, "确认提交 / 原样重试")
+    widget(at, "checkbox", "我已核对完整会话，批准该案例作为可检索知识").check().run()
+    click(at, "Publish to Knowledge Base")
+    click(at, "确认提交 / 原样重试")
+    headers = {"Authorization": "Bearer " + auth.reviewer_token.get_secret_value()}
+    case = client.get(f"/tickets/{ticket_id}/knowledge", headers=headers).json()["knowledge"]
+    assert case["status"] == "active"
+    assert (case["dataset_version"], case["source_id"]) in sync.index.rows
+
+    assert widget(at, "button", "停用这条知识").disabled
+    widget(at, "checkbox", "我已核对知识全文，确认停用此知识").check().run()
+    click(at, "停用这条知识")
+    pending = at.session_state.pending
+    assert pending.path == f"/knowledge/{case['dataset_version']}/{case['source_id']}/retire"
+    assert pending.payload == {"expected_version": case["version"]}
+    click(at, "确认提交 / 原样重试")
+
+    retired = client.get(f"/tickets/{ticket_id}/knowledge", headers=headers).json()["knowledge"]
+    assert retired["status"] == "retired" and retired["retired_at"]
+    assert retired["content"] == case["content"]
+    assert (case["dataset_version"], case["source_id"]) not in sync.index.rows
+    assert not any(button.label == "停用这条知识" for button in at.button)
+    replay = client.post(pending.path, json=pending.payload,
+                         headers={**headers, "Idempotency-Key": pending.key})
+    assert replay.status_code == 200 and replay.json()["version"] == retired["version"]
+    source = client.get(f"/sources/{case['source_id']}",
+                        params={"corpus_version": case["dataset_version"]}, headers=headers)
+    assert source.status_code == 200
+
+
+def test_retired_index_delete_failure_has_cleanup_action(ui, monkeypatch):
+    at, client, factory, auth = ui
+    sync = demo_knowledge_sync(factory)
+    client.app.state.knowledge_sync = sync
+    login(at, auth.reviewer_token.get_secret_value())
+    ticket_id = create(at, "停用失败恢复 " + uuid4().hex[:8])
+    widget(at, "text_area", "解决说明").set_value("客户确认解决")
+    widget(at, "checkbox", "我已确认问题解决，可以关闭工单").check()
+    click(at, "确认解决并关闭")
+    click(at, "确认提交 / 原样重试")
+    widget(at, "checkbox", "我已核对完整会话，批准该案例作为可检索知识").check().run()
+    click(at, "Publish to Knowledge Base")
+    click(at, "确认提交 / 原样重试")
+
+    delete = sync.index.delete
+    def fail_delete(*args):
+        raise TimeoutError("synthetic delete error")
+    monkeypatch.setattr(sync.index, "delete", fail_delete)
+    widget(at, "checkbox", "我已核对知识全文，确认停用此知识").check().run()
+    click(at, "停用这条知识")
+    click(at, "确认提交 / 原样重试")
+    headers = {"Authorization": "Bearer " + auth.reviewer_token.get_secret_value()}
+    case = client.get(f"/tickets/{ticket_id}/knowledge", headers=headers).json()["knowledge"]
+    assert case["status"] == "retired" and case["index_error"]
+    assert not any(button.label == "停用这条知识" for button in at.button)
+    assert any(button.label == "重试清理停用知识的索引" for button in at.button)
+
+    monkeypatch.setattr(sync.index, "delete", delete)
+    click(at, "重试清理停用知识的索引")
+    pending = at.session_state.pending
+    assert pending.payload == {"expected_version": case["version"]}
+    click(at, "确认提交 / 原样重试")
+    cleaned = client.get(f"/tickets/{ticket_id}/knowledge", headers=headers).json()["knowledge"]
+    assert cleaned["status"] == "retired" and cleaned["index_error"] is None
+    assert (case["dataset_version"], case["source_id"]) not in sync.index.rows
+
+
+def test_operator_cannot_retire_published_knowledge_from_workbench(ui):
+    at, client, factory, auth = ui
+    sync = demo_knowledge_sync(factory)
+    client.app.state.knowledge_sync = sync
+    login(at, auth.reviewer_token.get_secret_value())
+    ticket_id = create(at, "操作员知识权限 " + uuid4().hex[:8])
+    widget(at, "text_area", "解决说明").set_value("客户确认解决")
+    widget(at, "checkbox", "我已确认问题解决，可以关闭工单").check()
+    click(at, "确认解决并关闭")
+    click(at, "确认提交 / 原样重试")
+    widget(at, "checkbox", "我已核对完整会话，批准该案例作为可检索知识").check().run()
+    click(at, "Publish to Knowledge Base")
+    click(at, "确认提交 / 原样重试")
+    case = client.get(f"/tickets/{ticket_id}/knowledge", headers={
+        "Authorization": "Bearer " + auth.reviewer_token.get_secret_value()}).json()["knowledge"]
+    click(at, "退出登录")
+    login(at, auth.operator_token.get_secret_value())
+    ticket_button = next(button.label for button in at.button if button.label.startswith("操作员知识权限 "))
+    click(at, ticket_button)
+    assert any("知识沉淀" in section.value for section in at.subheader)
+    assert not any(button.label == "停用这条知识" for button in at.button)
+    response = client.post(f"/knowledge/{case['dataset_version']}/{case['source_id']}/retire",
+        json={"expected_version": case["version"]},
+        headers={"Authorization": "Bearer " + auth.operator_token.get_secret_value(),
+                 "Idempotency-Key": uuid4().hex})
+    assert response.status_code == 403
+
+

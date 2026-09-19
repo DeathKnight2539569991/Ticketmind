@@ -54,7 +54,7 @@ reviewer 在工单底部查看全文、勾选确认、点击 **Publish to Knowle
 | POST /knowledge/{dataset}/{source}/retire | reviewer；版本同上，先在 PG 停用再删除索引 |
 | GET /sources/{source}?corpus_version={dataset} | PG 的不可变版本来源；缺失返回 404，无 JSONL fallback |
 
-所有 POST 需要 Idempotency-Key，同 key 改请求返回 409；同 key 恢复不重复批准。同 Ticket 不同 key 再次批准也返回已有案例，审核人/时间不被覆盖。重试只作用于已有知识。operator 没有发布按钮，绕过页面调用 API 也返回 403。工作台只走 HTTP，不访问 PG、Milvus 或 Agent。
+所有 POST 需要 Idempotency-Key，同 key 改请求返回 409；同 key 恢复不重复批准。同 Ticket 不同 key 再次批准也返回已有案例，审核人/时间不被覆盖。重试只作用于已有知识。工作台的 reviewer 可以查看已发布知识全文、勾选确认并停用尚未 retired 的知识；停用保留 PG 历史记录，不提供重新启用入口。若 Milvus 索引删除失败，停用状态保持不变，界面提供单独的“重试清理停用知识的索引”入口。operator 没有发布、停用或索引重试按钮，绕过页面调用 API 也返回 403。工作台只走 HTTP，不访问 PG、Milvus 或 Agent。
 
 ## 一致性与恢复
 

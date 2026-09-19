@@ -91,7 +91,9 @@ def test_rejected_then_repaired_once(monkeypatch):
     assert decision_response_adapter(seen[0]) is decision_adapter
     assert decision_response_adapter(seen[1]) is model_proposal_adapter
     _, user = decision_messages(seen[1])
-    assert json.loads(user)["guardrail_feedback"]["violations"] == FAIL["violations"]
+    repair_payload = json.loads(user)
+    assert repair_payload["guardrail_feedback"]["violations"] == FAIL["violations"]
+    assert set(repair_payload) == {"subject", "messages", "evidence", "case_details", "guardrail_feedback"}
     assert [a["status"] for a in result.usage["semantic_judge"]] == ["rejected", "passed"]
     assert len(result.state["tool_calls"]) == 1  # Only initial read-only retrieval.
     assert runner.metadata["model_config"]["decision"] == "glm-5.3"

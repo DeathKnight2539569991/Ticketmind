@@ -64,8 +64,6 @@ class RunRead(BaseModel):
     ticket_version: int | None
     thread_id: str | None
     action: AgentAction | None
-    reason: str | None
-    final_reply: str | None
     retrieval_evidence: list[dict[str, Any]]
     proposal: Proposal | None
     agent_version: str

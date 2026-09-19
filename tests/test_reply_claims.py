@@ -22,8 +22,7 @@ from ticketmind.core.config import QwenSettings
 ])
 def test_semantic_fixtures_via_structured_judge(monkeypatch, reply, kind):
     value = proposal_adapter.validate_python({
-        "next_step": "ask_clarification", "reason": "核对事实",
-        "reply": reply, "questions": [reply],
+        "next_step": "ask_clarification", "reason": "核对事实", "reply": reply,
     })
     # The deterministic path must not reject negation or historical operations.
     validate_proposal(value, set())

@@ -66,8 +66,6 @@ def bounded_decision(state, *, decide, judge, embeddings, client, corpus, config
         record = {"tool": decision.next_step, "parameters": params, "reason": decision.reason,
                   "status": "rejected", "duration_ms": 0, "result_source_ids": []}
         audit.append(record)
-        if decision.next_step == "search_cases":
-            record["missing_evidence"] = decision.missing_evidence
         if state["agent_steps"] >= config.max_agent_steps - 1:
             record["error"] = "agent_step_limit"
             return finish(escalation("Agent 执行步数不足以继续查询和决策"))

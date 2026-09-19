@@ -2,7 +2,7 @@ import pytest
 
 from ticketmind.agent.policy import input_risks
 from ticketmind.agent.schemas import AgentMessage
-from ticketmind.agent.proposals import decision_adapter, proposal_adapter, validate_proposal, validate_decision_evidence
+from ticketmind.agent.proposals import decision_adapter, proposal_adapter, validate_proposal
 from ticketmind.agent.tools import bounded_decision
 from ticketmind.core.config import ProcessingSettings
 from ticketmind.knowledge.corpus import build_case_text
@@ -150,21 +150,22 @@ def test_expired_budget_stops_before_decision_or_tool():
             config=ProcessingSettings(_env_file=None), remaining=expired, audit=[], search_fn=forbidden)
 
 
-@pytest.mark.parametrize("quotes", [{}, {"SYN-HIST-V2-007": "调整超时或优化查询是本案例提供的通用解决思路。"},
-                                    {"SYN-HIST-V2-006": "该只读全年聚合查询的耗时超过客户端原超时设置。"}])
-def test_resolution_cannot_attach_invented_support_to_real_source(quotes):
+def test_resolution_with_retrieved_source_id_passes_without_quotes():
     corpus = load_sources(ProcessingSettings().corpus_path)
     hit = RetrievalHit(source_id="SYN-HIST-V2-007", text=build_case_text(corpus.cases["SYN-HIST-V2-007"]), score=0.5)
-    proposal = proposal_adapter.validate_python({"next_step": "propose_resolution", "reason": "诊断", "reply": "建议调整等待上限。",
-        "evidence_ids": [hit.source_id], "evidence_quotes": quotes})
-    with pytest.raises(ValueError, match="原文"):
-        validate_decision_evidence(proposal, [hit])
+    result, evidence, *_ = execute([{
+        "next_step": "propose_resolution", "reason": "按历史案例核对", "reply": "请核对本次配置。",
+        "evidence_ids": [hit.source_id],
+    }])
+    assert result.next_step == "propose_resolution"
+    assert result.evidence_ids == [hit.source_id]
+    assert "evidence_quotes" not in result.model_dump()
+    assert any(item.source_id == hit.source_id for item in evidence)
 
 
-def test_resolution_preserves_a_verbatim_support_excerpt():
-    corpus = load_sources(ProcessingSettings().corpus_path)
-    case = corpus.cases["SYN-HIST-V2-006"]
-    hit = RetrievalHit(source_id=case.source_id, text=build_case_text(case), score=0.5)
-    proposal = proposal_adapter.validate_python({"next_step": "propose_resolution", "reason": "适用的只读诊断", "reply": "核对等待上限。",
-        "evidence_ids": [case.source_id], "evidence_quotes": {case.source_id: case.resolution.summary}})
-    validate_decision_evidence(proposal, [hit])
+def test_resolution_with_unknown_source_id_still_rejected():
+    with pytest.raises(ValueError, match="不存在"):
+        execute([{
+            "next_step": "propose_resolution", "reason": "引用错误", "reply": "请核对本次配置。",
+            "evidence_ids": ["invented"],
+        }])

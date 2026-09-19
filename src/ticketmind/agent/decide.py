@@ -1,6 +1,6 @@
 import json
 
-from ticketmind.agent.proposals import Decision, decision_adapter, model_proposal_adapter, validate_proposal, validate_decision_evidence
+from ticketmind.agent.proposals import Decision, decision_adapter, model_proposal_adapter
 from ticketmind.agent.state import TicketAgentState
 from ticketmind.core.config import QwenSettings
 from ticketmind.llm.client import generate_text
@@ -121,8 +121,4 @@ def decide_ticket(settings: QwenSettings, state: TicketAgentState, *, timeout: f
         system_prompt=system_prompt, user_prompt=user_prompt,
         json_mode=True, timeout=timeout, generation_options=decision_options(settings), usage_callback=usage_callback,
     )
-    proposal = decision_response_adapter(state).validate_json(raw)
-    if proposal.next_step not in ("search_cases", "get_case_detail"):
-        validate_proposal(proposal, {hit.source_id for hit in state["retrieval_hits"]})
-        validate_decision_evidence(proposal, state["retrieval_hits"])
-    return proposal
+    return decision_response_adapter(state).validate_json(raw)

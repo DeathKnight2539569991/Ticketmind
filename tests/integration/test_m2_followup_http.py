@@ -35,8 +35,8 @@ def load_script(monkeypatch):
 @pytest.mark.parametrize("execute,bad_output", [(False, None), (True, None),
     (True, '{"next_step":"ask_clarification","reason":"unit","reply":"当前设置？","questions":["当前设置？","当前设置？"]}'),
     (True, '{"next_step":'),
-    (True, '{"reason":"需要更多证据","query":"只读查询超时","missing_evidence":"适用案例"}'),
-    (True, '[{"next_step":"search_cases","reason":"需要更多证据","query":"只读查询超时","missing_evidence":"适用案例"}]')])
+    (True, '{"reason":"需要更多证据","query":"只读查询超时"}'),
+    (True, '[{"next_step":"search_cases","reason":"需要更多证据","query":"只读查询超时"}]')])
 def test_followup_snapshot_and_model_selected_research(tmp_path, monkeypatch, execute, bad_output):
     script = load_script(monkeypatch)
     corpus = load_sources(ProcessingSettings().corpus_path)
@@ -74,7 +74,7 @@ def test_followup_snapshot_and_model_selected_research(tmp_path, monkeypatch, ex
         if len(decisions) == 1:
             assert all(h["source_id"] != "SYN-HIST-V2-006" for h in state["evidence"])
             result = {"next_step": "search_cases", "query": "只读全年聚合报表 E_TIMEOUT 2 秒 4 秒",
-                      "reason": "需要匹配案例", "missing_evidence": "客户端等待上限案例"}
+                      "reason": "缺少客户端等待上限的适用案例，需要继续匹配"}
         else:
             assert any(h["source_id"] == "SYN-HIST-V2-006" for h in state["evidence"])
             assert state["clarification_rounds"] == 1

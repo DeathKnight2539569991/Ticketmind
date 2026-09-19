@@ -111,8 +111,7 @@ def main():
             def decide(state, timeout, usage):
                 decisions.append(state["search_rounds"])
                 if state["search_rounds"] == 1:
-                    return SearchCases(next_step="search_cases", query=requery, reason="测试受控重检索接线",
-                                       missing_evidence="核对全年查询超时案例")
+                    return SearchCases(next_step="search_cases", query=requery, reason="测试受控重检索接线")
                 return Clarification(next_step="ask_clarification", reason="合成替身用于验证待审持久化",
                     reply="请提供当前客户端配置。", questions=["当前客户端配置是什么？"],
                     evidence_ids=[state["retrieval_hits"][0].source_id])

@@ -23,7 +23,6 @@ class ToolCallRecord(TypedDict, total=False):
     result_summary: str
     result_evidence: list[dict[str, Any]]
     error: str
-    missing_evidence: str
     retrieval_error: str
     retrieval_mode: str
     collection: str

@@ -42,8 +42,6 @@ def test_acceptance_exports_raw_and_reviewed_results(tmp_path, monkeypatch, case
         "reply": "当前设置是什么？" if case_index == 0 else "请核对当前预览设置。",
         "evidence_ids": [source.source_id]}
     proposal = proposal_adapter.validate_python(proposal_data)
-    if case_index == 1:
-        proposal.evidence_quotes = {source.source_id: source.resolution.summary}
     class Milvus:
         def search(self, **kwargs):
             return [[{"entity": {"source_id": source.source_id, "text": build_case_text(source)}, "distance": 0.5}]]

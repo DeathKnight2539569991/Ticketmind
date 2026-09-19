@@ -42,8 +42,8 @@ def test_real_publish_three_modes_retire_and_repair(knowledge):
             if not state["case_details"]:
                 return GetCaseDetail(next_step="get_case_detail", source_id=case["source_id"], reason="核对已解决会话")
             assert state["case_details"][case["source_id"]] == case["source"]
-            return Clarification(next_step="ask_clarification", reason="需核对当前环境", reply="请提供当前错误。",
-                                 questions=["当前错误是什么？"], evidence_ids=[case["source_id"]])
+            return Clarification(next_step="ask_clarification", reason="需核对当前环境",
+                                 reply="请提供当前错误。", evidence_ids=[case["source_id"]])
         k.client.app.state.runner = AgentRunner(k.qwen, milvus,
             k.config.model_copy(update={"retrieval_mode": "bm25"}), session_factory=k.factory,
             judge_fn=lambda *args: {"passed": True, "violations": []},

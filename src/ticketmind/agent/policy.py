@@ -4,12 +4,6 @@ from ticketmind.agent.proposals import Escalation
 from ticketmind.agent.state import customer_fact_text
 
 
-def validate_questions(proposal):
-    """Pydantic owns shape/length; Semantic Judge owns question meaning."""
-    if len(proposal.questions) != len(set(proposal.questions)):
-        raise ValueError("追问列表不能包含完全重复的问题")
-
-
 def escalation(reason, *, risks=None):
     return Escalation(next_step="escalate", reason=reason, reply="当前信息或执行限制不足以可靠处理，请转交人工核查。",
                       risk_flags=risks or [])

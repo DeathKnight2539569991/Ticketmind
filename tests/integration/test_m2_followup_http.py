@@ -33,15 +33,15 @@ def load_script(monkeypatch):
 
 
 @pytest.mark.parametrize("execute,bad_output", [(False, None), (True, None),
-    (True, '{"next_step":"ask_clarification","reason":"unit","reply":"当前设置？","questions":["当前设置？","当前设置？"]}'),
+    (True, '{"next_step":"ask_clarification","reason":"unit","reply":"当前设置？","questions":["旧字段不再允许"]}'),
     (True, '{"next_step":'),
     (True, '{"reason":"需要更多证据","query":"只读查询超时"}'),
     (True, '[{"next_step":"search_cases","reason":"需要更多证据","query":"只读查询超时"}]')])
 def test_followup_snapshot_and_model_selected_research(tmp_path, monkeypatch, execute, bad_output):
     script = load_script(monkeypatch)
     corpus = load_sources(ProcessingSettings().corpus_path)
-    old = Clarification(next_step="ask_clarification", reason="合成追问", reply="当前代理配置和超时设置是什么？",
-                        questions=["当前代理配置和超时设置是什么？"])
+    old = Clarification(next_step="ask_clarification", reason="合成追问",
+                        reply="当前代理配置和超时设置是什么？")
     class BaseRunner:
         def __init__(self, *args, **kwargs):
             pass

@@ -16,17 +16,19 @@ from ticketmind.retrieval.dense import RetrievalHit
                                  "Could you disable the proxy and retry?", "请修改权限再试。",
                                  "您是否同意将客户端请求超时时间调整为大于 5 秒（例如 10 秒）？",
                                  "Would you agree to increase the client timeout?", "是否允许调大客户端等待上限？"])
-def test_semantic_questions_are_deferred_to_judge(text):
-    for field in ("reply", "questions"):
-        proposal = proposal_adapter.validate_python({"next_step": "ask_clarification", "reason": "缺少环境",
-            "reply": text if field == "reply" else "请提供当前信息。",
-            "questions": [text if field == "questions" else "是否使用代理？"]})
-        validate_proposal(proposal, set())
+def test_semantic_clarification_is_deferred_to_judge(text):
+    proposal = proposal_adapter.validate_python(
+        {"next_step": "ask_clarification", "reason": "缺少环境", "reply": text}
+    )
+    validate_proposal(proposal, set())
 
 
-def test_questions_can_ask_existing_facts():
-    proposal = proposal_adapter.validate_python({"next_step": "ask_clarification", "reason": "缺少环境",
-        "reply": "请提供当前代理配置和报错时间。", "questions": ["是否使用代理？", "当前 Python 版本是什么？"]})
+def test_clarification_reply_can_ask_for_multiple_facts():
+    proposal = proposal_adapter.validate_python({
+        "next_step": "ask_clarification",
+        "reason": "缺少环境",
+        "reply": "请提供当前代理配置和报错时间，并说明当前 Python 版本。",
+    })
     validate_proposal(proposal, set())
 
 
@@ -68,7 +70,7 @@ def execute(decisions, *, changes=None, limits=None, tool_error=False):
 
 
 SEARCH = {"next_step": "search_cases", "reason": "缺少适用证据，需要按客户事实重新检索", "query": "E_TIMEOUT Python 3.12"}
-FINAL = {"next_step": "ask_clarification", "reason": "缺少信息", "reply": "请提供现有配置。", "questions": ["当前代理配置是什么？"]}
+FINAL = {"next_step": "ask_clarification", "reason": "缺少信息", "reply": "请提供当前代理配置。"}
 
 
 

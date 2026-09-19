@@ -36,7 +36,6 @@ class ModelResolution(Resolution):
 
 class Clarification(ProposalBase):
     next_step: Literal["ask_clarification"]
-    questions: list[Text] = Field(min_length=1, max_length=5)
 
 
 class Escalation(ProposalBase):
@@ -80,10 +79,6 @@ decision_adapter = TypeAdapter(Decision)
 def validate_proposal(proposal: Proposal, source_ids: set[str]) -> None:
     if not set(proposal.evidence_ids) <= source_ids:
         raise ValueError("提案引用了本次检索中不存在的来源")
-    if proposal.next_step == "ask_clarification":
-        from ticketmind.agent.policy import validate_questions
-
-        validate_questions(proposal)
 
 
 def validate_decision_evidence(decision, hits):

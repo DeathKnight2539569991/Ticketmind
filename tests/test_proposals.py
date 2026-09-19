@@ -25,11 +25,10 @@ def test_citations_must_be_from_current_retrieval():
         validate_proposal(proposal, {"actual"})
 
 
-def test_risk_disallows_resolution():
-    proposal = proposal_adapter.validate_python({"next_step": "propose_resolution", "reason": "reason",
-        "reply": "reply", "evidence_ids": ["actual"], "risk_flags": ["payment"]})
-    with pytest.raises(ValueError, match="高风险"):
-        validate_proposal(proposal, {"actual"})
+def test_risk_flags_only_belong_to_escalation():
+    with pytest.raises(ValidationError):
+        proposal_adapter.validate_python({"next_step": "propose_resolution", "reason": "reason",
+            "reply": "reply", "evidence_ids": ["actual"], "risk_flags": ["payment"]})
 
 
 def test_all_business_routes_require_auth_before_db():

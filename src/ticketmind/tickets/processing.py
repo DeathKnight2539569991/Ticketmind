@@ -153,7 +153,6 @@ def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCre
         run = session.get(ProcessingResult, run_id)
         run.completed_at = None
         run.duration_ms = round((monotonic() - started) * 1000)
-        run.extracted_information = {}
         run.retrieval_evidence, run.usage = output.evidence, output.usage
         run.tool_calls = output.state.get("tool_calls", [])
         if ticket.version != run.ticket_version:

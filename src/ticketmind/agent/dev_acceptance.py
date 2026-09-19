@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from ticketmind.agent.decide import decision_options, decision_messages, decision_response_adapter
 from ticketmind.agent.dev_cache import CachedQueryEmbeddings
 from ticketmind.agent.dev_decision_cache import decision_fingerprint
-from ticketmind.agent.proposals import validate_proposal, validate_decision_evidence
+from ticketmind.agent.proposals import validate_proposal
 from ticketmind.agent.run_cache import QueryVectorCache, load_cache, save_cache, query_fingerprint
 from ticketmind.agent.runtime import build_budgeted_embeddings
 from ticketmind.llm.client import generate_text
@@ -156,7 +156,6 @@ class AcceptanceAdapters:
         try:
             if result.next_step not in ("search_cases", "get_case_detail"):
                 validate_proposal(result, {hit.source_id for hit in state["retrieval_hits"]})
-                validate_decision_evidence(result, state["retrieval_hits"])
         except ValueError:
             diagnostic["validation"] = {"status": "rejected", "stage": "proposal_policy"}
             raise

@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from ticketmind.core.config import ProcessingSettings
 from ticketmind.evaluation.dataset import digest, label_hash, load_dataset, retrieval_queries
 from ticketmind.evaluation.scoring import apply_adjudication, score_prediction, summarize
 from ticketmind.knowledge.sources import load_sources
@@ -22,7 +21,8 @@ def data(tmp_path):
         for name, values in [("evaluation_cases", cases or [case]), ("evaluation_labels", labels or [label])]:
             (tmp_path / (name + ".jsonl")).write_text("\n".join(json.dumps(v) for v in values), encoding="utf-8")
     save()
-    return tmp_path, case, label, save, load_sources(ProcessingSettings().corpus_path)
+    fixture_path = Path(__file__).resolve().parents[1] / "data/synthetic/v2/historical_cases.jsonl"
+    return tmp_path, case, label, save, load_sources(fixture_path)
 
 
 @pytest.mark.parametrize("mutation", ["null", "unknown", "overlap", "false_review", "missing_action"])

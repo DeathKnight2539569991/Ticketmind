@@ -47,8 +47,9 @@ def test_review_paths_preserve_original_and_apply_once(setup, proposal, decision
         "reason": "synthetic reason",
         "reply": "原始草稿",
         "evidence_ids": ["SYN-HIST-V2-007"],
-        "questions": ["当前配置是什么？"] if proposal == "ask_clarification" else [],
     }
+    if proposal == "ask_clarification":
+        proposal_data["questions"] = ["当前配置是什么？"]
     if proposal == "propose_resolution":
         proposal_data["evidence_quotes"] = {
             "SYN-HIST-V2-007": runner.corpus.cases["SYN-HIST-V2-007"].resolution.summary

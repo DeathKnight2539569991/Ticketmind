@@ -277,7 +277,7 @@ def test_fresh_app_restores_checkpoints_and_identifies_interruption(database, ph
     assert runner.calls == 1
 
 
-def test_second_instance_cannot_relabel_live_runs(database):def test_second_instance_cannot_relabel_live_runs(database):
+def test_second_instance_cannot_relabel_live_runs(database):
     _, factory, _ = database
     with TestClient(create_app(session_factory=factory)):
         with pytest.raises(RuntimeError, match="已有 TicketMind 实例"):

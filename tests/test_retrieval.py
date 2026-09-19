@@ -84,7 +84,7 @@ def test_hybrid_never_hides_single_channel_failure(monkeypatch, failure):
                        for candidate in channel["candidates"])
 
 
-def test_bm25_never_embeds(monkeypatch):def test_bm25_never_embeds(monkeypatch):
+def test_bm25_never_embeds(monkeypatch):
     corpus = load_sources(ProcessingSettings().corpus_path)
     monkeypatch.setattr(service, "validate_collection", lambda *a, **kw: "versioned")
     case = next(iter(corpus.cases.values()))

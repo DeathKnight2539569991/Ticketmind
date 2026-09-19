@@ -1,5 +1,3 @@
-from types import SimpleNamespace
-
 import pytest
 
 from ticketmind.agent.policy import input_risks
@@ -45,28 +43,28 @@ def execute(decisions, *, changes=None, limits=None, tool_error=False):
     hits = [RetrievalHit(source_id=i, text=build_case_text(corpus.cases[i]), score=0.5) for i in ids]
     state = {"subject": "API 超时", "messages": [AgentMessage(role="customer", content="Python 3.12，E_TIMEOUT")],
              "retrieval_query": "original", "retrieval_hits": hits[:2], **(changes or {})}
-    seen, searches, vectors, audit = [], [], [], []
+    seen, searches, audit = [], [], []
     def decide(current):
         seen.append(dict(current))
         return decisions[min(len(seen)-1, len(decisions)-1)]
-    def search(**kwargs):
-        searches.append(kwargs)
+    def search(query, record):
+        searches.append(query)
         if tool_error:
             raise RuntimeError("synthetic failure")
-        return [[{"entity": {"source_id": hits[2].source_id, "text": hits[2].text}, "distance": 0.4}]]
-    def embed(query):
-        vectors.append(query)
-        return [1.0] * 1024
+        result = [hits[2]]
+        # Retrieval-service diagnostics belong to the retrieval adapter, not
+        # bounded_decision; mimic that boundary in this unit test.
+        record["result_evidence"] = corpus.evidence(result)
+        return result
     args = dict(decide=decide, judge=lambda *args: {"passed": True, "violations": []},
-                embeddings=SimpleNamespace(embed_query=embed), client=SimpleNamespace(search=search),
-                corpus=corpus, config=config, remaining=lambda: 1.0, audit=audit)
+                corpus=corpus, config=config, remaining=lambda: 1.0, audit=audit, search_fn=search)
     if tool_error:
         with pytest.raises(RuntimeError):
             bounded_decision(state, **args)
         assert audit[-1]["status"] == "failed" and audit[-1]["error"] == "tool_execution_failed"
         return
     result, evidence = bounded_decision(state, **args)
-    return result, evidence, seen, searches, vectors, audit
+    return result, evidence, seen, searches, audit
 
 
 SEARCH = {"next_step": "search_cases", "reason": "缺少适用证据，需要按客户事实重新检索", "query": "E_TIMEOUT Python 3.12"}
@@ -83,9 +81,9 @@ def test_tools_execute_and_return_new_evidence_to_decision():
     config = ProcessingSettings(_env_file=None)
     ids = list(load_sources(config.corpus_path).cases)
     detail = {"next_step": "get_case_detail", "reason": "核对完整案例", "source_id": ids[0]}
-    result, evidence, seen, searches, vectors, audit = execute([SEARCH, detail, FINAL])
+    result, evidence, seen, searches, audit = execute([SEARCH, detail, FINAL])
     assert result.next_step == "ask_clarification"
-    assert len(searches) == len(vectors) == 1 and len(evidence) == 3
+    assert searches == [SEARCH["query"]] and len(evidence) == 3
     assert seen[-1]["case_details"][ids[0]]["source_id"] == ids[0]
     assert [r["tool"] for r in audit] == ["search_cases", "get_case_detail"]
     assert all(r["status"] == "succeeded" and r["duration_ms"] >= 0 for r in audit)
@@ -100,19 +98,19 @@ def test_tools_execute_and_return_new_evidence_to_decision():
     ({"next_step": "get_case_detail", "reason": "probe", "source_id": "invented"}, {}, "unknown_candidate"),
 ])
 def test_denied_tools_never_call_external_services(decision, limits, error):
-    result, _, _, searches, vectors, audit = execute([decision], limits=limits)
-    assert result.next_step == "escalate" and searches == vectors == []
+    result, _, _, searches, audit = execute([decision], limits=limits)
+    assert result.next_step == "escalate" and searches == []
     assert audit[-1]["error"] == error
 
 
 def test_repeated_search_stops_at_two_total_rounds():
-    result, _, seen, searches, vectors, audit = execute([SEARCH])
-    assert result.next_step == "escalate" and len(searches) == len(vectors) == 1 and len(seen) == 2
+    result, _, seen, searches, audit = execute([SEARCH])
+    assert result.next_step == "escalate" and searches == [SEARCH["query"]] and len(seen) == 2
 
 
 def test_step_limit_does_not_start_unfinishable_tool():
-    result, _, seen, searches, vectors, audit = execute([SEARCH], limits={"max_agent_steps": 3})
-    assert result.next_step == "escalate" and searches == vectors == []
+    result, _, seen, searches, audit = execute([SEARCH], limits={"max_agent_steps": 3})
+    assert result.next_step == "escalate" and searches == []
     assert audit[-1]["error"] == "agent_step_limit"
     assert seen[0]["execution_limits"]["max_agent_steps"] == 3
 
@@ -125,9 +123,9 @@ def test_two_clarifications_then_escalate():
 def test_repeated_details_and_detail_limit():
     ids = list(load_sources(ProcessingSettings().corpus_path).cases)
     detail = {"next_step": "get_case_detail", "reason": "核对", "source_id": ids[0]}
-    result, _, _, _, _, audit = execute([detail])
+    result, _, _, _, audit = execute([detail])
     assert result.next_step == "escalate" and audit[-1]["error"] == "detail_limit_or_duplicate"
-    result, _, _, _, _, audit = execute([detail], limits={"max_case_details": 0})
+    result, _, _, _, audit = execute([detail], limits={"max_case_details": 0})
     assert result.next_step == "escalate" and audit[-1]["status"] == "rejected"
 
 
@@ -148,8 +146,8 @@ def test_expired_budget_stops_before_decision_or_tool():
     with pytest.raises(TimeoutError):
         bounded_decision({"subject": "s", "messages": [AgentMessage(role="customer", content="b")],
                           "retrieval_query": "q", "retrieval_hits": []},
-            decide=forbidden, judge=forbidden, embeddings=None, client=None, corpus=None,
-            config=ProcessingSettings(_env_file=None), remaining=expired, audit=[])
+            decide=forbidden, judge=forbidden, corpus=None,
+            config=ProcessingSettings(_env_file=None), remaining=expired, audit=[], search_fn=forbidden)
 
 
 @pytest.mark.parametrize("quotes", [{}, {"SYN-HIST-V2-007": "调整超时或优化查询是本案例提供的通用解决思路。"},

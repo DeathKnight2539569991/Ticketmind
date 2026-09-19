@@ -6,7 +6,6 @@ from typing import Any
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
-    Float,
     ForeignKey,
     Index,
     Integer,
@@ -168,10 +167,6 @@ class ProcessingResult(Base):
             name="uq_processing_results_ticket_run_sequence",
         ),
         CheckConstraint(
-            "confidence IS NULL OR (confidence >= 0 AND confidence <= 1)",
-            name="ck_processing_results_confidence_range",
-        ),
-        CheckConstraint(
             "run_status != 'completed' OR action IS NOT NULL",
             name="ck_processing_results_completed_requires_action",
         ),
@@ -215,14 +210,6 @@ class ProcessingResult(Base):
     action: Mapped[AgentAction | None] = mapped_column(
         database_enum(AgentAction, "agent_action"),
         nullable=True,
-    )
-    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    final_reply: Mapped[str | None] = mapped_column(Text, nullable=True)
-    extracted_information: Mapped[dict[str, Any]] = mapped_column(
-        JSONB,
-        default=dict,
-        nullable=False,
     )
     retrieval_evidence: Mapped[list[dict[str, Any]]] = mapped_column(
         JSONB,

@@ -1,9 +1,9 @@
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
-from ticketmind.agent.proposals import Text
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_serializer
+from ticketmind.agent.proposals import Proposal, Text
 
 from ticketmind.tickets.enums import AgentAction, ProcessingRunStatus
 
@@ -14,22 +14,29 @@ class RunCreate(BaseModel):
     expected_version: int = Field(ge=1)
 
 
-class ReviewCreate(BaseModel):
+class ReviewBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    decision: Literal["approve", "edit", "escalate"]
     expected_version: int = Field(ge=1)
-    edited_reply: Text | None = None
+
+
+class ApproveReview(ReviewBase):
+    decision: Literal["approve"]
     comment: Text | None = None
 
-    @model_validator(mode="after")
-    def decision_fields(self):
-        if self.decision == "edit" and (not self.edited_reply or not self.comment):
-            raise ValueError("编辑审核需要修改文本和理由")
-        if self.decision != "edit" and self.edited_reply is not None:
-            raise ValueError("仅 edit 可携带修改文本")
-        if self.decision == "escalate" and not self.comment:
-            raise ValueError("转人工需要理由")
-        return self
+
+class EditReview(ReviewBase):
+    decision: Literal["edit"]
+    edited_reply: Text
+    comment: Text
+
+
+class EscalateReview(ReviewBase):
+    decision: Literal["escalate"]
+    comment: Text
+
+
+ReviewCreate = Annotated[ApproveReview | EditReview | EscalateReview, Field(discriminator="decision")]
+review_create_adapter = TypeAdapter(ReviewCreate)
 
 
 class ReviewRead(BaseModel):
@@ -38,7 +45,7 @@ class ReviewRead(BaseModel):
     run_id: UUID
     reviewer_id: str
     idempotency_key: str
-    decision: str
+    decision: Literal["approve", "edit", "escalate"]
     edited_reply: str | None
     comment: str | None
     expected_version: int
@@ -59,9 +66,8 @@ class RunRead(BaseModel):
     action: AgentAction | None
     reason: str | None
     final_reply: str | None
-    confidence: float | None
     retrieval_evidence: list[dict[str, Any]]
-    proposal: dict[str, Any] | None
+    proposal: Proposal | None
     agent_version: str
     corpus_version: str | None
     retrieval_mode: str | None

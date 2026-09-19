@@ -64,7 +64,10 @@ def review_run(factory, workflow, ticket_id, run_id, payload, actor_id, key):
         original_proposal = run.proposal
     try:
         output = workflow.resume(thread_id, saved_review)
-        if output["state"]["proposal"] != original_proposal:
+        # Compare on the current proposal contract: legacy checkpoints may still
+        # contain the retired evidence_quotes field, which has no business effect.
+        if (proposal_adapter.validate_python(output["state"]["proposal"])
+                != proposal_adapter.validate_python(original_proposal)):
             raise RuntimeError("检查点与业务提案不一致")
         apply_review(factory, ticket_id, run_id)
     except Exception as exc:

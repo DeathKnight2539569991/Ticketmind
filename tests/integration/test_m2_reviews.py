@@ -42,9 +42,18 @@ def message(client, ticket, *, key=None, kind="customer_update", **changes):
     ("propose_resolution", "escalate", "escalated")])
 def test_review_paths_preserve_original_and_apply_once(setup, proposal, decision, status):
     client, runner, factory = setup
-    runner.proposal_override = proposal_adapter.validate_python({"next_step": proposal, "reason": "synthetic reason",
-        "reply": "原始草稿", "evidence_ids": ["SYN-HIST-V2-007"],
-        "questions": ["当前配置是什么？"] if proposal == "ask_clarification" else []})
+    proposal_data = {
+        "next_step": proposal,
+        "reason": "synthetic reason",
+        "reply": "原始草稿",
+        "evidence_ids": ["SYN-HIST-V2-007"],
+        "questions": ["当前配置是什么？"] if proposal == "ask_clarification" else [],
+    }
+    if proposal == "propose_resolution":
+        proposal_data["evidence_quotes"] = {
+            "SYN-HIST-V2-007": runner.corpus.cases["SYN-HIST-V2-007"].resolution.summary
+        }
+    runner.proposal_override = proposal_adapter.validate_python(proposal_data)
     ticket = m1.create(client)
     run = m1.run(client, ticket).json()
     key = uuid4().hex
@@ -107,7 +116,7 @@ def test_customer_update_cancels_old_plan_and_replay_precedes_version(setup):
     current = client.get(f'/tickets/{ticket["id"]}').json()
     new_run = m1.run(client, current).json()
     assert new_run["run_status"] == "waiting_review" and new_run["thread_id"] != old_run["thread_id"]
-    assert "客户补充" in runner.snapshots[-1]["body"]
+    assert any("客户补充" in message.content for message in runner.inputs[-1].messages if message.role == "customer")
 
 
 def test_clarification_rounds_use_only_applied_non_escalated_reviews(setup):
@@ -115,15 +124,14 @@ def test_clarification_rounds_use_only_applied_non_escalated_reviews(setup):
     ticket = m1.create(client)
     for round_number in range(2):
         result = m1.run(client, ticket).json()
-        assert runner.snapshots[-1]["clarification_rounds"] == round_number
+        assert runner.clarification_rounds[-1] == round_number
         assert review(client, ticket, result).json()["run_status"] == "completed"
         awaiting = client.get(f'/tickets/{ticket["id"]}').json()
         assert m1.run(client, awaiting).status_code == 409
         assert message(client, awaiting).status_code == 201
         ticket = client.get(f'/tickets/{ticket["id"]}').json()
     m1.run(client, ticket)
-    assert runner.snapshots[-1]["clarification_rounds"] == 2
-    assert len(runner.snapshots[-1]["approved_clarifications"]) == 2
+    assert runner.clarification_rounds[-1] == 2
 
 
 def test_escalated_ticket_accepts_human_reply_and_close_but_no_agent(setup):

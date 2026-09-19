@@ -71,7 +71,12 @@ def make_runner(monkeypatch, decisions, judgments, **overrides):
         if isinstance(response, Exception):
             raise response
         return response
-    config = ProcessingSettings(_env_file=None, retrieval_mode="bm25")
+    from pathlib import Path
+    fixture_path = Path(__file__).resolve().parents[1] / "data/synthetic/v2/historical_cases.jsonl"
+    config = ProcessingSettings(
+        _env_file=None, corpus_path=fixture_path, retrieval_mode="bm25",
+        decision_model="glm-5.3", judge_model="deepseek-v4.1-flash",
+    )
     args = dict(decision_fn=decision, judge_fn=judge, milvus_factory=lambda _: client,
                 corpus=load_sources(config.corpus_path))
     args.update(overrides)
@@ -169,7 +174,9 @@ def test_real_adapters_use_distinct_models_and_record_usage(monkeypatch):
     def decision_response(**kwargs):
         calls.append(kwargs)
         kwargs["usage_callback"]({"total_tokens": 12})
-        return GOOD.model_dump_json()
+        # ModelEscalation intentionally has no runtime-only risk_flags field.
+        return json.dumps({"next_step": GOOD.next_step, "reason": GOOD.reason,
+                           "reply": GOOD.reply, "evidence_ids": GOOD.evidence_ids})
     def judge_response(**kwargs):
         calls.append(kwargs)
         kwargs["usage_callback"]({"total_tokens": 8})
@@ -256,7 +263,8 @@ def test_each_violation_blocks_the_proposal(monkeypatch, kind, reply):
 def test_resolution_source_id_in_retrieval_reaches_judge_without_quotes(monkeypatch):
     from ticketmind.knowledge.corpus import build_case_text
     from ticketmind.retrieval.dense import RetrievalHit
-    corpus = load_sources(ProcessingSettings(_env_file=None).corpus_path)
+    from pathlib import Path
+    corpus = load_sources(Path(__file__).resolve().parents[1] / "data/synthetic/v2/historical_cases.jsonl")
     case = next(iter(corpus.cases.values()))
     hit = RetrievalHit(source_id=case.source_id, text=build_case_text(case), score=0.5)
     proposal = {"next_step": "propose_resolution", "reply": "核对配置", "reason": "核对",

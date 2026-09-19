@@ -97,7 +97,6 @@ def decision_messages(state: TicketAgentState) -> tuple[str, str]:
                     "result_source_ids",
                     "result_summary",
                     "error",
-                    "missing_evidence",
                     "retrieval_error",
                     "retrieval_mode",
                 }

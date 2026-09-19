@@ -219,7 +219,7 @@ def test_question_duplicates_remain_deterministic():
         validate_proposal(proposal, set())
 
 
-def test_repair_respects_total_step_budget(monkeypatch):
+def test_repair_fits_three_step_budget_after_understanding_removal(monkeypatch):
     runner, seen, judged, _ = make_runner(monkeypatch, [BAD], [FAIL])
     runner.config = runner.config.model_copy(update={"max_agent_steps": 3})
     with pytest.raises(RunFailure) as error:

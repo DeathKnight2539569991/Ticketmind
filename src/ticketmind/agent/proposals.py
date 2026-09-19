@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, TypeAdapte
 
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8000)]
 SourceId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
+RiskFlag = Literal["security", "payment", "permissions", "data_loss"]
 
 
 class ProposalBase(BaseModel):
@@ -11,7 +12,6 @@ class ProposalBase(BaseModel):
     reason: Text
     reply: Text
     evidence_ids: list[SourceId] = Field(default_factory=list, max_length=100)
-    risk_flags: list[Literal["security", "payment", "permissions", "data_loss"]] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def unique_evidence(self):
@@ -23,10 +23,12 @@ class ProposalBase(BaseModel):
 class Resolution(ProposalBase):
     next_step: Literal["propose_resolution"]
     evidence_ids: list[SourceId] = Field(min_length=1, max_length=100)
-    questions: list[Text] = Field(default_factory=list, max_length=0)
     # Optional for reading historical M1/M2 rows; new model responses must provide
     # one verbatim support excerpt per citation (validated with actual hit text).
-    evidence_quotes: dict[SourceId, Annotated[str, StringConstraints(strip_whitespace=True, min_length=12, max_length=2000)]] = Field(default_factory=dict)
+    evidence_quotes: dict[
+        SourceId,
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=12, max_length=2000)],
+    ] = Field(default_factory=dict)
 
 
 class Clarification(ProposalBase):
@@ -36,7 +38,7 @@ class Clarification(ProposalBase):
 
 class Escalation(ProposalBase):
     next_step: Literal["escalate"]
-    questions: list[Text] = Field(default_factory=list, max_length=0)
+    risk_flags: list[RiskFlag] = Field(default_factory=list)
 
 
 Proposal = Annotated[Resolution | Clarification | Escalation, Field(discriminator="next_step")]
@@ -57,17 +59,19 @@ class GetCaseDetail(BaseModel):
     source_id: SourceId
 
 
-Decision = Annotated[Resolution | Clarification | Escalation | SearchCases | GetCaseDetail, Field(discriminator="next_step")]
+Decision = Annotated[
+    Resolution | Clarification | Escalation | SearchCases | GetCaseDetail,
+    Field(discriminator="next_step"),
+]
 decision_adapter = TypeAdapter(Decision)
 
 
 def validate_proposal(proposal: Proposal, source_ids: set[str]) -> None:
     if not set(proposal.evidence_ids) <= source_ids:
         raise ValueError("提案引用了本次检索中不存在的来源")
-    if proposal.risk_flags and proposal.next_step != "escalate":
-        raise ValueError("存在高风险标记时必须提出转人工建议")
     if proposal.next_step == "ask_clarification":
         from ticketmind.agent.policy import validate_questions
+
         validate_questions(proposal)
 
 
@@ -82,6 +86,8 @@ def validate_decision_evidence(decision, hits):
         (hit["text"] if isinstance(hit, dict) else hit.text)
         for hit in hits
     }
-    if any(source_id not in sources or quote not in sources[source_id]
-           for source_id, quote in decision.evidence_quotes.items()):
+    if any(
+        source_id not in sources or quote not in sources[source_id]
+        for source_id, quote in decision.evidence_quotes.items()
+    ):
         raise ValueError("解决提案引用原文不在对应的实际证据中")

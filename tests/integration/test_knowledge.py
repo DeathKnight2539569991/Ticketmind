@@ -402,7 +402,7 @@ def test_runtime_and_detail_use_pg_without_jsonl(knowledge, monkeypatch):
         if not state["case_details"]:
             return GetCaseDetail(next_step="get_case_detail", source_id=case["source_id"], reason="核对会话")
         assert state["case_details"][case["source_id"]] == case["source"]
-        return Clarification(next_step="ask_clarification", reason="缺少现状", reply="请提供当前错误。", questions=["当前错误是什么？"])
+        return Clarification(next_step="ask_clarification", reason="缺少现状", reply="请提供当前错误。")
     runner = AgentRunner(k.qwen, MilvusSettings(_env_file=None, uri="http://unused"),
         k.config.model_copy(update={"corpus_path": Path("does-not-exist"), "retrieval_mode": "bm25"}),
         session_factory=k.factory, milvus_factory=lambda _: client, decision_fn=decision,

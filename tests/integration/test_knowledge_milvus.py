@@ -61,7 +61,8 @@ def test_real_publish_three_modes_retire_and_repair(knowledge):
                 corpus=store, config=k.config.model_copy(update={"retrieval_mode": mode}), timeout=milvus.timeout_seconds,
                 record=audit, model=k.qwen.embedding_model)
             assert hits and hits[0].source_id == case["source_id"] and hits[0].text == case["content"]
-            assert audit["result_evidence"][0]["content_hash"] == case["content_hash"]
+            assert audit["result_hits"][0]["content_hash"] == case["content_hash"]
+            assert "text" not in audit["result_hits"][0] and "metadata" not in audit["result_hits"][0]
         # Delete only our test document, then repair ACTIVE from PG's exact cache.
         client.delete(collection_name=name, ids=[case["source_id"]], timeout=milvus.timeout_seconds)
         repaired = sync.reconcile(PRODUCTION_DATASET, repair_active=True)

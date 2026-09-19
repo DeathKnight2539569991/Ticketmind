@@ -25,13 +25,15 @@ def test_ticket_message_sequence_is_unique_per_ticket() -> None:
     assert "uq_ticket_messages_ticket_sequence" in constraint_names
 
 
-def test_processing_result_has_a_confidence_constraint() -> None:
+def test_processing_result_removed_obsolete_confidence_and_keeps_action_constraint() -> None:
     constraint_names = {
         constraint.name
         for constraint in ProcessingResult.__table__.constraints
     }
 
-    assert "ck_processing_results_confidence_range" in constraint_names
+    assert "confidence" not in ProcessingResult.__table__.columns
+    assert "ck_processing_results_confidence_range" not in constraint_names
+    assert "ck_processing_results_completed_requires_action" in constraint_names
 
 def test_trigger_message_relationship_only_syncs_message_id() -> None:
     configure_mappers()

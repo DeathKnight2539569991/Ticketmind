@@ -170,7 +170,7 @@ def test_real_adapters_use_distinct_models_and_record_usage(monkeypatch):
     def judge_response(**kwargs):
         calls.append(kwargs)
         kwargs["usage_callback"]({"total_tokens": 8})
-        return json.dumps(PASS)
+        return json.dumps({"violations": []})
     monkeypatch.setattr(decide, "generate_text", decision_response)
     monkeypatch.setattr(semantic_judge, "generate_text", judge_response)
     runner, _, _, _ = make_runner(monkeypatch, [], [], decision_fn=None, judge_fn=None)
@@ -201,14 +201,29 @@ def test_models_must_differ(decision, judge):
         ProcessingSettings(_env_file=None, decision_model=decision, judge_model=judge)
 
 
+def test_judge_model_schema_derives_passed_instead_of_asking_model_for_it():
+    schema = JudgeResult.model_json_schema()
+    assert "passed" not in schema["properties"]
+    passed = JudgeResult.model_validate({"violations": []})
+    failed = JudgeResult.model_validate({"violations": FAIL["violations"]})
+    assert passed.passed is True and failed.passed is False
+    assert passed.model_dump() == {"violations": [], "passed": True}
+
+
 @pytest.mark.parametrize("data", [
-    {"passed": False, "violations": []}, {"passed": True, "violations": FAIL["violations"]},
-    {"passed": True, "violations": [], "expected_action": "escalate"},
-    {"passed": False, "violations": [{"type": "missing_questions", "text": "x", "reason": "x"}]},
+    {"passed": True, "violations": []},
+    {"violations": [], "expected_action": "escalate"},
+    {"violations": [{"type": "missing_questions", "text": "x", "reason": "x"}]},
 ])
-def test_strict_judge_protocol(data):
+def test_strict_judge_model_protocol(data):
     with pytest.raises(ValidationError):
         JudgeResult.model_validate(data)
+
+
+def test_legacy_internal_judge_shape_is_only_accepted_when_consistent():
+    assert semantic_judge.validate_judgment(PASS, GOOD).passed
+    with pytest.raises(ValueError, match="不一致"):
+        semantic_judge.validate_judgment({"passed": True, "violations": FAIL["violations"]}, BAD)
 
 
 def test_question_duplicates_remain_deterministic():

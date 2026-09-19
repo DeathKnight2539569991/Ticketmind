@@ -57,7 +57,7 @@ def bounded_decision(state, *, decide, judge, corpus, config, remaining, audit, 
                 proposal = normalize_proposal(decide(state))
                 remaining()
                 validate_proposal(proposal, {hit.source_id for hit in state["retrieval_hits"]})
-                    if (proposal.next_step == "ask_clarification" and
+                if (proposal.next_step == "ask_clarification" and
                         state.get("clarification_rounds", 0) >= config.max_clarification_rounds):
                     raise ValueError("重生成不得绕过澄清轮数限制")
             except Exception as exc:

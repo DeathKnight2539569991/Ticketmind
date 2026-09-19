@@ -1,5 +1,6 @@
 """Validate the isolated synthetic live-E2E fixture without DB, Milvus or LLM calls."""
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from ticketmind.api.schemas.tickets import TicketCreate
@@ -19,6 +20,23 @@ def rows(name: str) -> list[dict]:
 def main() -> None:
     history = load_historical_cases(ROOT / "historical_cases.jsonl")
     source_ids = {case.source_id for case in history}
+    case_one = next((case for case in history if case.source_id == "SYN-LIVE-E2E-2026-09-001"), None)
+    if case_one is None:
+        raise ValueError("missing corrected case 001")
+    utc = datetime.fromisoformat("2026-09-09T16:30:00+00:00")
+    if utc.astimezone(timezone(timedelta(hours=8))).isoformat() != "2026-09-10T00:30:00+08:00":
+        raise ValueError("incorrect UTC to Shanghai boundary conversion")
+    text_one = build_case_text(case_one)
+    if ("2026-09-09T16:30:00Z" not in text_one or
+            "2026-09-10T00:00:00Z" not in text_one or
+            "2026-09-09T16:00:00Z" not in text_one or "23:00" in text_one):
+        raise ValueError("corrected case 001 date-boundary evidence is missing or stale")
+    old_path = ROOT.parent / "live_e2e_v1" / "historical_cases.jsonl"
+    if old_path.exists():
+        old_history = load_historical_cases(old_path)
+        if [case.model_dump() for case in history[1:]] != [case.model_dump() for case in old_history[1:]]:
+            raise ValueError("historical cases 002-010 unexpectedly changed")
+
     for case in history:
         if len(case.source_id.encode("utf-8")) > SOURCE_ID_MAX_BYTES:
             raise ValueError(f"source_id too long: {case.source_id}")
@@ -36,6 +54,13 @@ def main() -> None:
         raise ValueError("tests must be explicitly synthetic")
     for entry in tests:
         TicketCreate.model_validate(entry["input"])
+    test_one = next((t for t in tests if t["case_id"] == "SYN-LIVE-TEST-01"), None)
+    if not test_one or "2026-09-09T16:30:00Z" not in test_one["input"]["body"]:
+        raise ValueError("TEST-01 does not match corrected date-boundary case")
+    test_17 = next((t for t in tests if t["case_id"] == "SYN-LIVE-TEST-17"), None)
+    if not test_17 or "我还没有提供" in test_17["input"]["body"]:
+        raise ValueError("TEST-17 contains explicit missing-fact hints")
+
     for check in checks:
         if check.get("label_status") != "draft_not_independently_reviewed":
             raise ValueError("review checks have not been independently reviewed")

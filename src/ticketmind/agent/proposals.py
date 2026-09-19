@@ -44,10 +44,15 @@ class Escalation(ProposalBase):
     risk_flags: list[RiskFlag] = Field(default_factory=list)
 
 
+class ModelEscalation(ProposalBase):
+    """Model-facing escalation; risk flags are deterministic runtime metadata."""
+    next_step: Literal["escalate"]
+
+
 Proposal = Annotated[Resolution | Clarification | Escalation, Field(discriminator="next_step")]
 proposal_adapter = TypeAdapter(Proposal)
 
-ModelProposal = Annotated[ModelResolution | Clarification | Escalation, Field(discriminator="next_step")]
+ModelProposal = Annotated[ModelResolution | Clarification | ModelEscalation, Field(discriminator="next_step")]
 model_proposal_adapter = TypeAdapter(ModelProposal)
 
 
@@ -66,7 +71,7 @@ class GetCaseDetail(BaseModel):
 
 
 Decision = Annotated[
-    ModelResolution | Clarification | Escalation | SearchCases | GetCaseDetail,
+    ModelResolution | Clarification | ModelEscalation | SearchCases | GetCaseDetail,
     Field(discriminator="next_step"),
 ]
 decision_adapter = TypeAdapter(Decision)

@@ -91,7 +91,7 @@ uv run --no-sync alembic current
 uv run --no-sync uvicorn ticketmind.main:app --host 127.0.0.1 --port 8000 --workers 1
 ```
 
-最新业务迁移为 **b812ce904a61**，在 M2 的 **9c42d71ab203** 之上新增知识数据集、知识案例、操作审计和精确向量缓存四张表。旧工单、运行、审核不改写；有知识数据时拒绝有损降级。M2 的审核表、消息审计、发布消息关联和 cancelled 状态全部保留。
+最新业务迁移为 **c3f1a7d4e902**。它在知识迁移 **b812ce904a61** 之后清理 `processing_results` 中已被 `proposal` 取代且确认无独立数据的 `reason`、`final_reply`、`confidence`、`extracted_information` 旧列；迁移发现非冗余历史数据时会拒绝执行。旧工单、运行、审核不改写；有知识数据时拒绝有损降级。M2 的审核表、消息审计、发布消息关联和 cancelled 状态全部保留。
 
 启动使用独立连接池初始化 PostgreSQL checkpointer 的 checkpoint_* / checkpoints 表，与业务表位于相同数据库/schema。检查点由 saver.setup 管理，业务表由 Alembic 管理。仅新增 langgraph-checkpoint-postgres 3.1.2 及其 psycopg-pool 3.3.1；保留 LangGraph 1.2.11 和其余既有版本。
 

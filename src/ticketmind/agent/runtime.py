@@ -171,13 +171,10 @@ class AgentRunner:
                 state,
                 decide=one_decision,
                 judge=judge,
-                embeddings=embeddings,
-                client=client,
                 corpus=self.corpus,
                 config=self.config,
                 remaining=remaining,
                 audit=partial["tool_calls"],
-                retrieval_timeout=lambda: min(self.milvus.timeout_seconds, remaining()),
                 search_fn=search,
             )
             evidence = self.corpus.evidence(hits)

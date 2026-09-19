@@ -165,7 +165,6 @@ def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCre
             run.action = {"propose_resolution": AgentAction.RESOLVE,
                           "ask_clarification": AgentAction.ASK_CLARIFICATION,
                           "escalate": AgentAction.ESCALATE}[proposal.next_step]
-            run.reason, run.final_reply = proposal.reason, proposal.reply
             run.run_status = ProcessingRunStatus.WAITING_REVIEW
         session.flush()
         return RunRead.model_validate(run), True

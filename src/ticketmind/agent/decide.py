@@ -1,6 +1,6 @@
 import json
 
-from ticketmind.agent.proposals import Decision, decision_adapter, proposal_adapter, validate_proposal, validate_decision_evidence
+from ticketmind.agent.proposals import Decision, decision_adapter, model_proposal_adapter, validate_proposal, validate_decision_evidence
 from ticketmind.agent.state import TicketAgentState
 from ticketmind.core.config import QwenSettings
 from ticketmind.llm.client import generate_text
@@ -73,7 +73,7 @@ Agent 不自行执行退款、权限修改、数据删除或恢复等高风险�
 
 def decision_response_adapter(state: TicketAgentState):
     """Repair turns may only return a final proposal; normal turns may also request read-only tools."""
-    return proposal_adapter if state.get("guardrail_feedback") else decision_adapter
+    return model_proposal_adapter if state.get("guardrail_feedback") else decision_adapter
 
 
 def decision_messages(state: TicketAgentState) -> tuple[str, str]:

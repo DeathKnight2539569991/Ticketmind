@@ -31,8 +31,9 @@ class DemoRunner:
             reason="隔离演示：按标题中的演示类型选择固定路径，非模型输出。",
             reply=reply,
             evidence_ids=[source.source_id],
-            questions=["是否启用本机代理？代理类型是什么？"] if action == "ask_clarification" else [],
         )
+        if action == "ask_clarification":
+            proposal_data["questions"] = ["是否启用本机代理？代理类型是什么？"]
         if action == "propose_resolution":
             proposal_data["evidence_quotes"] = {source.source_id: source.resolution.summary}
         proposal = proposal_adapter.validate_python(proposal_data)

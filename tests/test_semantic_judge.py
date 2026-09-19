@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from ticketmind.agent import runtime, semantic_judge, decide
 from ticketmind.agent.decide import decision_messages, decision_response_adapter
-from ticketmind.agent.proposals import Escalation, Clarification, proposal_adapter, decision_adapter
+from ticketmind.agent.proposals import Escalation, Clarification, proposal_adapter, decision_adapter, model_proposal_adapter
 from ticketmind.agent.runtime import AgentRunner, RunFailure
 from ticketmind.agent.schemas import AgentMessage, AgentRunInput
 from ticketmind.agent.semantic_judge import JudgeResult
@@ -89,7 +89,7 @@ def test_rejected_then_repaired_once(monkeypatch):
     assert seen[1]["guardrail_feedback"]["proposal"] == BAD.model_dump()
     assert set(seen[1]["guardrail_feedback"]) == {"proposal", "violations"}
     assert decision_response_adapter(seen[0]) is decision_adapter
-    assert decision_response_adapter(seen[1]) is proposal_adapter
+    assert decision_response_adapter(seen[1]) is model_proposal_adapter
     _, user = decision_messages(seen[1])
     assert json.loads(user)["guardrail_feedback"]["violations"] == FAIL["violations"]
     assert [a["status"] for a in result.usage["semantic_judge"]] == ["rejected", "passed"]
@@ -125,7 +125,8 @@ def test_judge_errors_fail_closed_without_repair(monkeypatch, response):
 @pytest.mark.parametrize("repair", [
     {"next_step": "search_cases", "query": "q", "reason": "x"},
     Escalation(next_step="escalate", reply="建议人工核查", reason="x", evidence_ids=["invented"]),
-    Clarification(next_step="ask_clarification", reply="当前配置？", reason="x", questions=["当前配置？"], risk_flags=["security"]),
+    {"next_step": "ask_clarification", "reply": "当前配置？", "reason": "x",
+     "questions": ["当前配置？"], "risk_flags": ["security"]},
 ])
 def test_repair_cannot_bypass_deterministic_rules_or_execute_tools(monkeypatch, repair):
     runner, seen, judged, _ = make_runner(monkeypatch, [BAD, repair], [FAIL])

@@ -71,6 +71,12 @@ SEARCH = {"next_step": "search_cases", "reason": "需要更多证据", "query": 
 FINAL = {"next_step": "ask_clarification", "reason": "缺少信息", "reply": "请提供现有配置。", "questions": ["当前代理配置是什么？"]}
 
 
+
+def test_step_budget_counts_only_the_initial_retrieval_before_first_decision():
+    result, _, seen, *_ = execute([FINAL])
+    assert result.next_step == "ask_clarification"
+    assert seen[0]["agent_steps"] == 2  # initial retrieval + first decision
+
 def test_tools_execute_and_return_new_evidence_to_decision():
     config = ProcessingSettings(_env_file=None)
     ids = list(load_sources(config.corpus_path).cases)

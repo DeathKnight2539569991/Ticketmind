@@ -20,8 +20,8 @@ def run_input(subject="s", content="b"):
 
 
 def proposal():
-    return Clarification(next_step="ask_clarification", reason="missing information", reply="unit reply",
-                          questions=["unit question"], evidence_ids=["SYN-HIST-V2-007"])
+    return Clarification(next_step="ask_clarification", reason="missing information",
+                         reply="unit question", evidence_ids=["SYN-HIST-V2-007"])
 
 
 @pytest.mark.parametrize("failure", [None, "embedding", "decision", "source"])

@@ -32,20 +32,28 @@ def test_risk_flags_only_belong_to_escalation():
 
 
 
-def test_live_resolution_schema_is_stricter_than_historical_parser():
-    old_resolution = {
+def test_live_resolution_uses_source_ids_without_quotes():
+    resolution = {
         "next_step": "propose_resolution",
         "reason": "historical",
         "reply": "historical reply",
         "evidence_ids": ["case-1"],
     }
-    # Stored historical rows may predate verbatim quote capture.
-    proposal_adapter.validate_python(old_resolution)
-    # Current model output must satisfy the stronger live contract immediately.
+    for adapter in (proposal_adapter, decision_adapter, model_proposal_adapter):
+        parsed = adapter.validate_python(resolution)
+        assert parsed.evidence_ids == ["case-1"]
+        assert "evidence_quotes" not in parsed.model_dump()
+        assert "evidence_quotes" not in str(adapter.json_schema())
+
+
+def test_historical_stored_quotes_are_read_only_and_not_republished():
+    historical = {"next_step": "propose_resolution", "reason": "old", "reply": "old",
+                  "evidence_ids": ["case-1"], "evidence_quotes": {"case-1": "a previous stored quotation"}}
+    parsed = proposal_adapter.validate_python(historical)
+    assert "evidence_quotes" not in parsed.model_dump()
+    # New model-facing proposals cannot reintroduce the deleted field.
     with pytest.raises(ValidationError):
-        decision_adapter.validate_python(old_resolution)
-    with pytest.raises(ValidationError):
-        model_proposal_adapter.validate_python(old_resolution)
+        decision_adapter.validate_python(historical)
 
 
 @pytest.mark.parametrize("data", [

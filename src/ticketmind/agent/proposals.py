@@ -48,7 +48,6 @@ class SearchCases(BaseModel):
     next_step: Literal["search_cases"]
     reason: Text
     query: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
-    missing_evidence: Text
 
 
 class GetCaseDetail(BaseModel):

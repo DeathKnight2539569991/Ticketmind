@@ -54,6 +54,7 @@ def test_live_resolution_schema_is_stricter_than_historical_parser():
     {"next_step": "ask_clarification", "reason": "r", "reply": "x",
      "questions": ["当前配置是什么？"], "risk_flags": ["security"]},
     {"next_step": "escalate", "reason": "r", "reply": "x", "questions": []},
+    {"next_step": "escalate", "reason": "r", "reply": "x", "risk_flags": ["security"]},
 ])
 def test_final_actions_expose_only_their_own_fields(data):
     with pytest.raises(ValidationError):

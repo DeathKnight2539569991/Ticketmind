@@ -6,8 +6,8 @@ import pytest
 from pydantic import ValidationError
 
 from ticketmind.agent import runtime, semantic_judge, decide
-from ticketmind.agent.decide import decision_messages
-from ticketmind.agent.proposals import Escalation, Clarification
+from ticketmind.agent.decide import decision_messages, decision_response_adapter
+from ticketmind.agent.proposals import Escalation, Clarification, proposal_adapter, decision_adapter
 from ticketmind.agent.runtime import AgentRunner, RunFailure
 from ticketmind.agent.schemas import AgentMessage, AgentRunInput
 from ticketmind.agent.semantic_judge import JudgeResult
@@ -87,6 +87,9 @@ def test_rejected_then_repaired_once(monkeypatch):
     assert result.state["proposal"] == GOOD
     assert seen[1]["guardrail_feedback"]["violations"] == FAIL["violations"]
     assert seen[1]["guardrail_feedback"]["proposal"] == BAD.model_dump()
+    assert set(seen[1]["guardrail_feedback"]) == {"proposal", "violations"}
+    assert decision_response_adapter(seen[0]) is decision_adapter
+    assert decision_response_adapter(seen[1]) is proposal_adapter
     _, user = decision_messages(seen[1])
     assert json.loads(user)["guardrail_feedback"]["violations"] == FAIL["violations"]
     assert [a["status"] for a in result.usage["semantic_judge"]] == ["rejected", "passed"]
@@ -221,8 +224,8 @@ def test_repair_respects_total_step_budget(monkeypatch):
     runner.config = runner.config.model_copy(update={"max_agent_steps": 3})
     with pytest.raises(RunFailure) as error:
         runner(run_input())
-    assert len(seen) == len(judged) == 1
-    assert error.value.__cause__.code == "guardrail_step_limit"
+    assert len(seen) == len(judged) == 2
+    assert error.value.__cause__.code == "semantic_guardrail_failure"
 
 
 @pytest.mark.parametrize("kind,reply", [

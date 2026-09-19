@@ -74,6 +74,8 @@ def test_review_paths_preserve_original_and_apply_once(setup, proposal, decision
     assert detail["messages"][-1]["id"] == result["published_message_id"]
     if decision == "edit":
         assert detail["messages"][-1]["body"] == "人工修改后的建议"
+    elif proposal == "ask_clarification" and decision == "approve":
+        assert detail["messages"][-1]["body"] == run["proposal"]["reply"]
     with factory() as session:
         assert session.scalar(select(func.count()).select_from(ProcessingReview).where(ProcessingReview.run_id == UUID(run["id"]))) == 1
     if status == "open":

@@ -386,7 +386,8 @@ def test_search_reads_only_index_ids_then_pg_content(knowledge, monkeypatch, mod
         timeout=1, record=audit)
     assert hits[0].text == case["content"] and hits[0].metadata["ticket_version"] == 3
     assert hits[0].content_hash == case["content_hash"] and hits[0].knowledge_revision == 1
-    assert audit["result_evidence"][0]["synthetic"] is False
+    assert audit["result_hits"][0]["synthetic"] is False
+    assert "text" not in audit["result_hits"][0] and "metadata" not in audit["result_hits"][0]
 
 
 def test_runtime_and_detail_use_pg_without_jsonl(knowledge, monkeypatch):

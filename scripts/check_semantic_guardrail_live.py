@@ -272,10 +272,12 @@ def main():
                           judge("repair-" + number + "-judge", current, proposal))
                 row["judgments"].append(result.model_dump())
                 return result
+            def forbidden_search(*args):
+                raise RuntimeError("guardrail repair must not execute retrieval")
             try:
                 proposal, _ = bounded_decision(state, decide=repair_decision, judge=repair_judge,
-                    embeddings=None, client=None, corpus=None, config=config, remaining=repair_remaining,
-                    audit=list(state["tool_calls"]))
+                    corpus=None, config=config, remaining=repair_remaining,
+                    audit=list(state["tool_calls"]), search_fn=forbidden_search)
                 row.update(status="passed", final_proposal=proposal.model_dump())
             except Exception as exc:
                 row.update(status="failed", error_type=type(exc).__name__, error_code=getattr(exc, "code", None))

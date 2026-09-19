@@ -13,7 +13,7 @@ from ticketmind.agent import dev_cache
 from ticketmind.agent.dev_cache import CachedQueryEmbeddings
 from ticketmind.agent.graph import build_ticket_graph
 from ticketmind.agent.retrieve import build_retrieval_query
-from ticketmind.agent.run_cache import QueryVectorCache, query_fingerprint
+from ticketmind.agent.run_cache import QueryVectorCache, query_fingerprint, save_cache
 from ticketmind.agent.schemas import AgentMessage
 from ticketmind.core.config import MilvusSettings, QwenSettings
 
@@ -201,19 +201,15 @@ def test_entry_closes_milvus_on_preflight_failure(tmp_path, settings, monkeypatc
         subject=entry.sample_state()["subject"],
         messages=entry.sample_state()["messages"],
     )
-    QueryVectorCache(
-        query=query,
-        model=settings.embedding_model,
-        request_fingerprint=query_fingerprint(settings=settings, query=query),
-        vector=[1.0] * 1024,
-    )
-    cache = CachedQueryEmbeddings(
-        settings,
+    save_cache(
         tmp_path / "query.json",
-        factory=forbidden,
-        allow_call=True,
+        QueryVectorCache(
+            query=query,
+            model=settings.embedding_model,
+            request_fingerprint=query_fingerprint(settings=settings, query=query),
+            vector=[1.0] * 1024,
+        ),
     )
-    cache.embed_query(query)
 
     class EmptyClient:
         closed = False

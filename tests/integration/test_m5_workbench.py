@@ -84,6 +84,8 @@ def approve(at, *, edit=False):
         widget(at, "text_area", "审核理由（编辑或转人工必填）").set_value("核对适用条件")
     widget(at, "checkbox", "我已核对回复，确认应用审核并保存发布消息").check()
     click(at, "提交审核")
+    pending = at.session_state.pending
+    assert "edited_reply" in pending.payload if edit else "edited_reply" not in pending.payload
     click(at, "确认提交 / 原样重试")
 
 
@@ -121,6 +123,35 @@ def test_ui_three_paths_and_database_results(ui, subject, status):
     click(at, "确认提交 / 原样重试")
     with factory() as session:
         assert session.get(Ticket, UUID(ticket_id)).status == "resolved"
+
+
+
+@pytest.mark.parametrize("decision,expected_keys", [
+    ("approve", {"decision", "expected_version"}),
+    ("edit", {"decision", "expected_version", "edited_reply", "comment"}),
+    ("escalate", {"decision", "expected_version", "comment"}),
+])
+def test_ui_review_payload_matches_discriminated_schema(ui, decision, expected_keys):
+    at, client, factory, auth = ui
+    login(at, auth.reviewer_token.get_secret_value())
+    ticket_id = create(at, "审核 payload " + decision)
+    process(at)
+    widget(at, "selectbox", "审核决定").select(decision)
+    if decision == "edit":
+        widget(at, "text_area", "编辑后的回复（仅编辑后批准使用）").set_value("人工编辑回复")
+        widget(at, "text_area", "审核理由（编辑或转人工必填）").set_value("编辑原因")
+    elif decision == "escalate":
+        widget(at, "text_area", "审核理由（编辑或转人工必填）").set_value("需要人工处理")
+    widget(at, "checkbox", "我已核对回复，确认应用审核并保存发布消息").check()
+    click(at, "提交审核")
+    pending = at.session_state.pending
+    assert set(pending.payload) == expected_keys
+    click(at, "确认提交 / 原样重试")
+    with factory() as session:
+        ticket = session.get(Ticket, UUID(ticket_id))
+        assert ticket.version == 2
+        if decision == "escalate":
+            assert ticket.status == "escalated"
 
 
 def test_ui_operator_permissions_and_failed_201(ui):
@@ -178,6 +209,7 @@ def test_ui_saved_failed_review_resumes_with_original_key(ui, monkeypatch):
     click(at, "重试已保存的审核")
     assert at.session_state.pending.key == key
     pending = at.session_state.pending
+    assert set(pending.payload) == {"decision", "expected_version"}
     click(at, "确认提交 / 原样重试")
     response = client.post(pending.path, json=pending.payload, headers={"Authorization": "Bearer " + auth.reviewer_token.get_secret_value(), "Idempotency-Key": key})
     assert response.status_code == 200

@@ -24,6 +24,20 @@ def queue(path, payload, label):
     st.rerun()
 
 
+def review_request_payload(decision, expected_version, *, edited_reply=None, comment=None):
+    payload = {"decision": decision, "expected_version": expected_version}
+    if decision == "edit":
+        payload.update(edited_reply=edited_reply, comment=comment)
+    elif decision == "escalate":
+        payload["comment"] = comment
+    elif decision == "approve":
+        if comment:
+            payload["comment"] = comment
+    else:
+        raise ValueError("未知审核决定")
+    return payload
+
+
 def pending_panel(api):
     pending = st.session_state.get("pending")
     if not pending:
@@ -133,7 +147,10 @@ def run_view(api, ticket, run, reviewer):
             if st.button("重试已保存的审核", key="retry_review"):
                 st.session_state.pending = PendingWrite(
                     f"/tickets/{ticket['id']}/runs/{run['id']}/review",
-                    {k: review[k] for k in ("decision", "expected_version", "edited_reply", "comment")},
+                    review_request_payload(
+                        review["decision"], review["expected_version"],
+                        edited_reply=review.get("edited_reply"), comment=review.get("comment"),
+                    ),
                     "以原审核人身份重试已保存的审核", review["idempotency_key"])
                 st.rerun()
     if reviewer and run["run_status"] == "waiting_review" and not review:
@@ -147,9 +164,15 @@ def run_view(api, ticket, run, reviewer):
                 if not acknowledged or (decision in ("edit", "escalate") and not comment.strip()) or (decision == "edit" and not edited.strip()):
                     st.error("请确认已核对回复，并填写所需文本与理由。")
                 else:
-                    queue(f"/tickets/{ticket['id']}/runs/{run['id']}/review",
-                          dict(decision=decision, expected_version=ticket["version"],
-                               edited_reply=edited if decision == "edit" else None, comment=comment or None), "确认人工审核；发布仅保存到本地数据库")
+                    queue(
+                        f"/tickets/{ticket['id']}/runs/{run['id']}/review",
+                        review_request_payload(
+                            decision, ticket["version"],
+                            edited_reply=edited if decision == "edit" else None,
+                            comment=comment or None,
+                        ),
+                        "确认人工审核；发布仅保存到本地数据库",
+                    )
 
 
 def detail_view(api, ticket, reviewer):

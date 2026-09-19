@@ -54,7 +54,7 @@ def execute(decisions, *, changes=None, limits=None, tool_error=False):
         result = [hits[2]]
         # Retrieval-service diagnostics belong to the retrieval adapter, not
         # bounded_decision; mimic that boundary in this unit test.
-        record["result_evidence"] = corpus.evidence(result)
+        record["result_hits"] = [{"source_id": hits[2].source_id}]
         return result
     args = dict(decide=decide, judge=lambda *args: {"passed": True, "violations": []},
                 corpus=corpus, config=config, remaining=lambda: 1.0, audit=audit, search_fn=search)
@@ -87,7 +87,7 @@ def test_tools_execute_and_return_new_evidence_to_decision():
     assert seen[-1]["case_details"][ids[0]]["source_id"] == ids[0]
     assert [r["tool"] for r in audit] == ["search_cases", "get_case_detail"]
     assert all(r["status"] == "succeeded" and r["duration_ms"] >= 0 for r in audit)
-    assert audit[0]["result_evidence"][0]["source_id"] == evidence[-1].source_id
+    assert audit[0]["result_hits"] == [{"source_id": evidence[-1].source_id}]
     assert seen[-1]["agent_steps"] <= 8
 
 

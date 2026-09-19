@@ -34,7 +34,7 @@ def database():
 
 class SyntheticRunner:
     def __init__(self, factory):
-        self.factory, self.calls, self.inputs = factory, 0, []
+        self.factory, self.calls, self.inputs, self.clarification_rounds = factory, 0, [], []
         self.corpus = load_sources(ProcessingSettings().corpus_path)
         self.metadata = {"agent_version": "m1-integration-double", "corpus_version": self.corpus.version,
                          "retrieval_mode": "dense", "model_config": {"synthetic_test_double": True}}
@@ -46,6 +46,7 @@ class SyntheticRunner:
     def __call__(self, agent_input, *, clarification_rounds=0):
         self.calls += 1
         self.inputs.append(agent_input)
+        self.clarification_rounds.append(clarification_rounds)
         with self.factory() as session, session.begin():
             # NOWAIT proves the processing transaction released its ticket row lock.
             session.execute(text("SET LOCAL lock_timeout = '500ms'"))
@@ -289,8 +290,17 @@ def test_real_local_dependency_failure_is_persisted_without_model_calls(setup, m
 def test_other_proposals_also_wait_for_review(setup, next_step, action):
     from ticketmind.agent.proposals import proposal_adapter
     client, runner, _ = setup
-    runner.proposal_override = proposal_adapter.validate_python({
-        "next_step": next_step, "reason": "unit test", "reply": "unit draft", "evidence_ids": ["SYN-HIST-V2-007"]})
+    proposal_data = {
+        "next_step": next_step,
+        "reason": "unit test",
+        "reply": "unit draft",
+        "evidence_ids": ["SYN-HIST-V2-007"],
+    }
+    if next_step == "propose_resolution":
+        proposal_data["evidence_quotes"] = {
+            "SYN-HIST-V2-007": runner.corpus.cases["SYN-HIST-V2-007"].resolution.summary
+        }
+    runner.proposal_override = proposal_adapter.validate_python(proposal_data)
     ticket = create(client)
     result = run(client, ticket).json()
     assert result["action"] == action and result["run_status"] == "waiting_review"

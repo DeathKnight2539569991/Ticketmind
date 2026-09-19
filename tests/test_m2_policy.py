@@ -67,7 +67,7 @@ def execute(decisions, *, changes=None, limits=None, tool_error=False):
     return result, evidence, seen, searches, vectors, audit
 
 
-SEARCH = {"next_step": "search_cases", "reason": "需要更多证据", "query": "E_TIMEOUT Python 3.12", "missing_evidence": "原因差异"}
+SEARCH = {"next_step": "search_cases", "reason": "缺少适用证据，需要按客户事实重新检索", "query": "E_TIMEOUT Python 3.12"}
 FINAL = {"next_step": "ask_clarification", "reason": "缺少信息", "reply": "请提供现有配置。", "questions": ["当前代理配置是什么？"]}
 
 
@@ -87,7 +87,6 @@ def test_tools_execute_and_return_new_evidence_to_decision():
     assert seen[-1]["case_details"][ids[0]]["source_id"] == ids[0]
     assert [r["tool"] for r in audit] == ["search_cases", "get_case_detail"]
     assert all(r["status"] == "succeeded" and r["duration_ms"] >= 0 for r in audit)
-    assert audit[0]["missing_evidence"] == SEARCH["missing_evidence"]
     assert audit[0]["result_evidence"][0]["source_id"] == evidence[-1].source_id
     assert seen[-1]["agent_steps"] <= 8
 

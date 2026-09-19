@@ -216,7 +216,7 @@ def test_judge_model_schema_derives_passed_instead_of_asking_model_for_it():
 @pytest.mark.parametrize("data", [
     {"passed": True, "violations": []},
     {"violations": [], "expected_action": "escalate"},
-    {"violations": [{"type": "missing_questions", "text": "x", "reason": "x"}]},
+    {"violations": [{"type": "unknown_rule", "text": "x", "reason": "x"}]},
 ])
 def test_strict_judge_model_protocol(data):
     with pytest.raises(ValidationError):

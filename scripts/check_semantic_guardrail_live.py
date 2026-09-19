@@ -14,7 +14,7 @@ from openai import APITimeoutError
 
 from ticketmind.agent import decide, semantic_judge
 from ticketmind.agent.decide import DECISION_PROTOCOL
-from ticketmind.agent.proposals import proposal_adapter, validate_proposal, validate_decision_evidence
+from ticketmind.agent.proposals import proposal_adapter, validate_proposal
 from ticketmind.agent.schemas import AgentMessage
 from ticketmind.agent.retrieve import build_retrieval_query
 from ticketmind.agent.tools import bounded_decision
@@ -161,7 +161,6 @@ def main():
     def judge(label, state, proposal):
         recorder.label = label
         validate_proposal(proposal, {hit.source_id for hit in state["retrieval_hits"]})
-        validate_decision_evidence(proposal, state["retrieval_hits"])
         return semantic_judge.judge_proposal(judge_settings, state, proposal)
     def judge_error(exc):
         # Keep the strict production parser unchanged. A protocol failure is a

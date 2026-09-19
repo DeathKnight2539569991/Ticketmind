@@ -23,6 +23,20 @@ def manifest_text(manifest):
     return json.dumps(manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def collection_description(manifest):
+    """Keep legacy short descriptions; fingerprint larger manifests under Milvus' 1024-byte limit.
+
+    PostgreSQL retains the full immutable manifest and collection name.  The
+    digest is only a compact integrity marker for Milvus' description field;
+    the full analyzer/schema still undergoes validation below.
+    """
+    full = manifest_text(manifest)
+    encoded = full.encode("utf-8")
+    if len(encoded) <= 1024:
+        return full
+    return "manifest-sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
 def production_collection():
     return "knowledge_" + hashlib.sha256(manifest_text(production_manifest()).encode()).hexdigest()[:24]
 
@@ -42,7 +56,7 @@ class MilvusKnowledgeIndex:
         if not client.has_collection(collection_name=name, timeout=self.budget()):
             raise RetrievalError("retrieval_collection_missing")
         description = client.describe_collection(collection_name=name, timeout=self.budget())
-        if description.get("description") != manifest_text(dataset.manifest):
+        if description.get("description") != collection_description(dataset.manifest):
             raise RetrievalError("collection_version_mismatch")
         fields = {field["name"]: field for field in description["fields"]}
         required = {"source_id", "corpus_version", "bm25_text", "embedding", "sparse"}
@@ -65,7 +79,7 @@ class MilvusKnowledgeIndex:
         client, name = self.client, dataset.collection_name
         if client.has_collection(collection_name=name, timeout=self.budget()):
             return self.validate(dataset)
-        schema = client.create_schema(auto_id=False, enable_dynamic_field=False, description=manifest_text(dataset.manifest))
+        schema = client.create_schema(auto_id=False, enable_dynamic_field=False, description=collection_description(dataset.manifest))
         schema.add_field("source_id", DataType.VARCHAR, is_primary=True, max_length=128)
         schema.add_field("corpus_version", DataType.VARCHAR, max_length=128)
         if dataset.manifest["schema_version"] == 2:

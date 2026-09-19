@@ -20,7 +20,7 @@ from ticketmind.agent.retrieve import build_retrieval_query
 from ticketmind.agent.run_cache import calculate_request_fingerprint, query_fingerprint
 from ticketmind.agent.runtime import AgentRunner
 from ticketmind.agent.schemas import AgentMessage
-from ticketmind.api.schemas.runs import ReviewCreate
+from ticketmind.api.schemas.runs import review_create_adapter
 from ticketmind.core.config import AuthSettings, MilvusSettings, ProcessingSettings, QwenSettings
 from ticketmind.db.testing import isolated_database
 from ticketmind.main import create_app
@@ -71,7 +71,7 @@ def apply_human_review(client, ticket_id, result, review, auth):
         raise ValueError("人工审核不对应本次原始提案")
     ticket = client.get(f"/tickets/{ticket_id}").json()
     before_version, before_messages = ticket["version"], len(ticket["messages"])
-    payload = ReviewCreate(expected_version=ticket["version"], **review["request"]).model_dump(mode="json")
+    payload = review_create_adapter.validate_python({"expected_version": ticket["version"], **review["request"]}).model_dump(mode="json")
     headers = {"Authorization": "Bearer " + auth.reviewer_token.get_secret_value(), "Idempotency-Key": uuid4().hex}
     url = f'/tickets/{ticket_id}/runs/{result["id"]}/review'
     approved = client.post(url, json=payload, headers=headers)

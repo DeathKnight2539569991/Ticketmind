@@ -67,8 +67,6 @@ def retrieve_cases(query, *, client, embeddings, corpus, config, timeout, record
             else:
                 hits = search_bm25(client, query, collection=collection, corpus=corpus, top_k=limit, timeout=budget())
             audit["candidates"] = [_audit_hit(hit) for hit in hits]
-            if not hits:
-                raise RetrievalError(f"{channel}_empty_results")
             audit["status"] = "succeeded"
             results[channel] = hits
         except Exception as exc:

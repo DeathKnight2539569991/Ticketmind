@@ -19,7 +19,7 @@ def create_app(*, session_factory=SesstionLocal, runner=None, auth_settings=None
             engine = session.get_bind()
         with checkpoint_resources(engine) as saver:
             application.state.workflow = ReviewWorkflow(saver)
-            recover_interrupted_runs(session_factory)
+            recover_interrupted_runs(session_factory, application.state.workflow)
             yield
         application.state.workflow = None
 

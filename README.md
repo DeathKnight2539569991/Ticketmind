@@ -269,7 +269,7 @@ uv run --no-sync python scripts/evaluate_retrieval.py --queries data/synthetic/m
 uv run --no-sync python scripts/check_m3_flow.py
 ```
 
-报告默认保存为 data/cache/m3/ 下带时间戳的新文件。各通道候选、原始分数、排名、耗时和错误写入运行 tool_calls；最终证据保存 dense_score / bm25_score / fusion_score，不把分数混成置信度。Hybrid 任一路空结果或失败使运行 failed，已取得的候选仍保留在诊断中。
+报告默认保存为 data/cache/m3/ 下带时间戳的新文件。各通道候选、原始分数、排名、耗时和错误写入运行 tool_calls；最终证据保存 dense_score / bm25_score / fusion_score，不把分数混成置信度。Hybrid 某一路零命中视为正常检索结果并继续使用其他通道；所有通道都零命中时，Decision 收到空证据并按业务规则继续重检索、追问或转人工。真正的检索服务失败仍使运行 failed，已取得的候选继续保留在诊断中。
 
 M3 使用 m3-retrieval-evidence-v1 决策输入协议；旧决策缓存保留，但不能冒充当前证据结构的匹配缓存。M0 理解/向量缓存仍可复用。历史 M2 缓存审核命令属于历史协议证据；本轮未申请、执行任何新付费模型调用，也未重验真实模型对 Hybrid 证据的决策质量。
 

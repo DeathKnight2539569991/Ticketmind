@@ -80,17 +80,32 @@ class ReviewWorkflow:
     def config(thread_id):
         return {"configurable": {"thread_id": thread_id}}
 
+    @staticmethod
+    def _validated_output(output):
+        evidence = output["evidence"]
+        proposal = proposal_adapter.validate_python(output["state"]["proposal"])
+        validate_proposal(proposal, {hit["source_id"] for hit in evidence})
+        validate_decision_evidence(proposal, evidence)
+        state = {**output["state"], "proposal": proposal}
+        return RunOutput(state, evidence, output["usage"])
+
     def start(self, snapshot, thread_id, runner):
         graph = self.graph(runner)
         result = graph.invoke({"snapshot": snapshot}, self.config(thread_id), durability="sync")
         if not result.get("__interrupt__"):
             raise RuntimeError("图未持久化审核中断")
-        output = result["output"]
-        state = {
-            **output["state"],
-            "proposal": proposal_adapter.validate_python(output["state"]["proposal"]),
-        }
-        return RunOutput(state, output["evidence"], output["usage"])
+        return self._validated_output(result["output"])
+
+    def pending_output(self, thread_id):
+        """Return already-computed output only when the checkpoint is durably waiting for review."""
+        graph, config = self.graph(), self.config(thread_id)
+        state = graph.get_state(config)
+        if not state.values or state.next != ("review",):
+            return None
+        if not any(task.interrupts for task in state.tasks):
+            return None
+        output = state.values.get("output")
+        return self._validated_output(output) if output is not None else None
 
     def resume(self, thread_id, saved_review):
         graph, config = self.graph(), self.config(thread_id)

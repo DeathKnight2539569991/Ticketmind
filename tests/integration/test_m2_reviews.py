@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 import test_m1_api as m1
 from ticketmind.agent.proposals import proposal_adapter
@@ -218,7 +218,9 @@ def test_concurrent_review_is_claimed_once_and_blocks_ticket_writes(setup, monke
     assert runner.calls == 1 and len(client.get(f'/tickets/{ticket["id"]}').json()["messages"]) == 2
 
 
-@pytest.mark.parametrize("phase", ["waiting", "compute_interrupted", "review_saved", "graph_finished"])
+@pytest.mark.parametrize("phase", [
+    "waiting", "business_commit_interrupted", "compute_interrupted", "review_saved", "graph_finished"
+])
 def test_fresh_app_restores_checkpoints_and_identifies_interruption(database, phase):
     _, factory, _ = database
     auth = AuthSettings(_env_file=None, operator_token="o" * 32, reviewer_token="r" * 32)
@@ -232,21 +234,39 @@ def test_fresh_app_restores_checkpoints_and_identifies_interruption(database, ph
             with factory() as session, session.begin():
                 saved_run = session.get(ProcessingResult, UUID(result["id"]))
                 saved_run.run_status = RunStatus.RUNNING
-                if phase != "compute_interrupted":
+                if phase in ("business_commit_interrupted", "compute_interrupted"):
+                    saved_run.proposal = None
+                    saved_run.action = None
+                    saved_run.retrieval_evidence = []
+                    saved_run.tool_calls = []
+                    saved_run.usage = None
+                    saved_run.duration_ms = None
+                if phase in ("review_saved", "graph_finished"):
                     saved_review = ProcessingReview(run_id=saved_run.id, reviewer_id="reviewer", idempotency_key=key,
                         request_hash=request_hash(payload), **payload.model_dump())
                     session.add(saved_review)
                     session.flush()
                     resume = reviews.review_payload(saved_review)
+                if phase == "compute_interrupted":
+                    for table in ("checkpoint_writes", "checkpoint_blobs", "checkpoints"):
+                        session.execute(text(f"DELETE FROM {table} WHERE thread_id = :thread"), {"thread": result["thread_id"]})
             if phase == "graph_finished":
                 client.app.state.workflow.resume(result["thread_id"], resume)
-    # New saver/pool/compiled graph; no runner is needed to review after restart.
+    # New saver/pool/compiled graph; recovery may inspect checkpoints but must never call the Agent again.
     with TestClient(create_app(session_factory=factory, auth_settings=auth)) as client:
         client.headers["Authorization"] = "Bearer " + "o" * 32
         current = client.get(f'/tickets/{ticket["id"]}/runs/{result["id"]}').json()
         if phase == "compute_interrupted":
             assert current["run_status"] == "failed" and current["error_code"] == "execution_interrupted"
             assert review(client, ticket, result, key=key).status_code == 409
+        elif phase == "business_commit_interrupted":
+            assert current["run_status"] == "waiting_review" and current["error_code"] is None
+            assert current["proposal"] == result["proposal"]
+            assert current["retrieval_evidence"] == result["retrieval_evidence"]
+            assert current["tool_calls"] == result["tool_calls"]
+            applied = review(client, ticket, result, key=key)
+            assert applied.json()["run_status"] == "completed", applied.text
+            assert len(client.get(f'/tickets/{ticket["id"]}').json()["messages"]) == 2
         else:
             assert current["run_status"] == ("waiting_review" if phase == "waiting" else "failed")
             if phase != "waiting":
@@ -257,7 +277,7 @@ def test_fresh_app_restores_checkpoints_and_identifies_interruption(database, ph
     assert runner.calls == 1
 
 
-def test_second_instance_cannot_relabel_live_runs(database):
+def test_second_instance_cannot_relabel_live_runs(database):def test_second_instance_cannot_relabel_live_runs(database):
     _, factory, _ = database
     with TestClient(create_app(session_factory=factory)):
         with pytest.raises(RuntimeError, match="已有 TicketMind 实例"):

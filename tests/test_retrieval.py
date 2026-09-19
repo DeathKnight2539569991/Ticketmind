@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -32,27 +33,32 @@ def test_rrf_uses_ranks_deduplicates_and_preserves_scores():
         reciprocal_rank_fusion([hit("a")], [hit("a").model_copy(update={"corpus_version": "other"})], top_k=1)
 
 
-@pytest.mark.parametrize("failure", [None, "empty_dense", "empty_bm25", "dense", "bm25", "wrong_version", "wrong_text"])
+@pytest.mark.parametrize("failure", [
+    None, "empty_dense", "empty_bm25", "empty_both", "dense", "bm25", "wrong_version", "wrong_text"
+])
 def test_hybrid_never_hides_single_channel_failure(monkeypatch, failure):
     config = ProcessingSettings(_env_file=None, retrieval_mode="hybrid", retrieval_top_k=1)
     corpus = load_sources(config.corpus_path)
     case = next(iter(corpus.cases.values()))
     monkeypatch.setattr(service, "validate_collection", lambda *a, **kw: "versioned")
     searches = []
+
     def search(**kwargs):
         channel = "dense" if kwargs["anns_field"] == "embedding" else "bm25"
         searches.append(channel)
         assert kwargs["limit"] == 20
         if failure == channel:
             raise TimeoutError("secret upstream details")
-        if failure == "empty_" + channel:
+        if failure == "empty_both" or failure == "empty_" + channel:
             return [[]]
         return [[{"entity": {"source_id": case.source_id, "text": "wrong" if failure == "wrong_text" else build_case_text(case),
                               "corpus_version": "wrong" if failure == "wrong_version" else corpus.version}, "distance": 0.4}]]
+
     audit = {}
     args = dict(client=SimpleNamespace(search=search), embeddings=SimpleNamespace(embed_query=lambda q: [1.0]*1024),
                 corpus=corpus, config=config, timeout=lambda: 1, record=audit)
-    if failure:
+    hard_failure = failure in {"dense", "bm25", "wrong_version", "wrong_text"}
+    if hard_failure:
         with pytest.raises(RetrievalError) as error:
             service.retrieve_cases("query", **args)
         assert "secret" not in str(error.value)
@@ -61,14 +67,24 @@ def test_hybrid_never_hides_single_channel_failure(monkeypatch, failure):
             assert audit["channels"]["dense"]["candidates"]
     else:
         hits = service.retrieve_cases("query", **args)
-        assert len(hits) == 1 and hits[0].retrieval_mode == "hybrid"
-        assert audit["result_hits"][0]["fusion_score"] == pytest.approx(2 / 61)
-        assert "text" not in audit["result_hits"][0] and "title" not in audit["result_hits"][0]
-        assert all("text" not in candidate for channel in audit["channels"].values()
-                   for candidate in channel["candidates"])
+        if failure == "empty_both":
+            assert hits == [] and audit["result_hits"] == []
+            assert all(channel["status"] == "succeeded" and not channel["candidates"]
+                       for channel in audit["channels"].values())
+        else:
+            assert len(hits) == 1 and hits[0].retrieval_mode == "hybrid"
+            expected = 1 / 61 if failure in {"empty_dense", "empty_bm25"} else 2 / 61
+            assert audit["result_hits"][0]["fusion_score"] == pytest.approx(expected)
+            if failure in {"empty_dense", "empty_bm25"}:
+                empty_channel = failure.removeprefix("empty_")
+                assert audit["channels"][empty_channel]["status"] == "succeeded"
+                assert audit["channels"][empty_channel]["candidates"] == []
+            assert "text" not in audit["result_hits"][0] and "title" not in audit["result_hits"][0]
+            assert all("text" not in candidate for channel in audit["channels"].values()
+                       for candidate in channel["candidates"])
 
 
-def test_bm25_never_embeds(monkeypatch):
+def test_bm25_never_embeds(monkeypatch):def test_bm25_never_embeds(monkeypatch):
     corpus = load_sources(ProcessingSettings().corpus_path)
     monkeypatch.setattr(service, "validate_collection", lambda *a, **kw: "versioned")
     case = next(iter(corpus.cases.values()))

@@ -106,11 +106,38 @@ def apply_review(factory, ticket_id, run_id):
         run.error_code = run.error_summary = None
 
 
-def recover_interrupted_runs(factory):
-    """Only called after acquiring the single-instance lease. Never invokes a model."""
+def recover_interrupted_runs(factory, workflow):
+    """Recover durable review interrupts without ever re-running the Agent."""
     with factory() as session, session.begin():
         runs = session.scalars(select(ProcessingResult).where(ProcessingResult.run_status == RunStatus.RUNNING)).all()
         for run in runs:
+            if run.review is None and run.thread_id:
+                try:
+                    output = workflow.pending_output(run.thread_id)
+                except Exception as exc:
+                    logger.error("run_id=%s stage=startup_recovery error=%s", run.id, type(exc).__name__)
+                    output = None
+                if output is not None:
+                    ticket = require_ticket(session, run.ticket_id)
+                    if ticket.status == TicketStatus.OPEN and ticket.version == run.ticket_version:
+                        proposal = proposal_adapter.validate_python(output.state["proposal"])
+                        run.proposal = proposal.model_dump(mode="json")
+                        run.action = {
+                            "propose_resolution": AgentAction.RESOLVE,
+                            "ask_clarification": AgentAction.ASK_CLARIFICATION,
+                            "escalate": AgentAction.ESCALATE,
+                        }[proposal.next_step]
+                        run.retrieval_evidence = output.evidence
+                        run.usage = output.usage
+                        run.tool_calls = output.state.get("tool_calls", [])
+                        run.run_status = RunStatus.WAITING_REVIEW
+                        run.completed_at = None
+                        run.error_code = run.error_summary = None
+                        continue
+                    run.run_status, run.completed_at = RunStatus.FAILED, datetime.now(UTC)
+                    run.error_code = "version_conflict"
+                    run.error_summary = "工单版本在处理期间变化，已完成结果未进入待审核"
+                    continue
             run.run_status, run.completed_at = RunStatus.FAILED, datetime.now(UTC)
             run.error_code = "review_interrupted" if run.review else "execution_interrupted"
             run.error_summary = "进程中断；重试原审核请求" if run.review else "计算被中断；确认调用预算后使用新 key 发起新运行"

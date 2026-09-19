@@ -147,22 +147,24 @@ def main():
                     assert persisted.retrieval_evidence == result["retrieval_evidence"]
                     assert session.scalar(select(func.count()).select_from(TicketMessage).where(TicketMessage.ticket_id == UUID(ticket_id))) == 1
                     assert session.scalar(select(func.count()).select_from(ProcessingResult).where(ProcessingResult.ticket_id == UUID(ticket_id))) == 1
-                if not fault:
+                if not fault or fault == "empty_bm25":
                     assert len(decisions) == 2 and len(result["tool_calls"]) == 2
                     assert all(call["retrieval_mode"] == mode and call["status"] == "succeeded" for call in result["tool_calls"])
                     assert all(hit["retrieval_mode"] == mode for hit in result["retrieval_evidence"])
+                    if fault == "empty_bm25":
+                        assert result["tool_calls"][-1]["channels"]["bm25"]["candidates"] == []
                 else:
                     expected_error = {"dense": "dense_retrieval_failed", "bm25": "bm25_retrieval_failed",
-                        "empty_bm25": "bm25_empty_results", "version": "collection_version_mismatch",
-                        "second_bm25": "bm25_retrieval_failed"}[fault]
+                        "version": "collection_version_mismatch", "second_bm25": "bm25_retrieval_failed"}[fault]
                     assert result["error_code"] == expected_error, result
-                    if fault in ("bm25", "empty_bm25", "second_bm25"):
+                    if fault in ("bm25", "second_bm25"):
                         assert result["tool_calls"][-1]["channels"]["dense"]["candidates"]
                     if fault == "second_bm25":
                         assert len(decisions) == 1 and result["retrieval_evidence"]
                     else:
                         assert not decisions
-                assert len(embedded) == (0 if mode == "bm25" else (0 if fault == "version" else 2 if not fault or fault == "second_bm25" else 1))
+                assert len(embedded) == (0 if mode == "bm25" else (
+                    0 if fault == "version" else 2 if not fault or fault in ("empty_bm25", "second_bm25") else 1))
                 report["scenarios"].append({"mode": mode, "fault": fault, "run_status": result["run_status"],
                     "error_code": result["error_code"], "tool_calls": result["tool_calls"],
                     "decision_double_calls": len(decisions), "query_cache_hits": len(embedded),

@@ -32,8 +32,6 @@ class DemoRunner:
             reply=reply,
             evidence_ids=[source.source_id],
         )
-        if action == "propose_resolution":
-            proposal_data["evidence_quotes"] = {source.source_id: source.resolution.summary}
         proposal = proposal_adapter.validate_python(proposal_data)
         return RunOutput({"proposal": proposal, "tool_calls": []}, self.corpus.evidence([RetrievalHit(source_id=source.source_id,
                           text=build_case_text(source), score=0.5)]), {"synthetic_test_double": True})

@@ -77,28 +77,35 @@ def decision_response_adapter(state: TicketAgentState):
 
 
 def decision_messages(state: TicketAgentState) -> tuple[str, str]:
-    evidence = [hit.model_dump() for hit in state["retrieval_hits"]]
     payload = {
         "subject": state["subject"],
         "messages": [message.model_dump() for message in state["messages"]],
-        "evidence": evidence,
+        "evidence": [hit.model_dump() for hit in state["retrieval_hits"]],
         "case_details": state.get("case_details", {}),
-        # Keep only control-flow facts needed for the next decision. Full audit
-        # details, result IDs and retrieval diagnostics are persisted elsewhere.
-        "tool_calls": [
-            {
-                key: value
-                for key, value in call.items()
-                if key in {"tool", "parameters", "status", "error"}
-            }
-            for call in state.get("tool_calls", [])
-        ],
-        "search_rounds": state.get("search_rounds", 1),
-        "agent_steps": state.get("agent_steps", 2),
-        "execution_limits": state.get("execution_limits", {}),
-        "clarification_rounds": state.get("clarification_rounds", 0),
-        "guardrail_feedback": state.get("guardrail_feedback"),
     }
+    if state.get("guardrail_feedback"):
+        # Repair is structurally final-only. Do not re-expose tool/budget state
+        # that could encourage a second planning pass.
+        payload["guardrail_feedback"] = state["guardrail_feedback"]
+    else:
+        payload.update(
+            {
+                # Keep only control-flow facts needed for the next decision. Full
+                # audit details and retrieval diagnostics are persisted elsewhere.
+                "tool_calls": [
+                    {
+                        key: value
+                        for key, value in call.items()
+                        if key in {"tool", "parameters", "status", "error"}
+                    }
+                    for call in state.get("tool_calls", [])
+                ],
+                "search_rounds": state.get("search_rounds", 1),
+                "agent_steps": state.get("agent_steps", 2),
+                "execution_limits": state.get("execution_limits", {}),
+                "clarification_rounds": state.get("clarification_rounds", 0),
+            }
+        )
     adapter = decision_response_adapter(state)
     return (
         SYSTEM_PROMPT + "\n\n结构定义：\n" + json.dumps(adapter.json_schema(), ensure_ascii=False),

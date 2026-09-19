@@ -38,9 +38,11 @@ def test_acceptance_exports_raw_and_reviewed_results(tmp_path, monkeypatch, case
     case = {**case, "id": "synthetic-" + case["id"]}  # Don't use real M0 cache in a synthetic test.
     config = ProcessingSettings(_env_file=None)
     source = load_sources(config.corpus_path).cases["SYN-HIST-V2-002"]
-    proposal = proposal_adapter.validate_python({"next_step": case["expected_action"], "reason": "合成验证",
-        "reply": "请核对当前预览设置。", "evidence_ids": [source.source_id],
-        "questions": ["当前设置是什么？"] if case_index == 0 else []})
+    proposal_data = {"next_step": case["expected_action"], "reason": "合成验证",
+        "reply": "请核对当前预览设置。", "evidence_ids": [source.source_id]}
+    if case_index == 0:
+        proposal_data["questions"] = ["当前设置是什么？"]
+    proposal = proposal_adapter.validate_python(proposal_data)
     if case_index == 1:
         proposal.evidence_quotes = {source.source_id: source.resolution.summary}
     class Milvus:

@@ -253,16 +253,26 @@ def test_each_violation_blocks_the_proposal(monkeypatch, kind, reply):
     assert error.value.__cause__.code == "semantic_guardrail_failure"
 
 
-def test_fabricated_quote_on_real_source_fails_before_judge(monkeypatch):
+def test_resolution_source_id_in_retrieval_reaches_judge_without_quotes(monkeypatch):
     from ticketmind.knowledge.corpus import build_case_text
     from ticketmind.retrieval.dense import RetrievalHit
     corpus = load_sources(ProcessingSettings(_env_file=None).corpus_path)
     case = next(iter(corpus.cases.values()))
     hit = RetrievalHit(source_id=case.source_id, text=build_case_text(case), score=0.5)
     proposal = {"next_step": "propose_resolution", "reply": "核对配置", "reason": "核对",
-                "evidence_ids": [case.source_id], "evidence_quotes": {case.source_id: "这是实际来源中完全不存在的伪造引用原文"}}
+                "evidence_ids": [case.source_id]}
     runner, _, judged, _ = make_runner(monkeypatch, [proposal], [PASS])
     monkeypatch.setattr(runtime, "retrieve_cases", lambda *args, **kwargs: [hit])
-    with pytest.raises(RunFailure) as error:
+    result = runner(run_input())
+    assert result.state["proposal"].next_step == "propose_resolution"
+    assert len(judged) == 1
+    assert "evidence_quotes" not in result.state["proposal"].model_dump()
+
+
+def test_resolution_unknown_source_still_rejected_before_judge(monkeypatch):
+    proposal = {"next_step": "propose_resolution", "reply": "核对配置", "reason": "核对",
+                "evidence_ids": ["invented"]}
+    runner, _, judged, _ = make_runner(monkeypatch, [proposal], [PASS])
+    with pytest.raises(RunFailure):
         runner(run_input())
-    assert not judged and "原文" in str(error.value.__cause__)
+    assert not judged

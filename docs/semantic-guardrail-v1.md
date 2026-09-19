@@ -30,7 +30,7 @@ MODEL 用于理解。Decision 与 Judge 复用现有业务空间和凭据，但�
 
 确定性代码保留 schema、risk_flags → escalate、证据 ID、逐字引用与来源匹配、工具白名单/参数/执行次数、来源正文验证和状态事务。`validate_questions()` 只拒绝列表中完全重复的字符串；重复询问已有事实交给 Judge。原来的操作关键词和回复声明正则已移除。
 
-Judge 只输出 `passed` 与 `violations[{type,text,reason}]`：
+当前 Judge v2 的模型输出只包含 `violations[{type,text,reason}]`；`passed` 由程序按 violations 是否为空计算：
 
 | 类型 | 判定边界 |
 | --- | --- |
@@ -49,7 +49,7 @@ Judge 只输出 `passed` 与 `violations[{type,text,reason}]`：
 
 主要错误码为 `semantic_guardrail_failure`（二次拒绝）、`semantic_judge_error`（无法检查）、`guardrail_repair_failed`（修正失败）、`guardrail_repair_invalid`（绕过输入风险）、`guardrail_step_limit`（无修正步数）。API 错误摘要不回显提供商异常内容。已拒绝草稿仅留作审计，不作为可审核/可发布 proposal。
 
-模型元数据记录 `decision_protocol=semantic-guardrail-decision-v1`、`judge_protocol=semantic-guardrail-v1`、两个模型和 `max_guardrail_retries=1`。提示词改变会使旧 Decision 精确缓存不匹配。注入 `decision_fn` 的旧缓存/验收入口必须显式提供 `judge_fn(state, proposal, timeout, usage)`，否则安全失败，绝不自动增加旧额度外的 Judge 付费调用。适配器的实际模型必须与配置一致；离线替身仅用于模拟验证。
+模型元数据记录 `decision_protocol=semantic-guardrail-decision-v1`、当前 `judge_protocol=semantic-guardrail-v2`、两个模型和 `max_guardrail_retries=1`。历史真实诊断报告仍保留当时的 `semantic-guardrail-v1`，不改写实验记录。提示词改变会使旧 Decision 精确缓存不匹配。注入 `decision_fn` 的旧缓存/验收入口必须显式提供 `judge_fn(state, proposal, timeout, usage)`，否则安全失败，绝不自动增加旧额度外的 Judge 付费调用。适配器的实际模型必须与配置一致；离线替身仅用于模拟验证。
 
 后续真实验收应新建独立 run/输出目录，记录协议、模型、样本、两轮提案和 Judge 判定，并单独授权及记录 Judge 和重生成额度。不要覆盖 `docs/m4-*` 的冻结报告及原始评测文件。此次没有启动新一轮真实质量评测。
 

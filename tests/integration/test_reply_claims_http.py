@@ -47,7 +47,8 @@ def test_semantic_guardrail_http_persistence(setup, monkeypatch, entry, outcome)
         return next_decision().model_dump_json()
     def judge_response(**kwargs):
         assert kwargs["settings"].model == "deepseek-v4.1-flash"
-        return json.dumps(next_judgment(), ensure_ascii=False)
+        judgment = next_judgment()
+        return json.dumps({"violations": judgment["violations"]}, ensure_ascii=False)
     monkeypatch.setattr(decide, "generate_text", recorded_response)
     monkeypatch.setattr(semantic_judge, "generate_text", judge_response)
     monkeypatch.setattr(runtime, "retrieve_cases", lambda *args, **kwargs: [])

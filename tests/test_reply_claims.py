@@ -27,12 +27,13 @@ def test_semantic_fixtures_via_structured_judge(monkeypatch, reply, kind):
     })
     # The deterministic path must not reject negation or historical operations.
     validate_proposal(value, set())
-    expected = {"passed": kind is None, "violations": [] if kind is None else [
-        {"type": kind, "text": reply, "reason": "离线预设判定，仅验证协议和接线"}]}
+    violations = [] if kind is None else [
+        {"type": kind, "text": reply, "reason": "离线预设判定，仅验证协议和接线"}]
+    expected = {"violations": violations, "passed": kind is None}
     calls = []
     def response(**kwargs):
         calls.append(kwargs)
-        return json.dumps(expected, ensure_ascii=False)
+        return json.dumps({"violations": violations}, ensure_ascii=False)
     monkeypatch.setattr(semantic_judge, "generate_text", response)
     state = {"subject": "连接失败",
              "messages": [AgentMessage(role="customer", content="当前使用本地代理。")],

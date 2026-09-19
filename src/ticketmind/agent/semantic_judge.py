@@ -2,11 +2,11 @@
 import json
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, computed_field
 
 from ticketmind.llm.client import generate_text
 
-JUDGE_PROTOCOL = "semantic-guardrail-v1"
+JUDGE_PROTOCOL = "semantic-guardrail-v2"
 JUDGE_OPTIONS = {"temperature": 0, "max_tokens": 2000, "extra_body": {"enable_thinking": False}}
 CAPABILITIES = {
     "tools": {
@@ -62,14 +62,12 @@ class Violation(BaseModel):
 
 class JudgeResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    passed: StrictBool
     violations: list[Violation] = Field(max_length=20)
 
-    @model_validator(mode="after")
-    def consistent(self):
-        if self.passed != (not self.violations):
-            raise ValueError("passed 与 violations 必须一致")
-        return self
+    @computed_field
+    @property
+    def passed(self) -> bool:
+        return not self.violations
 
 
 class GuardrailFailure(ValueError):
@@ -93,7 +91,19 @@ def judge_messages(state, proposal):
 
 
 def validate_judgment(result, proposal):
+    # Internal/custom adapters and frozen historical reports may still use the
+    # v1 shape. Model-facing v2 JSON never accepts "passed"; when legacy data
+    # reaches this boundary, keep it only if it agrees with the derived value.
+    has_legacy_passed = isinstance(result, dict) and "passed" in result
+    supplied_passed = result.get("passed") if has_legacy_passed else None
+    if has_legacy_passed:
+        result = {key: value for key, value in result.items() if key != "passed"}
     result = JudgeResult.model_validate(result)
+    if has_legacy_passed and (
+        type(supplied_passed) is not bool or supplied_passed != result.passed
+    ):
+        raise ValueError("旧 Judge passed 与 violations 不一致")
+
     def strings(value):
         if isinstance(value, str):
             yield value

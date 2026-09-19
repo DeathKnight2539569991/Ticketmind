@@ -267,7 +267,7 @@ def main():
                 row["decisions"].append(value.model_dump())
                 return value
             def repair_judge(current, proposal):
-                result = (semantic_judge.JudgeResult.model_validate(initial_result) if not row["judgments"] else
+                result = (semantic_judge.validate_judgment(initial_result, proposal) if not row["judgments"] else
                           judge("repair-" + number + "-judge", current, proposal))
                 row["judgments"].append(result.model_dump())
                 return result

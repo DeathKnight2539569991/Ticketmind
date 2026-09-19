@@ -66,7 +66,7 @@ def test_single_acceptance_session_lock(tmp_path):
 
 
 @pytest.mark.parametrize("content", [
-    '{"next_step":"ask_clarification","reason":"unit","reply":"请提供现有配置。","questions":["当前配置是什么？","当前配置是什么？"]}',
+    '{"next_step":"ask_clarification","reason":"unit","reply":"请提供现有配置。","questions":["旧字段不再允许"]}',
     '{"next_step":',
     '{"reason":"需要更多证据","query":"只读查询超时"}',
 ])

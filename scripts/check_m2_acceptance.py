@@ -85,7 +85,8 @@ def apply_human_review(client, ticket_id, result, review, auth):
     expected = {"propose_resolution": "open", "ask_clarification": "awaiting_customer", "escalate": "escalated"}[action]
     assert ticket["status"] == expected and ticket["version"] == before_version + 1
     assert len(ticket["messages"]) == before_messages + 1
-    assert applied["proposal"] == result["proposal"] and applied["final_reply"] == result["final_reply"]
+    assert applied["proposal"] == result["proposal"]
+    assert "reason" not in applied and "final_reply" not in applied
     assert ticket["messages"][-1]["id"] == applied["published_message_id"]
     return {"run": applied, "ticket": ticket, "idempotent_review": True}
 

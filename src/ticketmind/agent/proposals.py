@@ -78,7 +78,11 @@ def validate_decision_evidence(decision, hits):
         return
     if set(decision.evidence_quotes) != set(decision.evidence_ids):
         raise ValueError("新的解决提案必须为每个引用提供实际来源原文")
-    sources = {hit.source_id: hit.text for hit in hits}
+    sources = {
+        (hit["source_id"] if isinstance(hit, dict) else hit.source_id):
+        (hit["text"] if isinstance(hit, dict) else hit.text)
+        for hit in hits
+    }
     if any(source_id not in sources or quote not in sources[source_id]
            for source_id, quote in decision.evidence_quotes.items()):
         raise ValueError("解决提案引用原文不在对应的实际证据中")

@@ -56,6 +56,8 @@ def test_real_model_transport_fails_once_and_preserves_ticket(setup, monkeypatch
                       http_client=httpx.Client(trust_env=False))
         return original(**kwargs)
     monkeypatch.setattr(llm_client, "OpenAI", local_sdk)
+    from ticketmind.agent import runtime
+    monkeypatch.setattr(runtime, "retrieve_cases", lambda *args, **kwargs: [])
     class UnusedMilvus:
         closed = False
         def close(self):
@@ -73,7 +75,7 @@ def test_real_model_transport_fails_once_and_preserves_ticket(setup, monkeypatch
         result = response.json()
         assert response.status_code == 201 and result["run_status"] == "failed", result
         assert result["error_code"] == "agent_execution_failed"
-        assert "understanding" in result["error_summary"]
+        assert "decision" in result["error_summary"]
         assert "synthetic-secret" not in response.text
         assert len(sends) == 1 and milvus.closed and elapsed < 10
         assert m1.run(client, ticket, key=key).json() == result and len(sends) == 1
@@ -143,5 +145,5 @@ def test_evaluation_export_keeps_synthetic_final_separate_from_absent_model_outp
     assert result["status"] == "succeeded" and result["input_hash"] == digest(case["input"])
     assert result["raw_proposal"] is None and result["final_proposal"]["next_step"] == "ask_clarification"
     assert not ledger.data["attempts"] and synthetic.calls == 1
-    assert "MUST_NOT_ENTER_AGENT" not in str(synthetic.snapshots)
+    assert "MUST_NOT_ENTER_AGENT" not in str(synthetic.inputs)
     assert result["business_review"] == "not_executed" and result["http_database_consistent"]

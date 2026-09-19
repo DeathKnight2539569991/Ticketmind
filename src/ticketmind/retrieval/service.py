@@ -9,6 +9,18 @@ from ticketmind.retrieval.schemas import EvidenceHit, RetrievalError
 from ticketmind.retrieval.versioned_collection import validate_collection, selected_collection
 
 
+_AUDIT_HIT_FIELDS = (
+    "source_id", "corpus_version", "content_hash", "knowledge_revision", "synthetic",
+    "rank", "dense_score", "bm25_score", "fusion_score", "dense_rank", "bm25_rank",
+    "retrieval_mode",
+)
+
+
+def _audit_hit(hit):
+    data = hit.model_dump()
+    return {key: data[key] for key in _AUDIT_HIT_FIELDS if data.get(key) is not None}
+
+
 def retrieve_cases(query, *, client, embeddings, corpus, config, timeout, record, model="text-embedding-v4"):
     from ticketmind.knowledge.repository import KnowledgeStore
     if isinstance(corpus, KnowledgeStore):
@@ -54,7 +66,7 @@ def retrieve_cases(query, *, client, embeddings, corpus, config, timeout, record
                     retrieval_mode="dense") for rank, hit in enumerate(raw, 1)]
             else:
                 hits = search_bm25(client, query, collection=collection, corpus=corpus, top_k=limit, timeout=budget())
-            audit["candidates"] = [hit.model_dump() for hit in hits]
+            audit["candidates"] = [_audit_hit(hit) for hit in hits]
             if not hits:
                 raise RetrievalError(f"{channel}_empty_results")
             audit["status"] = "succeeded"
@@ -66,7 +78,7 @@ def retrieve_cases(query, *, client, embeddings, corpus, config, timeout, record
             audit["duration_ms"] = round((monotonic() - started) * 1000)
     hits = reciprocal_rank_fusion(results["dense"], results["bm25"], top_k=config.retrieval_top_k,
                                  k=config.retrieval_rrf_k) if mode == "hybrid" else results[mode]
-    record["result_evidence"] = corpus.evidence(hits)
+    record["result_hits"] = [_audit_hit(hit) for hit in hits]
     return hits
 
 
@@ -113,7 +125,7 @@ def retrieve_knowledge(query, *, client, embeddings, store, config, timeout, rec
                 hits.append(IndexHit(source_id=entity["source_id"], corpus_version=store.version,
                     content_hash=entity.get("content_hash"), rank=rank, retrieval_mode=channel,
                     **{f"{channel}_score": row["distance"], f"{channel}_rank": rank}))
-            audit.update(status="succeeded", limit=limit, candidates=[hit.model_dump() for hit in hits])
+            audit.update(status="succeeded", limit=limit, candidates=[_audit_hit(hit) for hit in hits])
             results[channel] = hits
         except Exception as exc:
             audit["error"] = exc.code if isinstance(exc, RetrievalError) else f"{channel}_retrieval_failed"
@@ -123,5 +135,5 @@ def retrieve_knowledge(query, *, client, embeddings, store, config, timeout, rec
     hits = reciprocal_rank_fusion(results["dense"], results["bm25"], top_k=config.retrieval_top_k,
                                  k=config.retrieval_rrf_k) if mode == "hybrid" else results[mode]
     hydrated = store.hydrate(hits, record)
-    record["result_evidence"] = store.evidence(hydrated)
+    record["result_hits"] = [_audit_hit(hit) for hit in hydrated]
     return hydrated

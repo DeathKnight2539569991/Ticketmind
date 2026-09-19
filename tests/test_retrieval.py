@@ -62,7 +62,10 @@ def test_hybrid_never_hides_single_channel_failure(monkeypatch, failure):
     else:
         hits = service.retrieve_cases("query", **args)
         assert len(hits) == 1 and hits[0].retrieval_mode == "hybrid"
-        assert audit["result_evidence"][0]["fusion_score"] == pytest.approx(2 / 61)
+        assert audit["result_hits"][0]["fusion_score"] == pytest.approx(2 / 61)
+        assert "text" not in audit["result_hits"][0] and "title" not in audit["result_hits"][0]
+        assert all("text" not in candidate for channel in audit["channels"].values()
+                   for candidate in channel["candidates"])
 
 
 def test_bm25_never_embeds(monkeypatch):

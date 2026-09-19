@@ -5,10 +5,9 @@ from ticketmind.agent.policy import escalation, input_risks, validate_query
 from ticketmind.agent.state import customer_fact_text
 from ticketmind.agent.proposals import decision_adapter, proposal_adapter, validate_proposal, validate_decision_evidence
 from ticketmind.agent.semantic_judge import GuardrailFailure, validate_judgment
-from ticketmind.retrieval.dense import search_case_vectors
 
 
-def bounded_decision(state, *, decide, judge, embeddings, client, corpus, config, remaining, audit, retrieval_timeout=None, search_fn=None):
+def bounded_decision(state, *, decide, judge, corpus, config, remaining, audit, search_fn):
     state = dict(state)
     state.update(case_details={}, tool_calls=audit, search_rounds=1, agent_steps=1)
     state["execution_limits"] = config.model_dump(include={
@@ -103,13 +102,7 @@ def bounded_decision(state, *, decide, judge, embeddings, client, corpus, config
         try:
             remaining()
             if decision.next_step == "search_cases":
-                if search_fn:
-                    hits = search_fn(decision.query, record)
-                else:
-                    vector = embeddings.embed_query(decision.query)
-                    hits = search_case_vectors(client, vector, top_k=config.retrieval_top_k,
-                        timeout=min(remaining(), retrieval_timeout() if retrieval_timeout else remaining()))
-                record["result_evidence"] = corpus.evidence(hits)
+                hits = search_fn(decision.query, record)
                 seen_queries.add(decision.query.strip().casefold())
                 state["search_rounds"] += 1
                 merged = {hit.source_id: hit for hit in state["retrieval_hits"]}

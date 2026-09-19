@@ -21,12 +21,14 @@ class ToolCallRecord(TypedDict, total=False):
     duration_ms: int
     result_source_ids: list[str]
     result_summary: str
-    result_evidence: list[dict[str, Any]]
+    result_hits: list[dict[str, Any]]
     error: str
     retrieval_error: str
     retrieval_mode: str
     collection: str
     candidate_k: int
+    top_k: int
+    rrf_k: int
     channels: dict[str, Any]
 
 

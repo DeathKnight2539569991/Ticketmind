@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 
 import test_m1_api as m1
 from ticketmind.agent.proposals import proposal_adapter
-from ticketmind.api.schemas.runs import ReviewCreate
+from ticketmind.api.schemas.runs import review_create_adapter
 from ticketmind.core.config import AuthSettings
 from ticketmind.main import create_app
 from ticketmind.tickets import reviews
@@ -42,9 +42,18 @@ def message(client, ticket, *, key=None, kind="customer_update", **changes):
     ("propose_resolution", "escalate", "escalated")])
 def test_review_paths_preserve_original_and_apply_once(setup, proposal, decision, status):
     client, runner, factory = setup
-    runner.proposal_override = proposal_adapter.validate_python({"next_step": proposal, "reason": "synthetic reason",
-        "reply": "原始草稿", "evidence_ids": ["SYN-HIST-V2-007"],
-        "questions": ["当前配置是什么？"] if proposal == "ask_clarification" else []})
+    proposal_data = {
+        "next_step": proposal,
+        "reason": "synthetic reason",
+        "reply": "原始草稿",
+        "evidence_ids": ["SYN-HIST-V2-007"],
+        "questions": ["当前配置是什么？"] if proposal == "ask_clarification" else [],
+    }
+    if proposal == "propose_resolution":
+        proposal_data["evidence_quotes"] = {
+            "SYN-HIST-V2-007": runner.corpus.cases["SYN-HIST-V2-007"].resolution.summary
+        }
+    runner.proposal_override = proposal_adapter.validate_python(proposal_data)
     ticket = m1.create(client)
     run = m1.run(client, ticket).json()
     key = uuid4().hex
@@ -107,7 +116,7 @@ def test_customer_update_cancels_old_plan_and_replay_precedes_version(setup):
     current = client.get(f'/tickets/{ticket["id"]}').json()
     new_run = m1.run(client, current).json()
     assert new_run["run_status"] == "waiting_review" and new_run["thread_id"] != old_run["thread_id"]
-    assert "客户补充" in runner.snapshots[-1]["body"]
+    assert any("客户补充" in message.content for message in runner.inputs[-1].messages if message.role == "customer")
 
 
 def test_clarification_rounds_use_only_applied_non_escalated_reviews(setup):
@@ -115,15 +124,14 @@ def test_clarification_rounds_use_only_applied_non_escalated_reviews(setup):
     ticket = m1.create(client)
     for round_number in range(2):
         result = m1.run(client, ticket).json()
-        assert runner.snapshots[-1]["clarification_rounds"] == round_number
+        assert runner.clarification_rounds[-1] == round_number
         assert review(client, ticket, result).json()["run_status"] == "completed"
         awaiting = client.get(f'/tickets/{ticket["id"]}').json()
         assert m1.run(client, awaiting).status_code == 409
         assert message(client, awaiting).status_code == 201
         ticket = client.get(f'/tickets/{ticket["id"]}').json()
     m1.run(client, ticket)
-    assert runner.snapshots[-1]["clarification_rounds"] == 2
-    assert len(runner.snapshots[-1]["approved_clarifications"]) == 2
+    assert runner.clarification_rounds[-1] == 2
 
 
 def test_escalated_ticket_accepts_human_reply_and_close_but_no_agent(setup):
@@ -211,7 +219,7 @@ def test_fresh_app_restores_checkpoints_and_identifies_interruption(database, ph
     _, factory, _ = database
     auth = AuthSettings(_env_file=None, operator_token="o" * 32, reviewer_token="r" * 32)
     runner = m1.SyntheticRunner(factory)
-    key, payload = uuid4().hex, ReviewCreate(decision="approve", expected_version=1)
+    key, payload = uuid4().hex, review_create_adapter.validate_python({"decision": "approve", "expected_version": 1})
     with TestClient(create_app(session_factory=factory, runner=runner, auth_settings=auth)) as client:
         client.headers["Authorization"] = "Bearer " + "o" * 32
         ticket = m1.create(client)

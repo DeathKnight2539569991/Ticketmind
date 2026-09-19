@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import func, select, text
 
-from ticketmind.agent.proposals import proposal_adapter, validate_proposal
+from ticketmind.agent.proposals import proposal_adapter, validate_proposal, validate_decision_evidence
 from ticketmind.agent.semantic_judge import GuardrailFailure
 from ticketmind.agent.runtime import RunFailure
 from ticketmind.api.schemas.runs import RunCreate, RunRead
@@ -130,6 +130,7 @@ def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCre
         output = workflow.start(snapshot, f"ticket:{ticket_id}:run:{run_id}", runner)
         proposal = proposal_adapter.validate_python(output.state["proposal"])
         validate_proposal(proposal, {hit["source_id"] for hit in output.evidence})
+        validate_decision_evidence(proposal, output.evidence)
     except Exception as exc:
         with session_factory() as session, session.begin():
             run = session.get(ProcessingResult, run_id)

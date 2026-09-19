@@ -10,10 +10,10 @@ from time import monotonic
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from ticketmind.agent.decide import decision_options, decision_messages
+from ticketmind.agent.decide import decision_options, decision_messages, decision_response_adapter
 from ticketmind.agent.dev_cache import CachedQueryEmbeddings
 from ticketmind.agent.dev_decision_cache import decision_fingerprint
-from ticketmind.agent.proposals import decision_adapter, validate_proposal, validate_decision_evidence
+from ticketmind.agent.proposals import validate_proposal, validate_decision_evidence
 from ticketmind.agent.run_cache import QueryVectorCache, load_cache, save_cache, query_fingerprint
 from ticketmind.agent.runtime import build_budgeted_embeddings
 from ticketmind.llm.client import generate_text
@@ -147,7 +147,7 @@ class AcceptanceAdapters:
             diagnostic["validation"] = {"status": "rejected", "stage": "response_completion"}
             raise ValueError("原始决策响应未正常完成；保留证据，禁止补调")
         try:
-            result = decision_adapter.validate_json(raw["choices"][0]["content"] or "")
+            result = decision_response_adapter(state).validate_json(raw["choices"][0]["content"] or "")
         except ValidationError as exc:
             diagnostic["validation"] = {"status": "rejected", "stage": "schema",
                 "errors": [{"type": e["type"], "loc": list(e["loc"]), "message": e["msg"]}

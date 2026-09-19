@@ -17,12 +17,27 @@ def bounded_decision(state, *, decide, judge, embeddings, client, corpus, config
     details = set()
     risks = input_risks(customer_fact_text(state))
 
+    def normalize_decision(value):
+        if hasattr(value, "model_dump"):
+            value = value.model_dump()
+        if isinstance(value, dict) and value.get("next_step") == "escalate":
+            value = {key: item for key, item in value.items() if key != "risk_flags"}
+        return decision_adapter.validate_python(value)
+
+    def normalize_proposal(value):
+        if hasattr(value, "model_dump"):
+            value = value.model_dump()
+        proposal = proposal_adapter.validate_python(value)
+        if risks and proposal.next_step == "escalate":
+            proposal.risk_flags = list(risks)
+        return proposal
+
     def finish(proposal):
         # At most one final-proposal repair, with no tools or new retrieval.
         # The repair also consumes the original step and wall-clock budgets.
         for attempt in range(2):
             remaining()
-            proposal = proposal_adapter.validate_python(proposal)
+            proposal = normalize_proposal(proposal)
             validate_proposal(proposal, {hit.source_id for hit in state["retrieval_hits"]})
             validate_decision_evidence(proposal, state["retrieval_hits"])
             if risks and (proposal.next_step != "escalate" or not set(risks) <= set(proposal.risk_flags)):
@@ -41,7 +56,7 @@ def bounded_decision(state, *, decide, judge, embeddings, client, corpus, config
                 "violations": [violation.model_dump() for violation in result.violations],
             }
             try:
-                proposal = proposal_adapter.validate_python(decide(state))
+                proposal = normalize_proposal(decide(state))
                 remaining()
                 validate_proposal(proposal, {hit.source_id for hit in state["retrieval_hits"]})
                 validate_decision_evidence(proposal, state["retrieval_hits"])
@@ -56,7 +71,7 @@ def bounded_decision(state, *, decide, judge, embeddings, client, corpus, config
     while state["agent_steps"] < config.max_agent_steps:
         remaining()
         state["agent_steps"] += 1
-        decision = decision_adapter.validate_python(decide(state))
+        decision = normalize_decision(decide(state))
         if decision.next_step not in ("search_cases", "get_case_detail"):
             validate_proposal(decision, {hit.source_id for hit in state["retrieval_hits"]})
             if decision.next_step == "ask_clarification" and state.get("clarification_rounds", 0) >= config.max_clarification_rounds:

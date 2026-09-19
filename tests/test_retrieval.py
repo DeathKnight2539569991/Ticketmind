@@ -102,9 +102,15 @@ def test_audit_latency_and_nonselected_candidates_do_not_enter_model_prompt():
     from ticketmind.agent.decide import decision_messages
     from ticketmind.agent.schemas import AgentMessage
     state = {"subject": "s", "messages": [AgentMessage(role="customer", content="b")],
-        "retrieval_hits": [hit("a")], "tool_calls": [{"tool": "search_cases", "status": "succeeded",
+        "retrieval_hits": [hit("a")], "tool_calls": [{"tool": "search_cases",
+            "parameters": {"query": "q"}, "reason": "old model rationale", "status": "succeeded",
+            "result_source_ids": ["a"], "result_summary": "1 result", "retrieval_mode": "hybrid",
             "duration_ms": 10, "channels": {"dense": {"duration_ms": 12, "candidates": ["unselected"]}}}]}
     first = decision_messages(state)
+    payload = json.loads(first[1])
+    assert payload["tool_calls"] == [{
+        "tool": "search_cases", "parameters": {"query": "q"}, "status": "succeeded"
+    }]
     state["tool_calls"][0]["channels"]["dense"]["duration_ms"] = 999
     assert decision_messages(state) == first
     assert "unselected" not in first[1]

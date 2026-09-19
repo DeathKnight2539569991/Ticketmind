@@ -197,9 +197,8 @@ def main():
             ("advice", "建议人工核查。", "escalate"),
             ("commitment", "届时会由人工确认恢复范围。", "escalate"),
         ):
-            proposal_data = {"next_step": action, "reason": "核查问题", "reply": text}
-            if action == "ask_clarification":
-                proposal_data["questions"] = ["当前错误码是什么？" if name == "negation" else text]
+            proposal_data = {"next_step": action, "reason": "核查问题",
+                             "reply": "不要做任何修改。请提供当前错误码。" if name == "negation" else text}
             proposal = proposal_adapter.validate_python(proposal_data)
             row = {"proposal": proposal.model_dump()}
             report["controls"][name] = row

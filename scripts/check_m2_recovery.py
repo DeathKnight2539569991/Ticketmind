@@ -53,7 +53,6 @@ def serve(args):
                 next_step="ask_clarification",
                 reason="合成测试缺少环境信息",
                 reply="请提供当前代理配置。",
-                questions=["当前代理配置是什么？"],
             ), "tool_calls": []}, [], {"model_calls": 0})
 
     original = ReviewWorkflow.resume

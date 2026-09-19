@@ -73,7 +73,6 @@ def bounded_decision(state, *, decide, judge, embeddings, client, corpus, config
         state["agent_steps"] += 1
         decision = normalize_decision(decide(state))
         if decision.next_step not in ("search_cases", "get_case_detail"):
-            validate_proposal(decision, {hit.source_id for hit in state["retrieval_hits"]})
             if decision.next_step == "ask_clarification" and state.get("clarification_rounds", 0) >= config.max_clarification_rounds:
                 decision = escalation("已达到主动澄清轮数上限")
             return finish(decision)

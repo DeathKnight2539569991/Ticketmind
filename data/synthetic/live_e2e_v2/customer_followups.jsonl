@@ -1,0 +1,1 @@
+{"case_id":"SYN-LIVE-TEST-21","after_action":"ask_clarification","message_kind":"customer_update","body":"补充一下：CSV 文件第一行原样是 project,owner ,day，其中 owner 后确实带一个空格；导入模板明确要求字段名 owner，预览没有提交正式导入。","review_checks":"补充后能结合新增客户事实使用来源 SYN-LIVE-E2E-2026-09-002；不要重复询问表头是否有尾随空格，不能声称已经替客户修改或提交导入。"}

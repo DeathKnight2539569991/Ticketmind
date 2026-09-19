@@ -83,23 +83,13 @@ def decision_messages(state: TicketAgentState) -> tuple[str, str]:
         "messages": [message.model_dump() for message in state["messages"]],
         "evidence": evidence,
         "case_details": state.get("case_details", {}),
-        # Full channel candidates/timings are persisted for diagnosis, not model context.
+        # Keep only control-flow facts needed for the next decision. Full audit
+        # details, result IDs and retrieval diagnostics are persisted elsewhere.
         "tool_calls": [
             {
                 key: value
                 for key, value in call.items()
-                if key
-                in {
-                    "tool",
-                    "parameters",
-                    "reason",
-                    "status",
-                    "result_source_ids",
-                    "result_summary",
-                    "error",
-                    "retrieval_error",
-                    "retrieval_mode",
-                }
+                if key in {"tool", "parameters", "status", "error"}
             }
             for call in state.get("tool_calls", [])
         ],

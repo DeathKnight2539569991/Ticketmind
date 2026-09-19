@@ -152,7 +152,8 @@ def test_expired_budget_stops_before_decision_or_tool():
 
 def test_resolution_with_retrieved_source_id_passes_without_quotes():
     corpus = load_sources(ProcessingSettings().corpus_path)
-    hit = RetrievalHit(source_id="SYN-HIST-V2-007", text=build_case_text(corpus.cases["SYN-HIST-V2-007"]), score=0.5)
+    case = next(iter(corpus.cases.values()))
+    hit = RetrievalHit(source_id=case.source_id, text=build_case_text(case), score=0.5)
     result, evidence, *_ = execute([{
         "next_step": "propose_resolution", "reason": "按历史案例核对", "reply": "请核对本次配置。",
         "evidence_ids": [hit.source_id],

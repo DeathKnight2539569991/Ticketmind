@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 
 import test_m1_api as m1
 from ticketmind.agent.proposals import proposal_adapter
-from ticketmind.api.schemas.runs import ReviewCreate
+from ticketmind.api.schemas.runs import review_create_adapter
 from ticketmind.core.config import AuthSettings
 from ticketmind.main import create_app
 from ticketmind.tickets import reviews
@@ -219,7 +219,7 @@ def test_fresh_app_restores_checkpoints_and_identifies_interruption(database, ph
     _, factory, _ = database
     auth = AuthSettings(_env_file=None, operator_token="o" * 32, reviewer_token="r" * 32)
     runner = m1.SyntheticRunner(factory)
-    key, payload = uuid4().hex, ReviewCreate(decision="approve", expected_version=1)
+    key, payload = uuid4().hex, review_create_adapter.validate_python({"decision": "approve", "expected_version": 1})
     with TestClient(create_app(session_factory=factory, runner=runner, auth_settings=auth)) as client:
         client.headers["Authorization"] = "Bearer " + "o" * 32
         ticket = m1.create(client)

@@ -83,6 +83,10 @@ def test_real_publish_three_modes_retire_and_repair(knowledge):
             config=k.config.model_copy(update={"retrieval_mode": "bm25"}), timeout=milvus.timeout_seconds,
             record=audit, model=k.qwen.embedding_model) == []
         assert audit["inconsistencies"][0]["error"] == "missing_postgres_source"
+        assert sync.reconcile(PRODUCTION_DATASET) == []
+        assert sync.orphans_removed == 1
+        assert not client.get(collection_name=name, ids=["orphan-test-source"], output_fields=["source_id"],
+                              consistency_level="Strong", timeout=milvus.timeout_seconds)
     finally:
         # Exact name checked above; never touch shared production/evaluation collections.
         client.drop_collection(collection_name=name, timeout=milvus.timeout_seconds)

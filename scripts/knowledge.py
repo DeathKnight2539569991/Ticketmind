@@ -60,7 +60,8 @@ def main():
             results = ([sync.one(args.dataset, args.source_id, repair_active=args.repair_active)] if args.source_id else
                        sync.reconcile(args.dataset, repair_active=args.repair_active, limit=args.limit))
             print(json.dumps({"results": [{k: row[k] for k in ("source_id", "status", "index_error", "version")} for row in results],
-                              "embedding_calls": sync.embedding_calls}, ensure_ascii=False))
+                              "embedding_calls": sync.embedding_calls,
+                              "orphans_removed": sync.orphans_removed}, ensure_ascii=False))
             if any(row["index_error"] for row in results):
                 raise SystemExit(1)
         finally:

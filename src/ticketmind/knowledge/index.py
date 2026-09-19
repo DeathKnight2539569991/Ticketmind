@@ -103,9 +103,37 @@ class MilvusKnowledgeIndex:
         if not self.matches(dataset, case):
             raise RetrievalError("index_readback_failed")
 
-    def delete(self, dataset, case):
+    def iter_source_id_batches(self, dataset, *, batch_size=1000):
+        if not 1 <= batch_size <= 1000:
+            raise ValueError("batch_size must be 1..1000")
+        if not self.client.has_collection(collection_name=dataset.collection_name, timeout=self.budget()):
+            return
+        last_source_id = None
+        while True:
+            filter_expr = "" if last_source_id is None else f"source_id > {json.dumps(last_source_id)}"
+            rows = self.client.query(collection_name=dataset.collection_name, filter=filter_expr,
+                output_fields=["source_id"], limit=batch_size, order_by=["source_id:asc"],
+                consistency_level="Strong", timeout=self.budget())
+            source_ids = [row["source_id"] for row in rows]
+            if not source_ids:
+                break
+            if source_ids != sorted(set(source_ids)) or (
+                    last_source_id is not None and source_ids[0] <= last_source_id):
+                raise RetrievalError("index_scan_order_invalid")
+            yield source_ids
+            if len(source_ids) < batch_size:
+                break
+            last_source_id = source_ids[-1]
+
+    def delete_source_ids(self, dataset, source_ids):
+        source_ids = list(dict.fromkeys(source_ids))
+        if not source_ids:
+            return
         if self.client.has_collection(collection_name=dataset.collection_name, timeout=self.budget()):
-            self.client.delete(collection_name=dataset.collection_name, ids=[case.source_id], timeout=self.budget())
-            if self.client.get(collection_name=dataset.collection_name, ids=[case.source_id], output_fields=["source_id"],
+            self.client.delete(collection_name=dataset.collection_name, ids=source_ids, timeout=self.budget())
+            if self.client.get(collection_name=dataset.collection_name, ids=source_ids, output_fields=["source_id"],
                                consistency_level="Strong", timeout=self.budget()):
                 raise RetrievalError("index_delete_readback_failed")
+
+    def delete(self, dataset, case):
+        self.delete_source_ids(dataset, [case.source_id])

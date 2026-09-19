@@ -15,6 +15,8 @@ _AUDIT_HIT_FIELDS = (
     "retrieval_mode",
 )
 
+_MAX_MILVUS_SEARCH_WINDOW = 16383
+
 
 def _audit_hit(hit):
     data = hit.model_dump()
@@ -100,38 +102,77 @@ def retrieve_knowledge(query, *, client, embeddings, store, config, timeout, rec
         record["channels"][channel] = audit
         started = monotonic()
         try:
-            limit = max(config.retrieval_candidate_k, config.retrieval_top_k) if mode == "hybrid" else config.retrieval_top_k
+            target = max(config.retrieval_candidate_k, config.retrieval_top_k) if mode == "hybrid" else config.retrieval_top_k
+            refill_size = max(config.retrieval_candidate_k, target)
             data = embeddings.embed_query(query) if channel == "dense" else query.lower()
             if channel == "dense":
                 validate_vector(data)
             fields = ["source_id", "corpus_version"]
             if dataset.manifest["schema_version"] == 2:
                 fields.append("content_hash")
-            raw = client.search(collection_name=dataset.collection_name, data=[data],
-                anns_field="embedding" if channel == "dense" else "sparse",
-                search_params={"metric_type": "COSINE" if channel == "dense" else "BM25"},
-                output_fields=fields, limit=limit, timeout=budget(), consistency_level="Strong")
-            if len(raw) != 1:
-                raise RetrievalError(f"{channel}_invalid_response")
-            hits = []
-            for rank, row in enumerate(raw[0], 1):
-                entity = row["entity"]
-                if entity.get("corpus_version") != store.version:
-                    raise RetrievalError("corpus_version_mismatch")
-                if dataset.manifest["schema_version"] == 2 and not entity.get("content_hash"):
-                    raise RetrievalError("knowledge_index_hash_missing")
-                hits.append(IndexHit(source_id=entity["source_id"], corpus_version=store.version,
-                    content_hash=entity.get("content_hash"), rank=rank, retrieval_mode=channel,
-                    **{f"{channel}_score": row["distance"], f"{channel}_rank": rank}))
-            audit.update(status="succeeded", limit=limit, candidates=[_audit_hit(hit) for hit in hits])
-            results[channel] = hits
+            valid_hits = []
+            seen_source_ids = set()
+            offset = 0
+            scanned = 0
+            while len(valid_hits) < target and offset < _MAX_MILVUS_SEARCH_WINDOW:
+                requested = target if offset == 0 else refill_size
+                page_limit = min(requested, _MAX_MILVUS_SEARCH_WINDOW - offset)
+                if page_limit <= 0:
+                    break
+                search_args = {
+                    "collection_name": dataset.collection_name,
+                    "data": [data],
+                    "anns_field": "embedding" if channel == "dense" else "sparse",
+                    "search_params": {"metric_type": "COSINE" if channel == "dense" else "BM25"},
+                    "output_fields": fields,
+                    "limit": page_limit,
+                    "timeout": budget(),
+                    "consistency_level": "Strong",
+                }
+                if offset:
+                    search_args["offset"] = offset
+                raw = client.search(**search_args)
+                if len(raw) != 1:
+                    raise RetrievalError(f"{channel}_invalid_response")
+                page = raw[0]
+                if not page:
+                    break
+                index_hits = []
+                new_source_count = 0
+                for position, row in enumerate(page, 1):
+                    entity = row["entity"]
+                    if entity.get("corpus_version") != store.version:
+                        raise RetrievalError("corpus_version_mismatch")
+                    if dataset.manifest["schema_version"] == 2 and not entity.get("content_hash"):
+                        raise RetrievalError("knowledge_index_hash_missing")
+                    source_id = entity["source_id"]
+                    if source_id in seen_source_ids:
+                        continue
+                    seen_source_ids.add(source_id)
+                    new_source_count += 1
+                    rank = offset + position
+                    index_hits.append(IndexHit(source_id=source_id, corpus_version=store.version,
+                        content_hash=entity.get("content_hash"), rank=rank, retrieval_mode=channel,
+                        **{f"{channel}_score": row["distance"], f"{channel}_rank": rank}))
+                audit["candidates"].extend(_audit_hit(hit) for hit in index_hits)
+                valid_hits.extend(store.hydrate(index_hits, record))
+                scanned += len(page)
+                if len(page) < page_limit or new_source_count == 0:
+                    break
+                offset += page_limit
+            valid_hits = valid_hits[:target]
+            results[channel] = [
+                hit.model_copy(update={"rank": rank, f"{channel}_rank": rank})
+                for rank, hit in enumerate(valid_hits, 1)
+            ]
+            audit.update(status="succeeded", limit=target, refill_limit=refill_size, scanned=scanned,
+                         valid_candidates=len(results[channel]))
         except Exception as exc:
             audit["error"] = exc.code if isinstance(exc, RetrievalError) else f"{channel}_retrieval_failed"
             raise RetrievalError(audit["error"]) from exc
         finally:
             audit["duration_ms"] = round((monotonic() - started) * 1000)
     hits = reciprocal_rank_fusion(results["dense"], results["bm25"], top_k=config.retrieval_top_k,
-                                 k=config.retrieval_rrf_k) if mode == "hybrid" else results[mode]
-    hydrated = store.hydrate(hits, record)
-    record["result_hits"] = [_audit_hit(hit) for hit in hydrated]
-    return hydrated
+                                 k=config.retrieval_rrf_k) if mode == "hybrid" else results[mode][:config.retrieval_top_k]
+    record["result_hits"] = [_audit_hit(hit) for hit in hits]
+    return hits

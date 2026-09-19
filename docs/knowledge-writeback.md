@@ -65,13 +65,13 @@ reviewer 在工单底部查看全文、勾选确认、点击 **Publish to Knowle
 | Embedding 成功，Milvus 失败 | 向量已单独提交；失败状态可见，下次复用向量 |
 | Milvus 成功，PG 状态提交失败 | pending/failed；下次先读回同 ID/hash，确认后激活，不重复生成向量 |
 | active 的 Milvus 行丢失 | `--repair-active` 检查并用 PG 缓存重建 |
-| Milvus 有 / PG 无 | 跳过，记录 missing_postgres_source 日志及运行工具审计，不返回虚假正文 |
+| Milvus 有 / PG 无 | 运行时过滤并继续分页补候选，避免 orphan 占满 top_k；显式 reconcile 扫描索引并删除 orphan |
 | PG 停用 / Milvus 删除失败 | 仍是 retired，记录删除错误；hydration 立即过滤，reconcile 再删除 |
 | 停用与索引网络请求并发 | 网络返回后的版本检查不能覆盖较新的停用状态；后续修复残留索引 |
 
 同步以数据库/schema/dataset 作用域的 advisory lock 串行执行。它持有专用连接，但网络期间不持有数据库事务或行锁；进程断开时 PG 释放锁。并发同步返回 `knowledge_sync_busy`，不会启动第二次外部操作。upsert 使用稳定 ID，读回确认后才设 active。
 
-不一致项包含 source_id、dataset_version 和稳定错误码，失败不泄露上游原始异常。PG 全部不可写时无法保证错误立即落库，原 pending/旧状态及应用日志保留；恢复后显式修复。正常 API 检索不主动扫描整个索引，也不能发现未被查询命中的孤儿项。
+不一致项包含 source_id、dataset_version 和稳定错误码，失败不泄露上游原始异常。PG 全部不可写时无法保证错误立即落库，原 pending/旧状态及应用日志保留；恢复后显式修复。正常 API 检索仍保持只读，只会发现本次排名窗口中的不一致；它会继续按排名分页，直到补足有效 top_k 或 Milvus 结果耗尽。显式 reconcile 额外按 source_id 有序扫描整个索引，与 PG 分批比对并删除未被查询命中的 orphan。
 
 ## 初始化与运维命令
 
@@ -101,6 +101,7 @@ uv run --no-sync python scripts/start_local.py --skip-infra
 
 ```powershell
 uv run --no-sync python scripts/knowledge.py reconcile --dataset production-v1
+# reconcile 同时清理 Milvus 中 PG 不存在的 orphan；输出 orphans_removed
 uv run --no-sync python scripts/knowledge.py reconcile --dataset production-v1 --repair-active
 uv run --no-sync python scripts/knowledge.py reconcile --dataset production-v1 --source-id TICKET-实际UUID
 ```

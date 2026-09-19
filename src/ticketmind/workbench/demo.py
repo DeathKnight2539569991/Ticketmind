@@ -52,8 +52,15 @@ def demo_knowledge_sync(factory):
             return self.rows.get((dataset.version, case.source_id)) == case.content_hash
         def upsert(self, dataset, case, vector):
             self.rows[dataset.version, case.source_id] = case.content_hash
+        def iter_source_id_batches(self, dataset, *, batch_size=1000):
+            source_ids = sorted(source_id for version, source_id in self.rows if version == dataset.version)
+            for offset in range(0, len(source_ids), batch_size):
+                yield source_ids[offset:offset + batch_size]
+        def delete_source_ids(self, dataset, source_ids):
+            for source_id in source_ids:
+                self.rows.pop((dataset.version, source_id), None)
         def delete(self, dataset, case):
-            self.rows.pop((dataset.version, case.source_id), None)
+            self.delete_source_ids(dataset, [case.source_id])
     class VectorDouble:
         def embed_documents(self, documents):
             return [[1.0] * 1024 for _ in documents]

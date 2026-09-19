@@ -48,10 +48,19 @@ class MemoryIndex:
         if self.after_upsert:
             self.after_upsert()
 
-    def delete(self, dataset, case):
+    def iter_source_id_batches(self, dataset, *, batch_size=1000):
+        source_ids = sorted(source_id for version, source_id in self.rows if version == dataset.version)
+        for offset in range(0, len(source_ids), batch_size):
+            yield source_ids[offset:offset + batch_size]
+
+    def delete_source_ids(self, dataset, source_ids):
         if self.fail_delete:
             raise TimeoutError("synthetic-secret")
-        self.rows.pop((dataset.version, case.source_id), None)
+        for source_id in source_ids:
+            self.rows.pop((dataset.version, source_id), None)
+
+    def delete(self, dataset, case):
+        self.delete_source_ids(dataset, [case.source_id])
 
 
 class FakeEmbedding:
@@ -279,6 +288,18 @@ def test_approval_rejects_stale_ticket_version_without_creating_knowledge(knowle
     response = post(k, f"/tickets/{ticket}/knowledge/approve", {"expected_version": version-1})
     assert response.status_code == 409
     assert k.client.get(f"/tickets/{ticket}/knowledge").json()["knowledge"] is None
+
+
+
+def test_reconcile_prunes_orphan_index_rows(knowledge):
+    k = knowledge
+    case = publish(k)
+    orphan = "orphan-only-in-index"
+    k.index.rows[PRODUCTION_DATASET, orphan] = "orphan-hash"
+    assert k.sync.reconcile(PRODUCTION_DATASET) == []
+    assert (PRODUCTION_DATASET, orphan) not in k.index.rows
+    assert (PRODUCTION_DATASET, case["source_id"]) in k.index.rows
+    assert k.sync.orphans_removed == 1
 
 
 def test_pg_exists_index_missing_repair_active_without_embedding(knowledge):

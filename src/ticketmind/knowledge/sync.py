@@ -39,6 +39,7 @@ class KnowledgeSync:
         self.factory, self.index, self.qwen = factory, index, qwen
         self.embedding_factory, self.embedding_budget = embedding_factory, embedding_budget
         self.embedding_calls = 0
+        self.orphans_removed = 0
 
     def vector(self, case):
         from ticketmind.retrieval.case_collection import TEXT_MAX_BYTES
@@ -108,7 +109,31 @@ class KnowledgeSync:
                     session.flush()
                 return read_case(current)
 
+    def _prune_orphans(self, dataset_version):
+        with self.factory() as session:
+            dataset = session.get(KnowledgeDataset, dataset_version)
+            if dataset is None:
+                raise RetrievalError("knowledge_dataset_missing")
+        removed = 0
+        try:
+            for source_ids in self.index.iter_source_id_batches(dataset):
+                with self.factory() as session:
+                    existing = set(session.scalars(select(KnowledgeCase.source_id).where(
+                        KnowledgeCase.dataset_version == dataset_version,
+                        KnowledgeCase.source_id.in_(source_ids))).all())
+                orphans = [source_id for source_id in source_ids if source_id not in existing]
+                if orphans:
+                    self.index.delete_source_ids(dataset, orphans)
+                    removed += len(orphans)
+                    logger.warning("knowledge_orphans_removed dataset=%s count=%s", dataset_version, len(orphans))
+        except Exception as exc:
+            code = exc.code if isinstance(exc, RetrievalError) else "orphan_index_cleanup_failed"
+            logger.error("knowledge_orphan_cleanup_failed dataset=%s error=%s", dataset_version, code)
+            raise RetrievalError(code) from exc
+        return removed
+
     def reconcile(self, dataset_version, *, repair_active=False, limit=100):
+        self.orphans_removed = 0
         if not 1 <= limit <= 1000:
             raise ValueError("limit must be 1..1000")
         with self.factory() as session:
@@ -125,4 +150,6 @@ class KnowledgeSync:
                     if dataset is None:
                         raise RetrievalError("knowledge_dataset_missing")
                 self.index.ensure(dataset)
-            return [self._one(dataset_version, source_id, repair_active=repair_active) for source_id in ids]
+            results = [self._one(dataset_version, source_id, repair_active=repair_active) for source_id in ids]
+            self.orphans_removed = self._prune_orphans(dataset_version)
+            return results

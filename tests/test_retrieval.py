@@ -9,7 +9,7 @@ from ticketmind.knowledge.corpus import build_case_text
 from ticketmind.knowledge.sources import load_sources
 from ticketmind.retrieval import service
 from ticketmind.retrieval.hybrid import reciprocal_rank_fusion
-from ticketmind.retrieval.schemas import EvidenceHit, RetrievalError
+from ticketmind.retrieval.schemas import EvidenceHit, KnowledgeEvidenceHit, RetrievalError
 from ticketmind.retrieval.versioned_collection import collection_for, manifest_for, validate_collection
 
 
@@ -82,6 +82,94 @@ def test_hybrid_never_hides_single_channel_failure(monkeypatch, failure):
             assert "text" not in audit["result_hits"][0] and "title" not in audit["result_hits"][0]
             assert all("text" not in candidate for channel in audit["channels"].values()
                        for candidate in channel["candidates"])
+
+
+
+@pytest.mark.parametrize("mode", ["dense", "bm25", "hybrid"])
+def test_knowledge_retrieval_refills_after_orphans(monkeypatch, mode):
+    from ticketmind.knowledge.index import MilvusKnowledgeIndex
+
+    dataset = SimpleNamespace(
+        collection_name="knowledge_test",
+        manifest={"embedding_model": "text-embedding-v4", "schema_version": 2},
+    )
+
+    class Store:
+        version = "production-v1"
+
+        def dataset(self):
+            return dataset
+
+        def hydrate(self, hits, record):
+            result = []
+            for item in hits:
+                if item.source_id.startswith("orphan-"):
+                    record.setdefault("inconsistencies", []).append({
+                        "source_id": item.source_id,
+                        "dataset_version": self.version,
+                        "error": "missing_postgres_source",
+                    })
+                    continue
+                result.append(KnowledgeEvidenceHit(
+                    source_id=item.source_id,
+                    corpus_version=self.version,
+                    title=item.source_id,
+                    text=item.source_id,
+                    rank=item.rank,
+                    dense_rank=item.dense_rank,
+                    bm25_rank=item.bm25_rank,
+                    dense_score=item.dense_score,
+                    bm25_score=item.bm25_score,
+                    fusion_score=item.fusion_score,
+                    retrieval_mode=item.retrieval_mode,
+                    knowledge_revision=1,
+                    content_hash=item.content_hash,
+                    synthetic=False,
+                    metadata={},
+                ))
+            return result
+
+    monkeypatch.setattr(MilvusKnowledgeIndex, "validate", lambda *args: None)
+    calls = []
+
+    def search(**kwargs):
+        channel = "dense" if kwargs["anns_field"] == "embedding" else "bm25"
+        offset = kwargs.get("offset", 0)
+        calls.append((channel, offset, kwargs["limit"]))
+        source_ids = ["orphan-1", "orphan-2"] if offset == 0 else (
+            ["valid-a", "valid-b"] if offset == 2 else [])
+        return [[{
+            "entity": {
+                "source_id": source_id,
+                "corpus_version": "production-v1",
+                "content_hash": f"hash-{source_id}",
+            },
+            "distance": 1.0 - index * 0.1,
+        } for index, source_id in enumerate(source_ids)]]
+
+    audit = {}
+    config = ProcessingSettings(_env_file=None, retrieval_mode=mode, retrieval_top_k=2, retrieval_candidate_k=2)
+    hits = service.retrieve_knowledge(
+        "登录失败",
+        client=SimpleNamespace(search=search),
+        embeddings=SimpleNamespace(embed_query=lambda query: [1.0] * 1024),
+        store=Store(),
+        config=config,
+        timeout=1,
+        record=audit,
+        model="text-embedding-v4",
+    )
+
+    assert [item.source_id for item in hits] == ["valid-a", "valid-b"]
+    assert [item.rank for item in hits] == [1, 2]
+    channels = ["dense", "bm25"] if mode == "hybrid" else [mode]
+    for channel in channels:
+        assert (channel, 0, 2) in calls and (channel, 2, 2) in calls
+        assert audit["channels"][channel]["scanned"] == 4
+        assert audit["channels"][channel]["valid_candidates"] == 2
+        assert len(audit["channels"][channel]["candidates"]) == 4
+    expected_inconsistencies = 4 if mode == "hybrid" else 2
+    assert len(audit["inconsistencies"]) == expected_inconsistencies
 
 
 def test_bm25_never_embeds(monkeypatch):

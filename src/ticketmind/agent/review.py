@@ -4,7 +4,7 @@ from typing import TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 
-from ticketmind.agent.proposals import proposal_adapter, validate_proposal, validate_decision_evidence
+from ticketmind.agent.proposals import proposal_adapter, validate_proposal
 from ticketmind.agent.runtime import RunOutput
 from ticketmind.agent.schemas import AgentRunInput
 
@@ -56,7 +56,6 @@ class ReviewWorkflow:
             )
             proposal = proposal_adapter.validate_python(output.state["proposal"])
             validate_proposal(proposal, {hit["source_id"] for hit in output.evidence})
-            validate_decision_evidence(proposal, output.evidence)
             return {
                 "output": {
                     "state": {
@@ -85,7 +84,6 @@ class ReviewWorkflow:
         evidence = output["evidence"]
         proposal = proposal_adapter.validate_python(output["state"]["proposal"])
         validate_proposal(proposal, {hit["source_id"] for hit in evidence})
-        validate_decision_evidence(proposal, evidence)
         state = {**output["state"], "proposal": proposal}
         return RunOutput(state, evidence, output["usage"])
 

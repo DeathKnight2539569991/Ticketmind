@@ -10,7 +10,7 @@ from ticketmind.retrieval.dense import search_case_vectors
 
 def bounded_decision(state, *, decide, judge, embeddings, client, corpus, config, remaining, audit, retrieval_timeout=None, search_fn=None):
     state = dict(state)
-    state.update(case_details={}, tool_calls=audit, search_rounds=1, agent_steps=2)
+    state.update(case_details={}, tool_calls=audit, search_rounds=1, agent_steps=1)
     state["execution_limits"] = config.model_dump(include={
         "max_search_rounds", "max_case_details", "max_agent_steps", "max_clarification_rounds"})
     seen_queries = {state["retrieval_query"].strip().casefold()}
@@ -36,8 +36,10 @@ def bounded_decision(state, *, decide, judge, embeddings, client, corpus, config
             if state["agent_steps"] >= config.max_agent_steps:
                 raise GuardrailFailure("guardrail_step_limit")
             state["agent_steps"] += 1
-            state["guardrail_feedback"] = {"proposal": proposal.model_dump(), **result.model_dump(),
-                                          "instruction": "修正违规并输出最终提案，不得请求工具；这是唯一一次重生成机会"}
+            state["guardrail_feedback"] = {
+                "proposal": proposal.model_dump(),
+                "violations": [violation.model_dump() for violation in result.violations],
+            }
             try:
                 proposal = proposal_adapter.validate_python(decide(state))
                 remaining()

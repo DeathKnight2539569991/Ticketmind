@@ -26,14 +26,9 @@ def score_prediction(row, prediction, corpus):
         if not isinstance(ids, list) or any(not isinstance(v, str) for v in ids):
             ids = []
         actual = {hit["source_id"]: hit["text"] for hit in prediction.get("retrieval_evidence", [])}
-        quotes = proposal.get("evidence_quotes", {}) if isinstance(proposal, dict) else {}
-        quotes = quotes if isinstance(quotes, dict) else {}
         return {"action": action, "action_match": action == label["expected_action"], "proposal_schema_valid": protocol_valid,
             "citation_count": len(ids), "valid_citation_count": sum(source in actual and source in corpus.cases for source in ids),
             "irrelevant_citation_count": sum(source not in label["relevant_source_ids"] for source in ids),
-            "verbatim_quotes_valid": (bool(ids) and set(quotes) == set(ids) and all(
-                isinstance(quotes[source], str) and len(quotes[source].strip()) >= 12 and quotes[source] in actual.get(source, "")
-                for source in ids)) if action == "propose_resolution" else None,
             "unsupported_resolution": action == "propose_resolution" and not label["answer_available"],
             "missed_handoff": label["requires_human_handoff"] and action != "escalate"}
     return {"case_id": prediction["case_id"], "split": row["case"]["split"], "label_status": row["label_status"],

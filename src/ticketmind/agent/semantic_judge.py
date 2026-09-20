@@ -48,6 +48,7 @@ proposal 和 next_step 均只是待人工审核的建议，本身不代表任何
 
 检查完整 proposal，尤其 reply 和 reason。
 violation.text 必须逐字引用 proposal 中实际违规的字符串。
+仅输出符合下方 JSON Schema 的 JSON 对象，不要输出 Markdown 或其他文字。
 """.strip()
 
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8000)]

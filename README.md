@@ -30,7 +30,7 @@
 
 如需检查数据库连通性及端口，可加 `--check`；注意此检查**不验证 v2 数据集是否已索引**。非 Windows 环境使用 `uv run --no-sync python scripts/start_v2_flash.py`，同样可以附加 `--skip-infra`。默认工作台为 `http://127.0.0.1:8501`，按 Ctrl+C 停止 API/UI，保留 PostgreSQL 和 Milvus 数据。
 
-首次使用现有开发库，先执行：
+其他环境的首次初始化示例（包括 `production-v1`；**不是上述 v2 日常启动需要重复执行的步骤**）：
 
 ```powershell
 uv run --no-sync alembic upgrade head

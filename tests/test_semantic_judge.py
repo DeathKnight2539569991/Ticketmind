@@ -277,6 +277,22 @@ def test_resolution_source_id_in_retrieval_reaches_judge_without_quotes(monkeypa
     assert "evidence_quotes" not in result.state["proposal"].model_dump()
 
 
+def test_resolution_without_historical_evidence_reaches_judge(monkeypatch):
+    proposal = {
+        "next_step": "propose_resolution",
+        "reply": "18 MB 文件超过页面显示的 10 MB 附件上限。",
+        "reason": "当前工单事实已足够解释附件限制",
+        "evidence_ids": [],
+    }
+    runner, seen, judged, _ = make_runner(monkeypatch, [proposal], [PASS])
+    result = runner(run_input("附件上传返回 413", "18 MB 超过页面显示的 10 MB 上限"))
+    assert len(seen) == len(judged) == 1
+    assert judged[0].evidence_ids == []
+    assert result.state["proposal"].next_step == "propose_resolution"
+    assert result.state["proposal"].evidence_ids == []
+    assert result.usage["semantic_judge"][0]["status"] == "passed"
+
+
 def test_resolution_unknown_source_still_rejected_before_judge(monkeypatch):
     proposal = {"next_step": "propose_resolution", "reply": "核对配置", "reason": "核对",
                 "evidence_ids": ["invented"]}

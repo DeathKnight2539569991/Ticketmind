@@ -22,7 +22,7 @@ class ProposalBase(BaseModel):
 
 class Resolution(ProposalBase):
     next_step: Literal["propose_resolution"]
-    evidence_ids: list[SourceId] = Field(min_length=1, max_length=100)
+    evidence_ids: list[SourceId] = Field(max_length=100)
 
     @model_validator(mode="before")
     @classmethod
@@ -37,7 +37,7 @@ class Resolution(ProposalBase):
 class ModelResolution(ProposalBase):
     """Model-facing resolution: cite retrieved source IDs, not copied excerpts."""
     next_step: Literal["propose_resolution"]
-    evidence_ids: list[SourceId] = Field(min_length=1, max_length=100)
+    evidence_ids: list[SourceId] = Field(max_length=100)
 
 
 class Clarification(ProposalBase):

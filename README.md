@@ -4,6 +4,32 @@
 
 当前知识架构：**PostgreSQL 保存权威正文，Milvus 提供检索索引，JSONL 仅用于 seed / evaluation**。已解决工单在工作台显示待审候选，经 reviewer 明确批准后形成知识；索引失败可见、可重试，生产新增知识无需重写 JSONL 或重启 Agent。完整设计、初始化和验收见 [Knowledge 交付报告](docs/knowledge-writeback.md)。下文 M0—M5 的模型调用及质量数据保留为历史证据。
 
+## 一键启动：synthetic-v2 + Flash（Windows）
+
+首次安装仍需在本地创建并填写 `.env`（PostgreSQL、Milvus、DashScope 凭据及身份），安装依赖并确保 v2 知识已经 seed / reconcile、索引状态为 `active`。这些初始化操作无需每天重复；真实凭据不要提交 GitHub。
+
+在项目根目录执行 `git pull --ff-only` 后，双击 `start_v2_flash.cmd`，或在 PowerShell 运行：
+
+```powershell
+.\start_v2_flash.cmd
+```
+
+如果 PostgreSQL、Milvus 已经运行且不希望脚本启动 Docker：
+
+```powershell
+.\start_v2_flash.cmd --skip-infra
+```
+
+这个启动入口只对**本次应用进程**固定三个设置：
+
+- `TICKETMIND_KNOWLEDGE_DATASET=synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f`
+- `TICKETMIND_DECISION_MODEL=qwen3.8-flash`
+- `TICKETMIND_RETRIEVAL_MODE=bm25`
+
+其余设置（包括 Judge 模型、数据库地址、API Key 和已有身份凭据）仍从本地 `.env` 读取。它不会修改 `.env`、创建/重建知识库、生成 Embedding 或调用 Decision 模型；**实际创建工单运行时可能产生模型费用**。未提供 `--skip-infra` 时，复用 `scripts/start_local.py` 既有的 Milvus Docker 启动逻辑，PostgreSQL 仍需预先运行，或显式指定它支持的 `--postgres-service` / `--postgres-container` 参数。
+
+如需检查数据库连通性及端口，可加 `--check`；注意此检查**不验证 v2 数据集是否已索引**。非 Windows 环境使用 `uv run --no-sync python scripts/start_v2_flash.py`，同样可以附加 `--skip-infra`。默认工作台为 `http://127.0.0.1:8501`，按 Ctrl+C 停止 API/UI，保留 PostgreSQL 和 Milvus 数据。
+
 首次使用现有开发库，先执行：
 
 ```powershell

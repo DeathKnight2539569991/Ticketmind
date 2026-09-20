@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -8,7 +10,6 @@ from ticketmind.main import create_app
 
 
 @pytest.mark.parametrize("data", [
-    {"next_step": "propose_resolution", "reason": "reason", "reply": "reply", "evidence_ids": []},
     {"next_step": "ask_clarification", "reason": "reason", "reply": "reply", "questions": []},
     {"next_step": "delete_data", "reason": "reason", "reply": "reply"},
     {"next_step": "escalate", "reason": "reason", "reply": "reply", "tool_calls": []},
@@ -16,6 +17,28 @@ from ticketmind.main import create_app
 def test_invalid_decision_shape(data):
     with pytest.raises(ValidationError):
         proposal_adapter.validate_python(data)
+
+
+@pytest.mark.parametrize("evidence_ids", [[], ["case-1"]])
+def test_resolution_accepts_optional_retrieved_evidence(evidence_ids):
+    resolution = {
+        "next_step": "propose_resolution",
+        "reason": "依据当前工单事实给出建议",
+        "reply": "请核对当前附件限制。",
+        "evidence_ids": evidence_ids,
+    }
+    for adapter in (proposal_adapter, decision_adapter, model_proposal_adapter):
+        parsed = adapter.validate_python(resolution)
+        assert parsed.evidence_ids == evidence_ids
+        assert adapter.validate_json(json.dumps(resolution)).evidence_ids == evidence_ids
+    validate_proposal(proposal_adapter.validate_python(resolution), set(evidence_ids))
+
+
+def test_resolution_requires_evidence_ids_field_even_when_empty():
+    incomplete = {"next_step": "propose_resolution", "reason": "r", "reply": "x"}
+    for adapter in (proposal_adapter, decision_adapter, model_proposal_adapter):
+        with pytest.raises(ValidationError):
+            adapter.validate_python(incomplete)
 
 
 def test_citations_must_be_from_current_retrieval():

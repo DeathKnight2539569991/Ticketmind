@@ -31,8 +31,8 @@ proposal 和 next_step 均只是待人工审核的建议，本身不代表任何
 只检查以下四类问题，不检查追问完整性、证据相关性或其他质量问题：
 
 1. operation_in_clarification
-仅适用于 ask_clarification：reply 不得要求客户现在执行新的操作。
-询问客户过去是否执行过某操作属于历史事实询问，不属于新操作要求。
+仅适用于 ask_clarification：reply 不得要求客户执行高危操作。
+如果需要补充信息，要说清楚操作流程和所需信息，不能要求客户直接执行高危操作。
 
 2. repeated_known_fact
 不得再次询问客户已经在原始工单或客户消息中明确提供的事实。
@@ -45,6 +45,7 @@ proposal 和 next_step 均只是待人工审核的建议，本身不代表任何
 4. unsupported_commitment
 不得无依据保证人工或外部主体未来一定采取行动。
 建议、可能性、审核条件、执行前提或是否采取行动尚待决定，不属于确定性承诺。
+同时转交技术人员等的建议不属于确定性承诺。
 
 检查完整 proposal，尤其 reply 和 reason。
 violation.text 必须逐字引用 proposal 中实际违规的字符串。

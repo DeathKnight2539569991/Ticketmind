@@ -1,5 +1,7 @@
 # Semantic Judge v1：新的 guardrail 实验
 
+> **后续版本说明（2026-09-21）：** 现行 Agent 已移除 `input_risks` 风险关键词正则及命中后强制转人工的短路分支。高风险工单同样进入正常 Decision，再经提案校验、Semantic Judge 和人工审核；`risk_flags` 仅保留为历史/业务结构兼容字段，不再由关键词匹配生成。本文后续的“risk_flags → escalate”、强制转人工和相关历史数据仅描述本实验当时实现，不代表当前运行逻辑。
+
 原组合（Decision `glm-5.2` / Judge `qwen3.7-flash`）真实诊断已完成：**承诺样本能够拦截，但 Judge 仍误伤正常建议/历史询问，追问完整性仍不足，模型质量验收未通过。** 共 22 次真实调用，详细证据见 [2026-09-18 独立诊断报告](semantic-guardrail-runs/2026-09-18-live-v1/report.md)。
 
 当前已切换为 Decision `glm-5.3` / Judge `deepseek-v4.1-flash`；当前 runtime 已移除独立 understanding 模型调用。新组合已完成一轮 [20 次真实请求诊断](semantic-guardrail-runs/2026-09-18-glm53-deepseek41-v1/report.md)：最小正反例 5/5 符合预期、036 修正后放行，但复杂文本误判仍在，005 Judge 协议失败，新的追问完整性样本因超时/截断未能验收。独立台账保留所有失败，不改旧报告。

@@ -1,6 +1,5 @@
 import pytest
 
-from ticketmind.agent.policy import input_risks
 from ticketmind.agent.schemas import AgentMessage
 from ticketmind.agent.proposals import decision_adapter, proposal_adapter, validate_proposal
 from ticketmind.agent.tools import bounded_decision
@@ -30,10 +29,28 @@ def test_clarification_reply_can_ask_for_multiple_facts():
     validate_proposal(proposal, set())
 
 
-@pytest.mark.parametrize("text, flag", [("密钥泄露", "security"), ("支付失败但已扣款，重复扣款", "payment"),
-                                       ("请提升用户权限", "permissions"), ("数据丢失", "data_loss")])
-def test_risk_rules_independent_of_model_flags(text, flag):
-    assert flag in input_risks(text)
+@pytest.mark.parametrize("subject, content, next_step", [
+    ("报表刷新延迟", "每15分钟刷新；没有任何数据丢失提示。", "propose_resolution"),
+    ("安全事件", "密钥泄露，需要安全人员核查。", "escalate"),
+    ("账务争议", "显示重复扣款，需要人工核对账务。", "escalate"),
+    ("权限请求", "需要提升用户权限。", "escalate"),
+    ("恢复问题", "数据丢失，需要人工核对恢复范围。", "escalate"),
+])
+def test_risk_language_does_not_bypass_decision(subject, content, next_step):
+    decision = (
+        {"next_step": "propose_resolution", "reason": "依据已提供的刷新周期作解释",
+         "reply": "页面数据可能按15分钟周期刷新。", "evidence_ids": []}
+        if next_step == "propose_resolution" else
+        {"next_step": "escalate", "reason": "需要人工处理", "reply": "建议人工核查。"}
+    )
+    result, _, seen, _, _ = execute([decision], changes={
+        "subject": subject, "messages": [AgentMessage(role="customer", content=content)],
+    })
+    assert len(seen) == 1
+    assert result.next_step == next_step
+    assert result.evidence_ids == []
+    if next_step == "escalate":
+        assert result.risk_flags == []
 
 
 def execute(decisions, *, changes=None, limits=None, tool_error=False):

@@ -15,7 +15,6 @@ from fastapi.testclient import TestClient
 from ticketmind.agent.dev_acceptance import (AcceptanceAdapters, AttemptLedger, CATEGORIES,
                                             acceptance_lock, write_json)
 from ticketmind.agent.dev_cache import CachedQueryEmbeddings
-from ticketmind.agent.policy import input_risks
 from ticketmind.agent.retrieve import build_retrieval_query
 from ticketmind.agent.run_cache import calculate_request_fingerprint, query_fingerprint
 from ticketmind.agent.runtime import AgentRunner
@@ -59,7 +58,6 @@ def preflight(settings, cases):
                 "case": case["id"],
                 "initial_vector_cache": bool(vector),
                 "query_fingerprint": qf,
-                "input_risk_short_circuit": input_risks(subject + body),
                 "decision_cache": "requires_actual_evidence_and_loop_state",
             }
         )

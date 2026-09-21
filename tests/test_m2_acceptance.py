@@ -163,12 +163,11 @@ def load_script():
 
 
 def test_preflight_is_offline_and_labels_are_separate(settings):
-    from ticketmind.agent.policy import input_risks
     script = load_script()
     cases = script.load_cases()
     for case in cases:
         assert "expected_action" not in case["input"]
-        assert not input_risks(case["input"]["body"])
-    # Nonlegacy inputs have no exact caches under the synthetic unit model endpoint.
+    # Preflight no longer guesses whether Decision will be bypassed by keyword rules.
     rows = script.preflight(settings, cases[1:])
+    assert all("input_risk_short_circuit" not in row for row in rows)
     assert all(not row["initial_vector_cache"] for row in rows)

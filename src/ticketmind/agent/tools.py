@@ -1,8 +1,7 @@
 """Only two read-only tools. No dynamic names, expressions, paths or write tools."""
 from time import monotonic
 
-from ticketmind.agent.policy import escalation, input_risks, validate_query
-from ticketmind.agent.state import customer_fact_text
+from ticketmind.agent.policy import escalation, validate_query
 from ticketmind.agent.proposals import decision_adapter, proposal_adapter, validate_proposal
 from ticketmind.agent.semantic_judge import GuardrailFailure, validate_judgment
 
@@ -14,7 +13,6 @@ def bounded_decision(state, *, decide, judge, corpus, config, remaining, audit, 
         "max_search_rounds", "max_case_details", "max_agent_steps", "max_clarification_rounds"})
     seen_queries = {state["retrieval_query"].strip().casefold()}
     details = set()
-    risks = input_risks(customer_fact_text(state))
 
     def normalize_decision(value):
         if hasattr(value, "model_dump"):
@@ -27,8 +25,6 @@ def bounded_decision(state, *, decide, judge, corpus, config, remaining, audit, 
         if hasattr(value, "model_dump"):
             value = value.model_dump()
         proposal = proposal_adapter.validate_python(value)
-        if risks and proposal.next_step == "escalate":
-            proposal.risk_flags = list(risks)
         return proposal
 
     def finish(proposal):
@@ -38,8 +34,6 @@ def bounded_decision(state, *, decide, judge, corpus, config, remaining, audit, 
             remaining()
             proposal = normalize_proposal(proposal)
             validate_proposal(proposal, {hit.source_id for hit in state["retrieval_hits"]})
-            if risks and (proposal.next_step != "escalate" or not set(risks) <= set(proposal.risk_flags)):
-                raise GuardrailFailure("guardrail_repair_invalid")
             result = validate_judgment(judge(state, proposal), proposal)
             remaining()
             if result.passed:
@@ -63,8 +57,6 @@ def bounded_decision(state, *, decide, judge, corpus, config, remaining, audit, 
             except Exception as exc:
                 raise GuardrailFailure("guardrail_repair_failed") from exc
 
-    if risks:
-        return finish(escalation("输入触发人工处理风险规则", risks=risks))
     while state["agent_steps"] < config.max_agent_steps:
         remaining()
         state["agent_steps"] += 1

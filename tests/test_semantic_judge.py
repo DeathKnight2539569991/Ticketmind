@@ -152,11 +152,25 @@ def test_invalid_evidence_fails_before_judge(monkeypatch):
     assert not judged
 
 
-def test_input_risk_escalation_is_judged(monkeypatch):
-    runner, seen, judged, _ = make_runner(monkeypatch, [GOOD], [PASS])
-    result = runner(run_input("密钥泄露", "请处理"))
-    assert not seen and len(judged) == 1
-    assert result.state["proposal"].risk_flags == ["security"]
+@pytest.mark.parametrize("subject,content,proposal", [
+    ("报表刷新延迟", "每15分钟刷新，没有任何数据丢失提示。",
+     {"next_step": "propose_resolution", "reason": "基于客户已知刷新周期",
+      "reply": "页面数据可以按已知刷新周期核对。", "evidence_ids": []}),
+    ("安全事件", "密钥泄露，请人工协助。", GOOD),
+    ("支付争议", "发生了重复扣款，请人工核查。", GOOD),
+    ("权限请求", "需要修改权限，请人工审核。", GOOD),
+    ("数据丢失", "数据已经丢失，需要人工核查。", GOOD),
+])
+def test_risk_language_reaches_decision_and_judge(monkeypatch, subject, content, proposal):
+    runner, seen, judged, _ = make_runner(monkeypatch, [proposal], [PASS])
+    result = runner(run_input(subject, content))
+    assert len(seen) == len(judged) == 1
+    assert result.state["proposal"].next_step == (
+        proposal["next_step"] if isinstance(proposal, dict) else proposal.next_step
+    )
+    assert result.usage["semantic_judge"][0]["status"] == "passed"
+    if result.state["proposal"].next_step == "escalate":
+        assert result.state["proposal"].risk_flags == []
 
 
 def test_injected_cache_never_silently_adds_paid_judge_call(monkeypatch):

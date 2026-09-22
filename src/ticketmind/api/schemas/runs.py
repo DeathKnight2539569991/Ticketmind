@@ -12,6 +12,7 @@ class RunCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     trigger_message_id: UUID
     expected_version: int = Field(ge=1)
+    retrieval_mode: Literal["dense", "bm25", "hybrid"] | None = None
 
 
 class ReviewBase(BaseModel):
@@ -28,6 +29,7 @@ class EditReview(ReviewBase):
     decision: Literal["edit"]
     edited_reply: Text
     comment: Text
+    final_action: AgentAction | None = None
 
 
 class EscalateReview(ReviewBase):
@@ -47,10 +49,16 @@ class ReviewRead(BaseModel):
     idempotency_key: str
     decision: Literal["approve", "edit", "escalate"]
     edited_reply: str | None
+    final_action: AgentAction | None = None
     comment: str | None
     expected_version: int
     created_at: datetime
     applied_at: datetime | None
+
+
+class RunRecover(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_version: int = Field(ge=1)
 
 
 class RunRead(BaseModel):

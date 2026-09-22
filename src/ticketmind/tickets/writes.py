@@ -18,21 +18,26 @@ def append_message(session, ticket, *, body, actor_id, author_type, operation, k
     return message
 
 
-def write_ticket(session, ticket_id, payload, actor, key, *, close=False):
-    if (close or payload.kind == "human_reply") and actor.role != "reviewer":
-        raise AppError(403, "reviewer_required", "人工回复或关闭需要 reviewer 权限")
-    operation, digest = "close" if close else "message", request_hash(payload)
+def write_ticket(session, ticket_id, payload, actor, key, *, close=False, escalate=False):
+    if close and escalate:
+        raise ValueError("关闭与人工接管不能同时执行")
+    status_write = close or escalate
+    if (status_write or payload.kind == "human_reply") and actor.role != "reviewer":
+        raise AppError(403, "reviewer_required", "人工回复、接管或关闭需要 reviewer 权限")
+    operation, digest = "close" if close else "escalate" if escalate else "message", request_hash(payload)
     with session.begin():
         ticket = require_ticket(session, ticket_id, lock=True)
         existing = session.scalar(select(TicketMessage).where(TicketMessage.ticket_id == ticket_id,
             TicketMessage.actor_id == actor.actor_id, TicketMessage.operation == operation, TicketMessage.idempotency_key == key))
         if existing:
             check_replay(existing, digest)
-            return (TicketRead.model_validate(ticket) if close else MessageRead.model_validate(existing)), False
+            return (TicketRead.model_validate(ticket) if status_write else MessageRead.model_validate(existing)), False
         if ticket.version != payload.expected_version:
             raise AppError(409, "version_conflict", "工单版本已变化，请重新读取")
         if ticket.status == TicketStatus.RESOLVED:
             raise AppError(409, "ticket_resolved", "已关闭工单不能追加消息或再次关闭")
+        if escalate and ticket.status == TicketStatus.ESCALATED:
+            raise AppError(409, "already_escalated", "工单已由人工接管")
         runs = session.scalars(select(ProcessingResult).where(ProcessingResult.ticket_id == ticket_id)).all()
         if any(run.run_status == RunStatus.RUNNING for run in runs):
             raise AppError(409, "active_run_exists", "执行期间不允许写入工单")
@@ -41,13 +46,15 @@ def write_ticket(session, ticket_id, payload, actor, key, *, close=False):
             if run.run_status == RunStatus.WAITING_REVIEW or (run.run_status == RunStatus.FAILED and run.review and run.review.applied_at is None):
                 run.run_status, run.completed_at = RunStatus.CANCELLED, datetime.now(UTC)
                 run.error_code, run.error_summary = "proposal_invalidated", "工单有新信息或已关闭，旧提案失效"
-        message = append_message(session, ticket, body=payload.reason if close else payload.body,
-            actor_id=actor.actor_id, author_type=MessageAuthorType.SYSTEM if close else (
+        message = append_message(session, ticket, body=payload.reason if status_write else payload.body,
+            actor_id=actor.actor_id, author_type=MessageAuthorType.SYSTEM if status_write else (
                 MessageAuthorType.CUSTOMER if payload.kind == "customer_update" else MessageAuthorType.HUMAN_SUPPORT),
             operation=operation, key=key, digest=digest)
         if close:
             ticket.status, ticket.resolved_at = TicketStatus.RESOLVED, datetime.now(UTC)
+        elif escalate:
+            ticket.status = TicketStatus.ESCALATED
         elif payload.kind == "customer_update" and ticket.status != TicketStatus.ESCALATED:
             ticket.status = TicketStatus.OPEN
         session.flush()
-        return (TicketRead.model_validate(ticket) if close else MessageRead.model_validate(message)), True
+        return (TicketRead.model_validate(ticket) if status_write else MessageRead.model_validate(message)), True

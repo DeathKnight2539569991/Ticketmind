@@ -2,7 +2,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,6 +17,8 @@ class KnowledgeDataset(Base):
     kind: Mapped[str] = mapped_column(String(16), nullable=False)
     manifest: Mapped[dict] = mapped_column(JSONB, nullable=False)
     collection_name: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    bm25_collection_name: Mapped[str | None] = mapped_column(String(128), unique=True)
+    bm25_ready: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (CheckConstraint("kind IN ('synthetic', 'production')", name="ck_knowledge_dataset_kind"),)
 
@@ -40,6 +42,8 @@ class KnowledgeCase(Base):
     reviewer_id: Mapped[str | None] = mapped_column(String(64))
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     indexed_hash: Mapped[str | None] = mapped_column(String(64))
+    dense_indexed_hash: Mapped[str | None] = mapped_column(String(64))
+    dense_index_error: Mapped[str | None] = mapped_column(String(64))
     index_error: Mapped[str | None] = mapped_column(String(64))
     indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

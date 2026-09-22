@@ -45,6 +45,8 @@ class KnowledgeSync:
         from ticketmind.retrieval.case_collection import TEXT_MAX_BYTES
         if len(case.content.encode()) > TEXT_MAX_BYTES:
             raise RetrievalError("knowledge_index_text_too_long")
+        if self.qwen is None:
+            raise RetrievalError("embedding_configuration_unavailable")
         if self.qwen.embedding_model != "text-embedding-v4":
             raise RetrievalError("embedding_model_mismatch")
         identity = embedding_identity(self.qwen, case.content)
@@ -67,20 +69,81 @@ class KnowledgeSync:
         with sync_lock(self.factory, dataset_version):
             return self._one(dataset_version, source_id, repair_active=repair_active)
 
+    def _text_dataset(self, dataset):
+        """Switch to a vector-free BM25 collection only after copying active text.
+
+        Called under the dataset sync lock. Until the database pointer commits,
+        retrieval continues using the existing combined index. A failed copy is
+        harmless and can be resumed through idempotent upserts, with no models.
+        """
+        existed = self.index.text_exists(dataset)
+        if dataset.bm25_collection_name and not existed:
+            # Persist the incomplete rebuild before recreating the collection.
+            # A crash midway must not make a partial collection look ready.
+            with self.factory() as session, session.begin():
+                current = session.get(KnowledgeDataset, dataset.version, with_for_update=True)
+                current.bm25_ready = False
+            dataset.bm25_ready = False
+        name = self.index.ensure_text(dataset)
+        if dataset.bm25_collection_name:
+            if dataset.bm25_collection_name != name:
+                raise RetrievalError("bm25_collection_version_mismatch")
+            if existed and dataset.bm25_ready:
+                return dataset
+        last = None
+        while True:
+            with self.factory() as session:
+                query = select(KnowledgeCase).where(KnowledgeCase.dataset_version == dataset.version,
+                                                   KnowledgeCase.status == "active")
+                if last is not None:
+                    query = query.where(KnowledgeCase.source_id > last)
+                cases = session.scalars(query.order_by(KnowledgeCase.source_id).limit(100)).all()
+            if not cases:
+                break
+            for case in cases:
+                if not self.index.text_matches(dataset, case, name):
+                    self.index.upsert_text(dataset, case, name)
+            last = cases[-1].source_id
+        with self.factory() as session, session.begin():
+            current = session.get(KnowledgeDataset, dataset.version, with_for_update=True)
+            current.bm25_collection_name = name
+            current.bm25_ready = True
+        dataset.bm25_collection_name = name
+        dataset.bm25_ready = True
+        return dataset
+
     def _one(self, dataset_version, source_id, *, repair_active=False):
         with self.factory() as session:
             case = require_case(session, dataset_version, source_id)
             dataset = session.get(KnowledgeDataset, dataset_version)
-            if case.status == "active" and not repair_active:
+            if case.status == "active" and not repair_active and not case.dense_index_error:
                 return read_case(case)
             observed_version = case.version
+        dense_hash, dense_error = None, None
         try:
             if case.status == "retired":
                 self.index.delete(dataset, case)
             else:
-                self.index.ensure(dataset)
-                if not self.index.matches(dataset, case):
-                    self.index.upsert(dataset, case, self.vector(case))
+                if hasattr(self.index, "ensure_text"):
+                    dataset = self._text_dataset(dataset)
+                    if not self.index.text_matches(dataset, case, dataset.bm25_collection_name):
+                        self.index.upsert_text(dataset, case, dataset.bm25_collection_name)
+                    # BM25 publication survives missing vectors or a Dense failure.
+                    # Existing exact caches/explicit budgets remain the only way
+                    # to obtain document vectors; HTTP has no paid fallback.
+                    try:
+                        self.index.ensure(dataset)
+                        if not self.index.matches(dataset, case):
+                            self.index.upsert(dataset, case, self.vector(case))
+                        dense_hash = case.content_hash
+                    except Exception as exc:
+                        dense_error = exc.code if isinstance(exc, RetrievalError) else "dense_index_failed"
+                else:
+                    # Explicit demo adapters retain their combined-index contract.
+                    self.index.ensure(dataset)
+                    if not self.index.matches(dataset, case):
+                        self.index.upsert(dataset, case, self.vector(case))
+                    dense_hash = case.content_hash
             with self.factory() as session, session.begin():
                 current = require_case(session, dataset_version, source_id, lock=True)
                 # A retire/retry racing with network IO wins; never reactivate it.
@@ -90,6 +153,7 @@ class KnowledgeSync:
                         current.indexed_at = datetime.now(UTC)
                     else:
                         current.indexed_hash = None
+                    current.dense_indexed_hash, current.dense_index_error = dense_hash, dense_error
                     current.index_error = None
                     current.version += 1
                     session.flush()
@@ -116,16 +180,21 @@ class KnowledgeSync:
                 raise RetrievalError("knowledge_dataset_missing")
         removed = 0
         try:
-            for source_ids in self.index.iter_source_id_batches(dataset):
-                with self.factory() as session:
-                    existing = set(session.scalars(select(KnowledgeCase.source_id).where(
-                        KnowledgeCase.dataset_version == dataset_version,
-                        KnowledgeCase.source_id.in_(source_ids))).all())
-                orphans = [source_id for source_id in source_ids if source_id not in existing]
-                if orphans:
-                    self.index.delete_source_ids(dataset, orphans)
-                    removed += len(orphans)
-                    logger.warning("knowledge_orphans_removed dataset=%s count=%s", dataset_version, len(orphans))
+            collections = [None]
+            if dataset.bm25_collection_name and hasattr(self.index, "ensure_text"):
+                collections.append(dataset.bm25_collection_name)
+            for name in collections:
+                options = {"collection_name": name} if name else {}
+                for source_ids in self.index.iter_source_id_batches(dataset, **options):
+                    with self.factory() as session:
+                        existing = set(session.scalars(select(KnowledgeCase.source_id).where(
+                            KnowledgeCase.dataset_version == dataset_version,
+                            KnowledgeCase.source_id.in_(source_ids))).all())
+                    orphans = [source_id for source_id in source_ids if source_id not in existing]
+                    if orphans:
+                        self.index.delete_source_ids(dataset, orphans, **options)
+                        removed += len(orphans)
+                        logger.warning("knowledge_orphans_removed dataset=%s count=%s", dataset_version, len(orphans))
         except Exception as exc:
             code = exc.code if isinstance(exc, RetrievalError) else "orphan_index_cleanup_failed"
             logger.error("knowledge_orphan_cleanup_failed dataset=%s error=%s", dataset_version, code)
@@ -141,6 +210,7 @@ class KnowledgeSync:
             if not repair_active:
                 from sqlalchemy import or_, and_
                 query = query.where(or_(KnowledgeCase.status.in_(["pending_index", "index_failed"]),
+                    and_(KnowledgeCase.status == "active", KnowledgeCase.dense_index_error.is_not(None)),
                     and_(KnowledgeCase.status == "retired", KnowledgeCase.index_error.is_not(None))))
             ids = session.scalars(query.order_by(KnowledgeCase.updated_at, KnowledgeCase.source_id).limit(limit)).all()
         with sync_lock(self.factory, dataset_version):

@@ -6,6 +6,8 @@ from time import monotonic
 from uuid import UUID, uuid4
 
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import SQLAlchemyError
+from pydantic import ValidationError
 
 from ticketmind.agent.proposals import proposal_adapter
 from ticketmind.agent.semantic_judge import GuardrailFailure
@@ -16,12 +18,19 @@ from ticketmind.core.errors import AppError
 from ticketmind.tickets.enums import AgentAction, ProcessingRunStatus, TicketStatus
 from ticketmind.tickets.models import ProcessingResult, ProcessingReview, Ticket, TicketMessage
 from ticketmind.tickets.service import create_ticket
+from ticketmind.tickets.activity import ticket_activity
 
 logger = logging.getLogger(__name__)
 
 
 def request_hash(payload) -> str:
-    return hashlib.sha256(json.dumps(payload.model_dump(mode="json"), sort_keys=True,
+    data = payload.model_dump(mode="json")
+    # Omitted action preserves the request identity of historical edit reviews.
+    if data.get("final_action") is None:
+        data.pop("final_action", None)
+    if data.get("retrieval_mode") is None:
+        data.pop("retrieval_mode", None)
+    return hashlib.sha256(json.dumps(data, sort_keys=True,
                                      ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -58,6 +67,11 @@ def require_ticket(session, ticket_id, *, lock=False):
 
 
 def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCreate, actor_id: str, key: str, *, workflow=None):
+    with ticket_activity(ticket_id):
+        return _create_run(session_factory, runner_factory, ticket_id, payload, actor_id, key, workflow=workflow)
+
+
+def _create_run(session_factory, runner_factory, ticket_id, payload, actor_id, key, *, workflow):
     digest = request_hash(payload)
     with session_factory() as session, session.begin():
         ticket = require_ticket(session, ticket_id, lock=True)
@@ -89,9 +103,10 @@ def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCre
         if messages[-1].author_type.value != "customer":
             raise AppError(409, "customer_trigger_required", "请使用客户消息触发新运行")
         previous = session.scalars(select(ProcessingResult).where(
-            ProcessingResult.ticket_id == ticket_id, ProcessingResult.run_status == ProcessingRunStatus.COMPLETED,
-            ProcessingResult.action == AgentAction.ASK_CLARIFICATION)).all()
-        previous = [run for run in previous if run.review and run.review.decision != "escalate"]
+            ProcessingResult.ticket_id == ticket_id, ProcessingResult.run_status == ProcessingRunStatus.COMPLETED)).all()
+        previous = [run for run in previous if run.review and run.review.applied_at is not None
+                    and run.review.decision != "escalate"
+                    and (run.review.final_action or run.action) == AgentAction.ASK_CLARIFICATION]
         snapshot = {
             "ticket_id": str(ticket.id),
             "ticket_version": ticket.version,
@@ -108,18 +123,27 @@ def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCre
             ],
             "clarification_rounds": len(previous),
         }
+        from ticketmind.agent.review import agent_input_from_snapshot
+        from ticketmind.core.text import CONVERSATION_MAX_CHARS, MESSAGE_MAX_CHARS
+        try:
+            agent_input_from_snapshot(snapshot)
+        except ValidationError:
+            raise AppError(422, "agent_input_too_large",
+                f"Agent 单条消息限 {MESSAGE_MAX_CHARS} 字符，完整上下文限 {CONVERSATION_MAX_CHARS} 字符；"
+                "未创建运行或调用模型，请人工接管此工单") from None
         runner = runner_factory()
+        metadata = runner.metadata
         sequence = session.scalar(select(func.max(ProcessingResult.run_sequence))
                                   .where(ProcessingResult.ticket_id == ticket_id)) or 0
         run_id = uuid4()
-        snapshot.update(run_id=str(run_id), agent_version=runner.metadata["agent_version"],
-                        corpus_version=runner.metadata["corpus_version"], retrieval_mode=runner.metadata["retrieval_mode"],
-                        execution_limits=runner.metadata.get("model_config", {}).get("limits", {}))
+        snapshot.update(run_id=str(run_id), agent_version=metadata["agent_version"],
+                        corpus_version=metadata["corpus_version"], retrieval_mode=metadata["retrieval_mode"],
+                        execution_limits=metadata.get("model_config", {}).get("limits", {}))
         run = ProcessingResult(id=run_id, ticket_id=ticket_id, trigger_message_id=payload.trigger_message_id,
                                run_sequence=sequence + 1, actor_id=actor_id, idempotency_key=key,
                                request_hash=digest, ticket_version=ticket.version,
                                thread_id=f"ticket:{ticket_id}:run:{run_id}", input_snapshot=snapshot,
-                               run_status=ProcessingRunStatus.RUNNING, **runner.metadata)
+                               run_status=ProcessingRunStatus.RUNNING, **metadata)
         session.add(run)
         session.flush()
     # The transaction AND its connection are released before any network work.
@@ -153,11 +177,21 @@ def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCre
             run.duration_ms = round((monotonic() - started) * 1000)
             session.flush()
             return RunRead.model_validate(run), True
+    try:
+        return save_run_output(session_factory, ticket_id, run_id, output, round((monotonic() - started) * 1000)), True
+    except SQLAlchemyError:
+        logger.error("run_id=%s stage=result_persistence error=database_unavailable", run_id)
+        raise AppError(503, "run_result_not_saved",
+            f"运行 {run_id} 的结果未确认落库；数据库恢复后请使用恢复运行入口，勿重新调用模型") from None
+
+
+def save_run_output(session_factory, ticket_id, run_id, output, duration_ms):
     with session_factory() as session, session.begin():
         ticket = require_ticket(session, ticket_id, lock=True)
         run = session.get(ProcessingResult, run_id)
         run.completed_at = None
-        run.duration_ms = round((monotonic() - started) * 1000)
+        run.duration_ms = duration_ms
+        proposal = proposal_adapter.validate_python(output.state["proposal"])
         run.retrieval_evidence, run.usage = output.evidence, output.usage
         run.tool_calls = output.state.get("tool_calls", [])
         if ticket.version != run.ticket_version:
@@ -171,4 +205,4 @@ def create_run(session_factory, runner_factory, ticket_id: UUID, payload: RunCre
                           "escalate": AgentAction.ESCALATE}[proposal.next_step]
             run.run_status = ProcessingRunStatus.WAITING_REVIEW
         session.flush()
-        return RunRead.model_validate(run), True
+        return RunRead.model_validate(run)

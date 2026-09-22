@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Literal
 from uuid import UUID
 from pydantic import BaseModel,ConfigDict, StringConstraints, field_serializer, Field
-from ticketmind.agent.proposals import Text
+from ticketmind.core.text import Text
 from ticketmind.tickets.enums import TicketChannel,TicketStatus, TicketPriority
 from ticketmind.api.schemas.runs import RunRead
 class TicketCreate(BaseModel):
@@ -10,7 +10,7 @@ class TicketCreate(BaseModel):
         extra="forbid",
     )
     subject: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
-    body: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+    body: Text
     channel: TicketChannel
     requester_role:Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
 class TicketRead(BaseModel):
@@ -65,3 +65,7 @@ class TicketClose(BaseModel):
     model_config = ConfigDict(extra="forbid")
     reason: Text
     expected_version: int = Field(ge=1)
+
+
+class TicketEscalate(TicketClose):
+    """A reviewer explicitly takes over without requiring an Agent proposal."""

@@ -1,5 +1,7 @@
 # TicketMind 架构与接口
 
+2026-09-22 核心更新：新增独立人工接管、显式运行恢复、审核最终动作、人工整理知识及独立 BM25 就绪状态。增量与迁移要求见[核心代码修改报告](core-fixes-2026-09-22.md)。
+
 ## 请求如何走完
 
 ```mermaid
@@ -60,6 +62,8 @@ flowchart LR
 | GET /tickets/{id}/runs；GET /tickets/{id}/runs/{run} | 运行历史、提案、引用、工具、usage、错误和审核 |
 | POST /tickets/{id}/runs/{run}/review | reviewer 批准、编辑或改为转人工 |
 | POST /tickets/{id}/close | reviewer 明确确认解决 |
+| POST /tickets/{id}/escalate | reviewer 独立人工接管，不要求 Agent 已生成提案 |
+| POST /tickets/{id}/runs/{run}/recover | reviewer 从检查点恢复已结束请求，不调用模型或发布回复 |
 | GET /sources/{id}?corpus_version=... | 对应版本合成来源，版本不可用则保留运行快照供查看 |
 | GET /tickets/{id}/knowledge | 已解决工单候选全文或知识状态 |
 | POST /tickets/{id}/knowledge/approve | reviewer 显式批准，expected_version 绑定工单 |
@@ -68,4 +72,4 @@ flowchart LR
 
 错误返回 error_code、message、request_id。401 身份无效；403 权限不足；409 版本、状态或幂等冲突；422 输入无效。HTTP 201 后仍需看 run_status；页面明确展示 failed。
 
-知识批准先提交 PG，再以独立事务保存向量及索引状态；只有 Milvus 强一致读回成功才能 active。检索阶段过滤 inactive、missing 和 hash 不一致来源并保留诊断。停用来源仍可从 PG 查询供历史审计。状态和知识版本分别管理；正文在本阶段不可原地编辑。具体表、恢复矩阵、预算和命令见 [知识交付报告](knowledge-writeback.md)。
+知识由人工整理正文后批准，原始会话保留审计。批准先提交 PG，BM25 正文索引强一致读回成功后可 active，Dense 就绪状态独立记录；缺向量不阻止 BM25 发布或通过 Hybrid 的关键词通道召回。检索过滤 inactive、missing、hash 不一致及 Dense 未就绪来源，保留诊断。知识正文发布后仍不可原地编辑。新表字段和操作见[核心代码修改报告](core-fixes-2026-09-22.md)，历史实现见[知识交付报告](knowledge-writeback.md)。

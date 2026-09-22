@@ -11,6 +11,7 @@ from ticketmind.tickets.enums import AgentAction, MessageAuthorType, ProcessingR
 from ticketmind.tickets.models import ProcessingResult, ProcessingReview
 from ticketmind.tickets.processing import check_replay, request_hash, require_ticket
 from ticketmind.tickets.writes import append_message
+from ticketmind.tickets.activity import ticket_activity
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +25,20 @@ def require_run(session, ticket_id, run_id):
 
 
 def review_payload(review):
-    return {"review_id": str(review.id), "run_id": str(review.run_id), "reviewer_id": review.reviewer_id,
+    result = {"review_id": str(review.id), "run_id": str(review.run_id), "reviewer_id": review.reviewer_id,
             "decision": review.decision, "edited_reply": review.edited_reply, "comment": review.comment,
             "expected_version": review.expected_version}
+    if review.final_action is not None:
+        result["final_action"] = review.final_action.value
+    return result
 
 
 def review_run(factory, workflow, ticket_id, run_id, payload, actor_id, key):
+    with ticket_activity(ticket_id):
+        return _review_run(factory, workflow, ticket_id, run_id, payload, actor_id, key)
+
+
+def _review_run(factory, workflow, ticket_id, run_id, payload, actor_id, key):
     digest, created = request_hash(payload), False
     with factory() as session, session.begin():
         ticket = require_ticket(session, ticket_id, lock=True)
@@ -53,6 +62,8 @@ def review_run(factory, workflow, ticket_id, run_id, payload, actor_id, key):
             ProcessingResult.id != run_id, ProcessingResult.run_status.in_([RunStatus.RUNNING, RunStatus.WAITING_REVIEW]))):
             raise AppError(409, "active_run_exists", "该工单已有另一条有效运行")
         if review is None:
+            if payload.decision == "edit" and payload.final_action is None:
+                raise AppError(422, "review_action_required", "编辑回复时请同时确认最终动作")
             review = ProcessingReview(run_id=run_id, reviewer_id=actor_id, idempotency_key=key,
                                       request_hash=digest, **payload.model_dump())
             session.add(review)
@@ -93,7 +104,7 @@ def apply_review(factory, ticket_id, run_id):
         if run.run_status != RunStatus.RUNNING or ticket.version != review.expected_version or ticket.version != run.ticket_version:
             raise AppError(409, "stale_review", "版本已变化，审核未应用")
         proposal = proposal_adapter.validate_python(run.proposal)
-        action = AgentAction.ESCALATE if review.decision == "escalate" else run.action
+        action = AgentAction.ESCALATE if review.decision == "escalate" else (review.final_action or run.action)
         reply = review.edited_reply if review.decision == "edit" else proposal.reply
         if review.decision == "escalate":
             reply = "人工审核转交人工处理：" + review.comment

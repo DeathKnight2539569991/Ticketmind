@@ -1,7 +1,6 @@
 """Knowledge publishing requires a trusted reviewer and a resolved ticket snapshot."""
 from datetime import UTC, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 
 from ticketmind.core.errors import AppError
@@ -9,11 +8,7 @@ from ticketmind.knowledge.models import KnowledgeCase, KnowledgeOperation, PRODU
 from ticketmind.knowledge.seed import content_hash, ensure_production
 from ticketmind.tickets.enums import TicketStatus
 from ticketmind.tickets.models import TicketMessage
-
-
-class KnowledgeWrite(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    expected_version: int = Field(ge=1)
+from ticketmind.knowledge.schemas import KnowledgeWrite
 
 
 def require_reviewer(actor):
@@ -25,7 +20,12 @@ def read_case(case):
     result = {key: getattr(case, key) for key in (
         "dataset_version", "source_id", "title", "problem", "content", "source", "case_metadata", "source_type",
         "source_ticket_id", "content_hash", "revision", "version", "status", "reviewer_id", "approved_at",
-        "indexed_hash", "index_error", "indexed_at", "retired_at", "created_at", "updated_at")}
+        "indexed_hash", "index_error", "dense_indexed_hash", "dense_index_error",
+        "indexed_at", "retired_at", "created_at", "updated_at")}
+    result["retrieval_ready"] = {
+        "bm25": case.status == "active" and case.indexed_hash == case.content_hash,
+        "dense": case.status == "active" and case.dense_indexed_hash == case.content_hash,
+    }
     return {key: value.astimezone(UTC) if isinstance(value, datetime) else value for key, value in result.items()}
 
 
@@ -70,7 +70,10 @@ def ticket_knowledge(session, ticket_id):
 
 
 def operation_once(session, resource, operation, actor, key, payload):
-    digest = content_hash(payload.model_dump(mode="json"))
+    data = payload.model_dump(mode="json")
+    if data.get("article") is None:
+        data.pop("article", None)
+    digest = content_hash(data)
     existing = session.scalar(select(KnowledgeOperation).where(KnowledgeOperation.resource == resource,
         KnowledgeOperation.actor_id == actor.actor_id, KnowledgeOperation.operation == operation,
         KnowledgeOperation.idempotency_key == key))
@@ -99,6 +102,18 @@ def approve_knowledge(factory, ticket_id, payload, actor, key):
             raise AppError(409, "ticket_not_resolved", "只有已解决工单可以批准为知识")
         if case:
             return read_case(case), False
+        article = getattr(payload, "article", None)
+        if article is None:
+            raise AppError(422, "knowledge_article_required", "请整理问题、适用条件、最终处理步骤和验证结果后再批准")
+        try:
+            candidate["content"] = article.validate_size(ticket.subject)
+        except ValueError as exc:
+            raise AppError(422, "knowledge_text_too_long", str(exc)) from None
+        candidate["problem"] = article.problem
+        # Keep the full, original transcript for audit only. The model sees the
+        # explicitly reviewed article, including through get_case_detail.
+        candidate["source"] = {**candidate["source"], "article": article.model_dump()}
+        candidate["content_hash"] = content_hash(candidate["source"])
         ensure_production(session)
         case = KnowledgeCase(**candidate, reviewer_id=actor.actor_id, approved_at=datetime.now(UTC))
         session.add(case)
@@ -120,7 +135,7 @@ def change_knowledge(factory, dataset, source_id, payload, actor, key, *, operat
         if operation == "retire":
             case.status, case.retired_at = "retired", datetime.now(UTC)
             case.index_error = "index_delete_pending"
-        elif case.status != "retired":
+        elif case.status not in ("retired", "active"):
             case.status, case.index_error = "pending_index", None
         case.version += 1
         session.flush()

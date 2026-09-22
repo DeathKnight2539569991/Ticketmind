@@ -1,12 +1,13 @@
 from faulthandler import enable
 
 from pymilvus import DataType,MilvusClient
+from ticketmind.core.text import KNOWLEDGE_MAX_BYTES
 CASE_COLLECTION="historical_cases_v1"
 # Frozen content identity of the original collection, which has no version column.
 LEGACY_CORPUS_VERSION = "synthetic-v2-e5b5a59a7e1481ad3b095d518772354155d891e51ad2a367cf5f7be26540228f"
 EMBEDDING_DIMENSION=1024
 SOURCE_ID_MAX_BYTES=128
-TEXT_MAX_BYTES=16384
+TEXT_MAX_BYTES=KNOWLEDGE_MAX_BYTES
 VECTOR_INDEX="embedding_flat"
 def create_case_collection(client: MilvusClient,*,timeout:float):
     """Create the case collection in Milvus."""

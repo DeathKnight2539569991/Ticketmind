@@ -249,6 +249,8 @@ class ProcessingReview(Base):
     reviewer_id: Mapped[str] = mapped_column(String(64), nullable=False)
     decision: Mapped[str] = mapped_column(String(16), nullable=False)
     edited_reply: Mapped[str | None] = mapped_column(Text)
+    final_action: Mapped[AgentAction | None] = mapped_column(
+        database_enum(AgentAction, "review_final_action"))
     comment: Mapped[str | None] = mapped_column(Text)
     expected_version: Mapped[int] = mapped_column(Integer, nullable=False)
     idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -256,3 +258,19 @@ class ProcessingReview(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     run: Mapped[ProcessingResult] = relationship(back_populates="review")
+
+
+class ProcessingRecovery(Base):
+    """Idempotent, reviewer-initiated recovery audit; never a model retry."""
+    __tablename__ = "processing_recoveries"
+    __table_args__ = (
+        UniqueConstraint("run_id", "actor_id", "idempotency_key", name="uq_recovery_request"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("processing_results.id"), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    previous_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    resulting_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

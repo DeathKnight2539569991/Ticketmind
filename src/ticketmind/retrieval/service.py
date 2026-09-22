@@ -94,21 +94,37 @@ def retrieve_knowledge(query, *, client, embeddings, store, config, timeout, rec
     dataset = store.dataset()
     if model != dataset.manifest["embedding_model"]:
         raise RetrievalError("embedding_model_mismatch")
-    record["collection"] = dataset.collection_name
-    MilvusKnowledgeIndex(client, budget).validate(dataset)
+    record["collection"] = (dataset.bm25_collection_name or dataset.collection_name) if mode == "bm25" else dataset.collection_name
+    index = MilvusKnowledgeIndex(client, budget)
     results = {}
     for channel in (["dense", "bm25"] if mode == "hybrid" else [mode]):
         audit = {"status": "failed", "candidates": []}
         record["channels"][channel] = audit
         started = monotonic()
         try:
+            if channel == "dense" and not store.has_dense_sources():
+                if mode == "dense":
+                    raise RetrievalError("dense_index_not_ready")
+                results[channel] = []
+                audit.update(status="skipped", reason="dense_index_not_ready", valid_candidates=0)
+                continue
+            text_collection = dataset.bm25_collection_name if channel == "bm25" else None
+            if text_collection and not dataset.bm25_ready:
+                raise RetrievalError("bm25_index_rebuilding")
+            collection = text_collection or dataset.collection_name
+            audit["collection"] = collection
+            if text_collection:
+                index.validate_text(dataset, text_collection)
+            else:
+                index.validate(dataset)
             target = max(config.retrieval_candidate_k, config.retrieval_top_k) if mode == "hybrid" else config.retrieval_top_k
             refill_size = max(config.retrieval_candidate_k, target)
             data = embeddings.embed_query(query) if channel == "dense" else query.lower()
             if channel == "dense":
                 validate_vector(data)
             fields = ["source_id", "corpus_version"]
-            if dataset.manifest["schema_version"] == 2:
+            require_hash = bool(text_collection) or dataset.manifest["schema_version"] == 2
+            if require_hash:
                 fields.append("content_hash")
             valid_hits = []
             seen_source_ids = set()
@@ -120,7 +136,7 @@ def retrieve_knowledge(query, *, client, embeddings, store, config, timeout, rec
                 if page_limit <= 0:
                     break
                 search_args = {
-                    "collection_name": dataset.collection_name,
+                    "collection_name": collection,
                     "data": [data],
                     "anns_field": "embedding" if channel == "dense" else "sparse",
                     "search_params": {"metric_type": "COSINE" if channel == "dense" else "BM25"},
@@ -143,7 +159,7 @@ def retrieve_knowledge(query, *, client, embeddings, store, config, timeout, rec
                     entity = row["entity"]
                     if entity.get("corpus_version") != store.version:
                         raise RetrievalError("corpus_version_mismatch")
-                    if dataset.manifest["schema_version"] == 2 and not entity.get("content_hash"):
+                    if require_hash and not entity.get("content_hash"):
                         raise RetrievalError("knowledge_index_hash_missing")
                     source_id = entity["source_id"]
                     if source_id in seen_source_ids:

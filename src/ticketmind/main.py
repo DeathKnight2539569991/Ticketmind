@@ -39,7 +39,10 @@ def create_app(*, session_factory=SesstionLocal, runner=None, auth_settings=None
     @application.get("/auth/me", tags=["system"])
     def identity(actor: ActorDependency):
         return {"actor_id": actor.actor_id, "role": actor.role,
-                "mode": "synthetic_demo" if getattr(application.state.runner, "demo_mode", False) else "live"}
+                "mode": "synthetic_demo" if getattr(application.state.runner, "demo_mode", False) else "live",
+                "retrieval_mode": application.state.processing_settings.retrieval_mode,
+                "knowledge_dataset": application.state.processing_settings.knowledge_dataset,
+                "selectable_retrieval": application.state.runner is None}
 
     @application.get("/health", tags=["system"])
     async def health_check():

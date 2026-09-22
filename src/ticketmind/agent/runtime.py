@@ -60,6 +60,10 @@ class AgentRunner:
 
     @property
     def metadata(self):
+        dataset = self.corpus.dataset() if isinstance(self.corpus, KnowledgeStore) else None
+        collections = ({"dense": dataset.collection_name,
+                        "bm25": dataset.bm25_collection_name or dataset.collection_name}
+                       if dataset is not None else None)
         return {
             "agent_version": self.config.agent_version,
             "corpus_version": self.corpus.version,
@@ -76,10 +80,11 @@ class AgentRunner:
                 "candidate_k": self.config.retrieval_candidate_k,
                 "rrf_k": self.config.retrieval_rrf_k,
                 "collection": (
-                    self.corpus.dataset().collection_name
-                    if isinstance(self.corpus, KnowledgeStore)
+                    collections["bm25" if self.config.retrieval_mode == "bm25" else "dense"]
+                    if collections is not None
                     else selected_collection(self.corpus, self.config.retrieval_mode)
                 ),
+                "collections": collections,
                 "limits": self.config.model_dump(
                     include={
                         "max_search_rounds",

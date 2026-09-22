@@ -29,7 +29,15 @@ class KnowledgeStore:
         case = self.read_many([source_id]).get(source_id)
         if case is None or case.status != "active":
             raise RetrievalError("knowledge_source_unavailable")
+        if case.source_type == "ticket" and "article" in case.source:
+            return {"source_id": source_id, "title": case.title, "article": case.source["article"]}
         return case.source
+
+    def has_dense_sources(self):
+        with self.factory() as session:
+            return session.scalar(select(KnowledgeCase.source_id).where(
+                KnowledgeCase.dataset_version == self.version, KnowledgeCase.status == "active",
+                KnowledgeCase.dense_indexed_hash == KnowledgeCase.content_hash).limit(1)) is not None
 
     def hydrate(self, hits, record):
         cases = self.read_many([hit.source_id for hit in hits]) if hits else {}
@@ -38,6 +46,7 @@ class KnowledgeStore:
             case = cases.get(hit.source_id)
             error = ("missing_postgres_source" if case is None else
                      "inactive_knowledge" if case.status != "active" else
+                     "dense_index_not_ready" if hit.retrieval_mode == "dense" and case.dense_indexed_hash != case.content_hash else
                      "knowledge_revision_mismatch" if hit.content_hash and hit.content_hash != case.content_hash else None)
             if error:
                 issue = {"source_id": hit.source_id, "dataset_version": self.version, "error": error}

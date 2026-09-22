@@ -5,6 +5,7 @@ from urllib.parse import quote
 import streamlit as st
 
 from ticketmind.workbench.client import ApiClient, ApiError, PendingWrite
+from ticketmind.core.text import MESSAGE_MAX_CHARS, CONVERSATION_MAX_CHARS
 
 STATUS = {"open": "处理中", "awaiting_customer": "等待客户", "escalated": "已转人工", "resolved": "已解决"}
 RUN = {"running": "执行中", "waiting_review": "待人工审核", "completed": "审核已应用", "failed": "执行失败", "cancelled": "已失效"}
@@ -24,10 +25,12 @@ def queue(path, payload, label):
     st.rerun()
 
 
-def review_request_payload(decision, expected_version, *, edited_reply=None, comment=None):
+def review_request_payload(decision, expected_version, *, edited_reply=None, comment=None, final_action=None):
     payload = {"decision": decision, "expected_version": expected_version}
     if decision == "edit":
         payload.update(edited_reply=edited_reply, comment=comment)
+        if final_action is not None:
+            payload["final_action"] = final_action
     elif decision == "escalate":
         payload["comment"] = comment
     elif decision == "approve":
@@ -55,6 +58,15 @@ def pending_panel(api):
             st.text(pending.payload[field])
     if "decision" in pending.payload:
         st.write("审核决定：" + {"approve": "批准已核对的草稿", "edit": "编辑后批准", "escalate": "改为转人工"}[pending.payload["decision"]])
+    if pending.payload.get("final_action"):
+        st.write("最终动作：" + ACTION[pending.payload["final_action"]])
+    if pending.payload.get("retrieval_mode"):
+        st.write("本次检索模式：" + pending.payload["retrieval_mode"])
+    if pending.payload.get("article"):
+        for field, label in (("problem", "问题"), ("applicability", "适用条件"),
+                             ("solution", "最终处理步骤"), ("verification", "验证结果")):
+            st.markdown(f"**{label}**")
+            st.text(pending.payload["article"][field])
     st.caption("此请求保留原版本和请求标识；网络异常后可原样重试。刷新浏览器或退出会话会丢失未完成请求，请先核对工单记录。")
     with st.expander("请求记录（用于失败定位与原样重试）"):
         st.code(pending.key, language=None)
@@ -100,7 +112,7 @@ def create_form():
     with st.expander("新建工单", expanded=not st.session_state.get("selected_id")):
         with st.form("create"):
             subject = st.text_input("工单标题", max_chars=500)
-            body = st.text_area("问题描述", height=130)
+            body = st.text_area("问题描述", height=130, max_chars=MESSAGE_MAX_CHARS)
             channel = st.selectbox("来源渠道", ["web", "email", "api"])
             requester = st.text_input("客户角色（仅业务信息）", value="用户", max_chars=64)
             if st.form_submit_button("创建工单"):
@@ -119,6 +131,11 @@ def run_view(api, ticket, run, reviewer):
         st.warning("此提案已失效，不能用于审核发布。")
     elif run["run_status"] == "waiting_review":
         st.info("草稿尚未发布。请核对事实、引用及状态承诺。")
+    if reviewer and run["run_status"] in ("running", "failed"):
+        st.caption("请求结束后，可从已保存结果恢复状态；不会重新调用模型或发布回复。仍在执行时会拒绝恢复。")
+        if st.button("恢复运行状态", key=f"recover-{run['id']}"):
+            queue(f"/tickets/{ticket['id']}/runs/{run['id']}/recover",
+                  {"expected_version": ticket["version"]}, "从检查点恢复运行状态，不重新调用模型")
     proposal = run.get("proposal") or {}
     st.write(ACTION.get(proposal.get("next_step"), proposal.get("next_step") or "尚无提案"))
     st.text(proposal.get("reason") or "")
@@ -152,6 +169,7 @@ def run_view(api, ticket, run, reviewer):
                     review_request_payload(
                         review["decision"], review["expected_version"],
                         edited_reply=review.get("edited_reply"), comment=review.get("comment"),
+                        final_action=review.get("final_action"),
                     ),
                     "以原审核人身份重试已保存的审核", review["idempotency_key"])
                 st.rerun()
@@ -159,8 +177,13 @@ def run_view(api, ticket, run, reviewer):
         with st.form(f"review-{run['id']}-{ticket['version']}"):
             decision = st.selectbox("审核决定", ["approve", "edit", "escalate"],
                                     format_func=lambda x: {"approve": "批准草稿", "edit": "编辑后批准", "escalate": "改为转人工"}[x])
-            edited = st.text_area("编辑后的回复（仅编辑后批准使用）", value=proposal.get("reply") or "", height=160)
-            comment = st.text_area("审核理由（编辑或转人工必填）")
+            edited = st.text_area("编辑后的回复（仅编辑后批准使用）", value=proposal.get("reply") or "", height=160, max_chars=MESSAGE_MAX_CHARS)
+            actions = ["resolve", "ask_clarification", "escalate"]
+            final_action = st.selectbox("最终动作（仅编辑后批准使用）", actions,
+                index=actions.index(run.get("action")) if run.get("action") in actions else 0,
+                format_func=lambda value: ACTION[value])
+            st.caption("解决建议保持工单处理中；补充信息进入等待客户；转人工进入人工接管。关闭仍需单独确认。")
+            comment = st.text_area("审核理由（编辑或转人工必填）", max_chars=MESSAGE_MAX_CHARS)
             acknowledged = st.checkbox("我已核对回复，确认应用审核并保存发布消息")
             if st.form_submit_button("提交审核"):
                 if not acknowledged or (decision in ("edit", "escalate") and not comment.strip()) or (decision == "edit" and not edited.strip()):
@@ -172,6 +195,7 @@ def run_view(api, ticket, run, reviewer):
                             decision, ticket["version"],
                             edited_reply=edited if decision == "edit" else None,
                             comment=comment or None,
+                            final_action=final_action if decision == "edit" else None,
                         ),
                         "确认人工审核；发布仅保存到本地数据库",
                     )
@@ -205,14 +229,30 @@ def detail_view(api, ticket, reviewer):
         locked = ticket["status"] == "resolved" or running
         if locked:
             st.info("工单已解决或正在执行，暂不能写入。")
-        customer = next((m for m in reversed(ticket["messages"]) if m["author_type"] == "customer"), None)
+        latest = ticket.get("latest_run") or {}
+        customer = ticket["messages"][-1] if ticket["messages"] and ticket["messages"][-1]["author_type"] == "customer" else None
+        too_long = (any(len(m["body"]) > MESSAGE_MAX_CHARS for m in ticket["messages"])
+                    or len(ticket["subject"]) + sum(len(m["body"]) for m in ticket["messages"]) > CONVERSATION_MAX_CHARS)
+        pending_review = latest.get("run_status") == "waiting_review" or (
+            latest.get("run_status") == "failed" and latest.get("review") and not latest["review"].get("applied_at"))
+        if too_long:
+            st.warning("完整对话超出自动处理长度限制，请由 reviewer 人工接管；原始消息会完整保留。")
         st.caption("处理会创建 Agent 运行；生成建议后仍需审核。")
-        if st.button("处理最新客户消息", disabled=locked or ticket["status"] != "open" or not customer, key="process"):
-            queue(f"/tickets/{ticket_id}/runs", dict(expected_version=version, trigger_message_id=customer["id"]), "处理最新客户消息")
+        mode = None
+        if st.session_state.actor.get("selectable_retrieval"):
+            modes = ["bm25", "hybrid", "dense"]
+            default = st.session_state.actor.get("retrieval_mode", "bm25")
+            mode = st.selectbox("本次检索模式", modes, index=modes.index(default), key=f"mode-{ticket_id}")
+            st.caption("Hybrid 使用关键词与已就绪向量共同召回；缺向量的知识仍可走关键词通道。")
+        if st.button("处理最新客户消息", disabled=bool(locked or ticket["status"] != "open" or not customer or too_long or pending_review), key="process"):
+            payload = dict(expected_version=version, trigger_message_id=customer["id"])
+            if mode is not None:
+                payload["retrieval_mode"] = mode
+            queue(f"/tickets/{ticket_id}/runs", payload, "处理最新客户消息")
         with st.form(f"message-{ticket_id}-{version}"):
             kind = st.selectbox("消息类型", ["customer_update", "human_reply"] if reviewer else ["customer_update"],
                                 format_func=lambda x: "客户补充" if x == "customer_update" else "人工回复")
-            body = st.text_area("消息正文")
+            body = st.text_area("消息正文", max_chars=MESSAGE_MAX_CHARS)
             st.caption("保存新消息会使旧的待审提案失效。人工回复将直接保存发布消息。")
             if st.form_submit_button("保存消息", disabled=locked):
                 if body.strip():
@@ -220,8 +260,16 @@ def detail_view(api, ticket, reviewer):
                 else:
                     st.error("消息不能为空。")
         if reviewer:
+            with st.form(f"escalate-{ticket_id}-{version}"):
+                reason = st.text_area("人工接管原因", max_chars=MESSAGE_MAX_CHARS)
+                if st.form_submit_button("人工接管", disabled=locked or ticket["status"] == "escalated"):
+                    if reason.strip():
+                        queue(f"/tickets/{ticket_id}/escalate", dict(reason=reason, expected_version=version),
+                              "人工接管此工单，使旧待审提案失效；不调用模型")
+                    else:
+                        st.error("请填写人工接管原因。")
             with st.form(f"close-{ticket_id}-{version}"):
-                reason = st.text_area("解决说明")
+                reason = st.text_area("解决说明", max_chars=MESSAGE_MAX_CHARS)
                 confirmed = st.checkbox("我已确认问题解决，可以关闭工单")
                 if st.form_submit_button("确认解决并关闭", disabled=locked):
                     if confirmed and reason.strip():
@@ -245,6 +293,10 @@ def knowledge_view(api, ticket, reviewer):
         st.code(case["source_id"], language=None)
         st.caption(f"知识版本 {case['revision']} · 状态版本 {case['version']} · 审核者 {case['reviewer_id']}")
         st.write("Index state：" + ("已验证" if case["status"] == "active" else case["status"]))
+        ready = case.get("retrieval_ready", {})
+        st.caption(f"BM25：{'可用' if ready.get('bm25') else '未就绪'} · Dense：{'可用' if ready.get('dense') else '未就绪'}")
+        if case.get("dense_index_error"):
+            st.info("向量索引未就绪：" + case["dense_index_error"] + "。BM25 可独立使用；Hybrid 仍可通过关键词通道召回。")
         with st.expander("查看当前知识全文"):
             st.text(case["content"])
         if case["status"] == "retired":
@@ -252,13 +304,13 @@ def knowledge_view(api, ticket, reviewer):
         if case.get("index_error"):
             st.error("索引失败原因：" + case["index_error"])
         case_path = f"/knowledge/{quote(case['dataset_version'], safe='')}/{quote(case['source_id'], safe='')}"
-        if reviewer and (case["status"] in ("pending_index", "index_failed") or case.get("index_error")):
+        if reviewer and (case["status"] in ("pending_index", "index_failed") or case.get("index_error") or case.get("dense_index_error")):
             retiring_cleanup = case["status"] == "retired"
             retry_label = "重试清理停用知识的索引" if retiring_cleanup else "重试知识索引（仅使用已有向量）"
             if st.button(retry_label):
                 queue(f"{case_path}/retry", {"expected_version": case["version"]},
                       "重试清理停用知识的索引（不重新启用知识）" if retiring_cleanup
-                      else "重试索引；缺少向量时保持可观察失败，由管理员按授权预算处理")
+                      else "重试索引；BM25 独立可用，Dense 仅复用已有向量，不新增付费调用")
         if reviewer and case["status"] != "retired":
             st.caption("停用后将不再参与 Agent 检索；数据库保留全文与历史记录，当前无法重新启用。")
             confirmed = st.checkbox("我已核对知识全文，确认停用此知识",
@@ -270,14 +322,29 @@ def knowledge_view(api, ticket, reviewer):
     candidate = result.get("candidate")
     if not candidate:
         return
-    st.info("已形成待审候选，尚未进入知识库。批准后才会尝试建立索引。")
-    with st.expander("核对候选知识全文", expanded=True):
+    st.info("请从会话中整理可复用知识。完整会话保留用于审计，只有人工整理的正文用于检索。")
+    with st.expander("查看原始已发布会话", expanded=False):
         st.text(candidate["content"])
     if reviewer:
-        confirmed = st.checkbox("我已核对完整会话，批准该案例作为可检索知识")
-        if st.button("Publish to Knowledge Base", disabled=not confirmed):
-            queue(f"/tickets/{ticket['id']}/knowledge/approve", {"expected_version": ticket["version"]},
-                  "批准此已解决工单沉淀为知识；仅使用已有向量，缺少缓存时等待显式索引")
+        with st.form(f"knowledge-article-{ticket['id']}"):
+            article = {"problem": st.text_area("问题概述", max_chars=MESSAGE_MAX_CHARS),
+                       "applicability": st.text_area("适用条件与不适用情况", max_chars=MESSAGE_MAX_CHARS),
+                       "solution": st.text_area("最终有效的处理步骤", max_chars=MESSAGE_MAX_CHARS),
+                       "verification": st.text_area("验证结果", max_chars=MESSAGE_MAX_CHARS)}
+            confirmed = st.checkbox("我已核对原始会话与以上正文，批准作为可检索知识")
+            if st.form_submit_button("批准发布知识"):
+                if not confirmed or not all(value.strip() for value in article.values()):
+                    st.error("请填写全部四项并确认审核。")
+                else:
+                    from ticketmind.knowledge.schemas import KnowledgeArticle
+                    try:
+                        KnowledgeArticle.model_validate(article).validate_size(ticket["subject"])
+                    except ValueError:
+                        st.error("知识正文（含标题和字段标签）限 16384 UTF-8 字节，请精简后提交。")
+                    else:
+                        queue(f"/tickets/{ticket['id']}/knowledge/approve",
+                              {"expected_version": ticket["version"], "article": article},
+                              "批准整理后的知识；建立 BM25 索引，Dense 仅使用已有向量")
 
 
 def main():
@@ -313,6 +380,9 @@ def main():
             error(exc)
             st.stop()
         st.text(f"{actor['actor_id']} · {actor['role']}")
+        st.session_state.actor = actor
+        if actor.get("knowledge_dataset"):
+            st.caption("当前检索知识库：" + actor["knowledge_dataset"])
         if actor["role"] != "reviewer":
             st.caption("当前身份可录入工单和客户消息；审核、人工回复和关闭需 reviewer。")
     if actor.get("mode") == "synthetic_demo":

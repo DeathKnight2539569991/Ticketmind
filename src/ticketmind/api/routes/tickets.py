@@ -5,7 +5,7 @@ from ticketmind.api.schemas.tickets import TicketCreate, TicketRead, TicketDetai
 from ticketmind.api.schemas.runs import RunRead
 from ticketmind.api.dependencies import get_session, IdempotencyKey
 from ticketmind.core.auth import ActorDependency, ReviewerDependency
-from ticketmind.api.schemas.tickets import MessageCreate, MessageRead, TicketClose
+from ticketmind.api.schemas.tickets import MessageCreate, MessageRead, TicketClose, TicketEscalate
 from ticketmind.tickets.writes import write_ticket
 from ticketmind.tickets.processing import create_ticket_once, require_ticket
 from ticketmind.tickets.models import Ticket, ProcessingResult
@@ -54,6 +54,13 @@ def list_tickets(actor: ActorDependency, session: Annotated[Session, Depends(get
     if status is not None:
         query = query.where(Ticket.status == status)
     return session.scalars(query.limit(limit).offset(offset)).all()
+
+
+@router.post("/{ticket_id}/escalate", response_model=TicketRead)
+def escalate_ticket_endpoint(ticket_id: UUID, payload: TicketEscalate, actor: ReviewerDependency,
+                             key: IdempotencyKey, session: Annotated[Session, Depends(get_session)]):
+    result, _ = write_ticket(session, ticket_id, payload, actor, key, escalate=True)
+    return result
 
 
 @router.get("/{ticket_id}", response_model=TicketDetail)

@@ -1,8 +1,8 @@
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, TypeAdapter, model_validator
+from ticketmind.core.text import Text
 
-Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8000)]
 SourceId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
 RiskFlag = Literal["security", "payment", "permissions", "data_loss"]
 

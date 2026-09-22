@@ -16,11 +16,16 @@ def get_session(request: Request):
         yield session
 
 
-def get_runner(request: Request):
+def get_runner(request: Request, *, retrieval_mode=None):
     if request.app.state.runner is not None:
+        if retrieval_mode is not None:
+            raise AppError(422, "fixed_runner_mode", "当前固定演示适配器不支持切换检索模式")
         return request.app.state.runner
     try:
-        runner = AgentRunner(QwenSettings(), MilvusSettings(), request.app.state.processing_settings,
+        config = request.app.state.processing_settings
+        if retrieval_mode is not None:
+            config = config.model_copy(update={"retrieval_mode": retrieval_mode})
+        runner = AgentRunner(QwenSettings(), MilvusSettings(), config,
                              session_factory=request.app.state.session_factory)
         from ticketmind.retrieval.schemas import RetrievalError
         try:

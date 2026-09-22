@@ -6,7 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ticketmind.api.dependencies import IdempotencyKey, get_runner, get_session
-from ticketmind.api.schemas.runs import RunCreate, RunRead, ReviewCreate
+from ticketmind.api.schemas.runs import RunCreate, RunRead, ReviewCreate, RunRecover
+from ticketmind.tickets.recovery import recover_run
 from ticketmind.core.auth import ActorDependency, ReviewerDependency
 from ticketmind.tickets.reviews import review_run
 from ticketmind.core.errors import AppError
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/tickets/{ticket_id}/runs", tags=["runs"])
 @router.post("", response_model=RunRead, status_code=201)
 def start_run(ticket_id: UUID, payload: RunCreate, actor: ActorDependency, key: IdempotencyKey,
               request: Request, response: Response):
-    result, created = create_run(request.app.state.session_factory, lambda: get_runner(request),
+    result, created = create_run(request.app.state.session_factory, lambda: get_runner(request, retrieval_mode=payload.retrieval_mode),
                                  ticket_id, payload, actor.actor_id, key, workflow=request.app.state.workflow)
     response.status_code = 201 if created else 200
     return result
@@ -50,3 +51,10 @@ def review_endpoint(ticket_id: UUID, run_id: UUID, payload: ReviewCreate, actor:
                                 ticket_id, run_id, payload, actor.actor_id, key)
     response.status_code = 201 if created else 200
     return result
+
+
+@router.post("/{run_id}/recover", response_model=RunRead)
+def recover_endpoint(ticket_id: UUID, run_id: UUID, payload: RunRecover, actor: ReviewerDependency,
+                     key: IdempotencyKey, request: Request):
+    return recover_run(request.app.state.session_factory, request.app.state.workflow,
+                       ticket_id, run_id, payload, actor, key)

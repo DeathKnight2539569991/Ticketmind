@@ -1,5 +1,7 @@
 # M2 真实模型验收方案
 
+> 2026-09-24 兼容说明：本文中的 2026-09-14 请求数和命令是历史 M2 记录，原额度不包含后来加入的 Semantic Judge。当前 `scripts/check_m2_acceptance.py` 将 Decision 与 Judge 分别按 `--decision-model`（默认 `qwen3.8-flash`）和 `--judge-model`（默认 `deepseek-v4.1-flash`）构造缓存适配器；新增 `--judge-ceiling` 默认 0，旧三类 `CATEGORIES` 和旧台账保持可读。若需真实运行，Judge 新调用次数及两个模型必须另获明确授权，不能复用下文旧 M2 额度。编辑回复时 `final_action` 是必填业务动作，旧示例需补上实际审核决定。
+
 状态：**用户已批准三例与累计上限；真实执行共新增 7 次调用，三例均生成预期动作；用户确认审核后，零新增模型调用完成三类业务应用。** 原文、审核文本与实际结果见 [审核单](m2-acceptance-review.md)。本次基于工作区 M2，不回退 main，也不提交、推送、部署或开展 M3。
 
 ## 固定输入与判定依据

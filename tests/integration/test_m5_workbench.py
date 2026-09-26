@@ -81,11 +81,14 @@ def approve(at, *, edit=False):
     widget(at, "selectbox", "审核决定").select("edit" if edit else "approve")
     if edit:
         widget(at, "text_area", "编辑后的回复（仅编辑后批准使用）").set_value("人工核对后的回复")
+        widget(at, "selectbox", "最终动作（仅编辑后批准使用）").select("resolve")
         widget(at, "text_area", "审核理由（编辑或转人工必填）").set_value("核对适用条件")
     widget(at, "checkbox", "我已核对回复，确认应用审核并保存发布消息").check()
     click(at, "提交审核")
     pending = at.session_state.pending
     assert "edited_reply" in pending.payload if edit else "edited_reply" not in pending.payload
+    if edit:
+        assert pending.payload["final_action"] == "resolve"
     click(at, "确认提交 / 原样重试")
 
 
@@ -128,7 +131,7 @@ def test_ui_three_paths_and_database_results(ui, subject, status):
 
 @pytest.mark.parametrize("decision,expected_keys", [
     ("approve", {"decision", "expected_version"}),
-    ("edit", {"decision", "expected_version", "edited_reply", "comment"}),
+    ("edit", {"decision", "expected_version", "edited_reply", "comment", "final_action"}),
     ("escalate", {"decision", "expected_version", "comment"}),
 ])
 def test_ui_review_payload_matches_discriminated_schema(ui, decision, expected_keys):
@@ -139,6 +142,7 @@ def test_ui_review_payload_matches_discriminated_schema(ui, decision, expected_k
     widget(at, "selectbox", "审核决定").select(decision)
     if decision == "edit":
         widget(at, "text_area", "编辑后的回复（仅编辑后批准使用）").set_value("人工编辑回复")
+        widget(at, "selectbox", "最终动作（仅编辑后批准使用）").select("resolve")
         widget(at, "text_area", "审核理由（编辑或转人工必填）").set_value("编辑原因")
     elif decision == "escalate":
         widget(at, "text_area", "审核理由（编辑或转人工必填）").set_value("需要人工处理")
@@ -146,6 +150,8 @@ def test_ui_review_payload_matches_discriminated_schema(ui, decision, expected_k
     click(at, "提交审核")
     pending = at.session_state.pending
     assert set(pending.payload) == expected_keys
+    if decision == "edit":
+        assert pending.payload["final_action"] == "resolve"
     click(at, "确认提交 / 原样重试")
     with factory() as session:
         ticket = session.get(Ticket, UUID(ticket_id))

@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
-from ticketmind.agent.dev_acceptance import AcceptanceAdapters, AttemptLedger, CATEGORIES, acceptance_lock, write_json
+from ticketmind.agent.dev_acceptance import AcceptanceAdapters, AttemptLedger, M4_CATEGORIES, acceptance_lock, write_json
 from ticketmind.agent.run_cache import QueryVectorCache, load_cache, query_fingerprint
 from ticketmind.agent.runtime import AgentRunner
 from ticketmind.core.config import AuthSettings, MilvusSettings, ProcessingSettings, QwenSettings
@@ -91,19 +91,24 @@ def run_retrieval(queries, qwen, config, corpus, modes):
             "embedding_source": "exact_cache_or_not_run"}
 
 
-def execute_agent(case, qwen, config, ledger, decision_model):
-    # Only customer input enters HTTP / Agent. No label or rule sheet is supplied.
-    adapters = AcceptanceAdapters(qwen, CACHE, ledger)
-    decisions = AcceptanceAdapters(qwen.model_copy(update={"model": decision_model}), CACHE, ledger)
+def build_acceptance_runner(qwen, config, ledger):
+    """Use separate bounded adapters for both model roles in the current protocol."""
+    embeddings = AcceptanceAdapters(qwen, CACHE, ledger)
+    decisions = AcceptanceAdapters(qwen.model_copy(update={"model": config.decision_model}), CACHE, ledger)
+    judges = AcceptanceAdapters(qwen.model_copy(update={"model": config.judge_model}), CACHE, ledger)
     runner = AgentRunner(qwen, MilvusSettings(), config,
-                         embedding_factory=adapters.embeddings, decision_fn=decisions.decision,
-                         corpus=load_sources(config.corpus_path))
+                         embedding_factory=embeddings.embeddings, decision_fn=decisions.decision,
+                         judge_fn=judges.judge, corpus=load_sources(config.corpus_path))
+    return runner, decisions, judges
+
+
+def execute_agent(case, qwen, config, ledger):
+    # Only customer input enters HTTP / Agent. No label or rule sheet is supplied.
+    runner, decisions, judges = build_acceptance_runner(qwen, config, ledger)
     class EvaluationRunner:
         @property
         def metadata(self):
-            meta = runner.metadata
-            meta["model_config"]["decision"] = decision_model
-            return meta
+            return runner.metadata
 
         def __call__(self, agent_input, *, clarification_rounds=0):
             return runner(agent_input, clarification_rounds=clarification_rounds)
@@ -127,7 +132,7 @@ def execute_agent(case, qwen, config, ledger, decision_model):
                 run = response.json()
                 report.update(status="succeeded" if run["run_status"] == "waiting_review" else "failed",
                     run=run, final_proposal=run["proposal"], retrieval_evidence=run["retrieval_evidence"],
-                    temporary_schema=schema, raw_decisions=[], raw_proposal=None,
+                    temporary_schema=schema, raw_decisions=[], raw_judges=[], raw_proposal=None,
                     evaluation_config={"models": run["models"], "corpus_version": run["corpus_version"],
                                        "retrieval_mode": run["retrieval_mode"], "agent_version": run["agent_version"]})
                 for entry in (run.get("usage") or {}).get("acceptance_decisions", []):
@@ -140,6 +145,9 @@ def execute_agent(case, qwen, config, ledger, decision_model):
                         value = None
                     # Last raw response only: an earlier successful proposal cannot mask a later malformed response.
                     report["raw_proposal"] = value if isinstance(value, dict) else None
+                for entry in (run.get("usage") or {}).get("acceptance_judges", []):
+                    raw = json.loads(judges.path("judge", entry["fingerprint"]).read_text(encoding="utf-8"))["response"]
+                    report["raw_judges"].append(raw)
                 with factory() as session:
                     saved = session.get(ProcessingResult, UUID(run["id"]))
                     assert saved.proposal == run["proposal"] and saved.retrieval_evidence == run["retrieval_evidence"]
@@ -167,18 +175,20 @@ def main():
     parser.add_argument("--case", action="append")
     parser.add_argument("--modes", nargs="+", choices=["dense", "bm25", "hybrid"], default=["dense", "bm25", "hybrid"])
     parser.add_argument("--agent-mode", choices=["dense", "bm25", "hybrid"], default="hybrid")
-    parser.add_argument("--decision-model", default="glm-5.2")
+    parser.add_argument("--decision-model", default="qwen3.8-flash")
+    parser.add_argument("--judge-model", default="deepseek-v4.1-flash")
     parser.add_argument("--execute", action="store_true", help="vectors/agent 执行；参数本身不构成付费授权")
     parser.add_argument("--include-m3-diagnostics", action="store_true")
     parser.add_argument("--output", type=Path)
-    for category in CATEGORIES:
+    for category in M4_CATEGORIES:
         parser.add_argument("--" + category.replace("_", "-") + "-ceiling", type=int, default=0)
     args = parser.parse_args()
-    ceilings = {c: getattr(args, c + "_ceiling") for c in CATEGORIES}
+    ceilings = {c: getattr(args, c + "_ceiling") for c in M4_CATEGORIES}
     if any(v < 0 for v in ceilings.values()):
         parser.error("累计上限不能为负；失败请求同样计次")
     qwen = QwenSettings()
-    config = ProcessingSettings(retrieval_mode=args.agent_mode, retrieval_top_k=5, retrieval_candidate_k=20, retrieval_rrf_k=60)
+    config = ProcessingSettings(retrieval_mode=args.agent_mode, retrieval_top_k=5, retrieval_candidate_k=20,
+                                retrieval_rrf_k=60, decision_model=args.decision_model, judge_model=args.judge_model)
     corpus = load_sources(config.corpus_path)
     for path in (args.label_reviews, args.development_label_reviews):
         if path is not None and not path.exists():
@@ -205,8 +215,10 @@ def main():
     report = {"created_at": datetime.now(UTC).isoformat(), "stage": args.stage, "synthetic": True,
         "dataset_sha256": digest(rows), "query_set_sha256": digest(queries), "development_overlay_sha256": digest(overlay),
         "manifest": manifest_for(corpus), "config": config.model_dump(mode="json"),
-        "decision_model": args.decision_model, "embedding_model": qwen.embedding_model,
+        "decision_model": config.decision_model, "judge_model": config.judge_model,
+        "embedding_model": qwen.embedding_model,
         "decision_protocol": AgentRunner(qwen, MilvusSettings(), config, corpus=corpus).metadata["model_config"]["decision_protocol"],
+        "judge_protocol": AgentRunner(qwen, MilvusSettings(), config, corpus=corpus).metadata["model_config"]["judge_protocol"],
         "new_call_ceilings": ceilings, "price": None, "price_status": "not_available", "rows": []}
     output = args.output or CACHE / "reports" / f"{args.stage}-{uuid4().hex}.json"
     try:
@@ -253,7 +265,7 @@ def main():
                     else:
                         scores = []
                         for row in rows:
-                            prediction = execute_agent(row["case"], qwen, config, ledger, args.decision_model)
+                            prediction = execute_agent(row["case"], qwen, config, ledger)
                             report["rows"].append(prediction)
                             scores.append(score_prediction(row, prediction, corpus))
                             report.update(scores=scores, summary=summarize(scores))

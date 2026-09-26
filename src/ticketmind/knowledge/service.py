@@ -129,14 +129,18 @@ def change_knowledge(factory, dataset, source_id, payload, actor, key, *, operat
         case = require_case(session, dataset, source_id, lock=True)
         replay = operation_once(session, f"{dataset}/{source_id}", operation, actor, key, payload)
         if replay:
-            return read_case(case)
+            return read_case(case), False
         if case.version != payload.expected_version:
             raise AppError(409, "version_conflict", "知识状态已变化，请刷新")
         if operation == "retire":
             case.status, case.retired_at = "retired", datetime.now(UTC)
             case.index_error = "index_delete_pending"
+        elif case.status == "active":
+            # Commit the retry intent before network IO. A replay or default
+            # reconcile can finish repair if the process exits after this write.
+            case.index_error = "index_repair_pending"
         elif case.status not in ("retired", "active"):
             case.status, case.index_error = "pending_index", None
         case.version += 1
         session.flush()
-        return read_case(case)
+        return read_case(case), True

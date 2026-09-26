@@ -116,7 +116,8 @@ class KnowledgeSync:
         with self.factory() as session:
             case = require_case(session, dataset_version, source_id)
             dataset = session.get(KnowledgeDataset, dataset_version)
-            if case.status == "active" and not repair_active and not case.dense_index_error:
+            if (case.status == "active" and not repair_active
+                    and not case.index_error and not case.dense_index_error):
                 return read_case(case)
             observed_version = case.version
         dense_hash, dense_error = None, None
@@ -211,6 +212,7 @@ class KnowledgeSync:
                 from sqlalchemy import or_, and_
                 query = query.where(or_(KnowledgeCase.status.in_(["pending_index", "index_failed"]),
                     and_(KnowledgeCase.status == "active", KnowledgeCase.dense_index_error.is_not(None)),
+                    and_(KnowledgeCase.status == "active", KnowledgeCase.index_error.is_not(None)),
                     and_(KnowledgeCase.status == "retired", KnowledgeCase.index_error.is_not(None))))
             ids = session.scalars(query.order_by(KnowledgeCase.updated_at, KnowledgeCase.source_id).limit(limit)).all()
         with sync_lock(self.factory, dataset_version):

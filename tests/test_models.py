@@ -8,6 +8,7 @@ def test_ticket_models_are_registered_in_metadata() -> None:
         "tickets",
         "ticket_messages",
         "processing_results",
+        "processing_recoveries",
         "processing_reviews",
         "knowledge_cases",
         "knowledge_datasets",

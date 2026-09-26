@@ -1,4 +1,4 @@
-"""Acceptance-only adapters: durable attempt ceilings, exact caches, raw decisions.
+"""Acceptance-only adapters: durable attempt ceilings and exact raw model caches.
 
 The caller owns an exclusive ledger lock for the entire session. Never installed
 in the production API. Limits are cumulative ceilings, not credits per restart.
@@ -15,10 +15,23 @@ from ticketmind.agent.dev_cache import CachedQueryEmbeddings
 from ticketmind.agent.dev_decision_cache import decision_fingerprint
 from ticketmind.agent.proposals import validate_proposal
 from ticketmind.agent.run_cache import QueryVectorCache, load_cache, save_cache, query_fingerprint
+from ticketmind.agent.run_cache import calculate_request_fingerprint
 from ticketmind.agent.runtime import build_budgeted_embeddings
+from ticketmind.agent.semantic_judge import JUDGE_OPTIONS, JUDGE_PROTOCOL, JudgeResult, judge_messages, validate_judgment
 from ticketmind.llm.client import generate_text
 
 CATEGORIES = ("initial_embedding", "research_embedding", "decision")
+M4_CATEGORIES = (*CATEGORIES, "judge")
+
+
+def judge_fingerprint(settings, state, proposal):
+    system, user = judge_messages(state, proposal)
+    return calculate_request_fingerprint({
+        "cache_version": 1, "judge_protocol": JUDGE_PROTOCOL, "model": settings.model,
+        "endpoint": f"https://{settings.workspace_id}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+        "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        **JUDGE_OPTIONS, "response_format": {"type": "json_object"},
+    })
 
 
 class Record(BaseModel):
@@ -44,14 +57,14 @@ def acceptance_lock(directory):
 
 class AttemptLedger:
     def __init__(self, path, ceilings):
-        allowed = set(CATEGORIES) | {"understanding"}
+        allowed = set(M4_CATEGORIES) | {"understanding"}
         if (not set(CATEGORIES) <= set(ceilings) or set(ceilings) - allowed or
                 any(type(v) is not int or v < 0 for v in ceilings.values())):
-            raise ValueError("必须分别指定 embedding/research/decision 三类非负整数上限")
+            raise ValueError("必须指定 embedding/research/decision 非负整数上限；M4 Judge 另需 judge 上限")
         # "understanding" is accepted only so historical evaluation commands remain readable;
         # the runtime no longer has an understanding call or budget.
         self.path = Path(path)
-        self.ceilings = {category: ceilings[category] for category in CATEGORIES}
+        self.ceilings = {category: ceilings[category] for category in M4_CATEGORIES if category in ceilings}
         self.data = Record.model_validate_json(self.path.read_text(encoding="utf-8")).model_dump() if self.path.exists() else {"attempts": []}
         self.cache_hits = []
 
@@ -59,6 +72,8 @@ class AttemptLedger:
         write_json(self.path, self.data)
 
     def attempt(self, category, fingerprint, operation):
+        if category not in self.ceilings:
+            raise RuntimeError(f"{category} 类别未授权；需要单独指定累计上限")
         attempts = self.data["attempts"]
         if any(a["fingerprint"] == fingerprint and a["category"] == category for a in attempts):
             raise RuntimeError("该请求已有尝试但无可复用结果，禁止自动重试")
@@ -158,6 +173,47 @@ class AcceptanceAdapters:
                 validate_proposal(result, {hit.source_id for hit in state["retrieval_hits"]})
         except ValueError:
             diagnostic["validation"] = {"status": "rejected", "stage": "proposal_policy"}
+            raise
+        diagnostic["validation"] = {"status": "passed"}
+        return result
+
+    def judge(self, state, proposal, timeout, usage):
+        fp = judge_fingerprint(self.settings, state, proposal)
+        path = self.path("judge", fp)
+        if path.exists():
+            response = Record.model_validate_json(path.read_text(encoding="utf-8")).model_dump()
+            if response.get("request_fingerprint") != fp:
+                raise ValueError("Judge 缓存指纹不匹配")
+            self.ledger.hit("judge", fp)
+        else:
+            system, user = judge_messages(state, proposal)
+            def call(record):
+                def capture(value):
+                    record.update(usage=value["usage"], request_id=value["request_id"], cache_path=str(path))
+                    # Preserve malformed/truncated raw output before parsing it.
+                    write_json(path, {"request_fingerprint": fp, "response": value,
+                                      "system_prompt": system, "user_prompt": user})
+                generate_text(settings=self.settings, system_prompt=system, user_prompt=user,
+                    json_mode=True, timeout=timeout, generation_options=JUDGE_OPTIONS, response_callback=capture)
+            self.ledger.attempt("judge", fp, call)
+            response = Record.model_validate_json(path.read_text(encoding="utf-8")).model_dump()
+        raw = response["response"]
+        diagnostic = {"fingerprint": fp, "usage": raw["usage"], "request_id": raw["request_id"]}
+        usage.setdefault("acceptance_judges", []).append(diagnostic)
+        if not raw["choices"] or raw["choices"][0]["finish_reason"] != "stop":
+            diagnostic["validation"] = {"status": "rejected", "stage": "response_completion"}
+            raise ValueError("原始 Judge 响应未正常完成；保留证据，禁止补调")
+        try:
+            result = JudgeResult.model_validate_json(raw["choices"][0]["content"] or "")
+        except ValidationError as exc:
+            diagnostic["validation"] = {"status": "rejected", "stage": "schema",
+                "errors": [{"type": e["type"], "loc": list(e["loc"]), "message": e["msg"]}
+                           for e in exc.errors(include_input=False, include_context=False, include_url=False)]}
+            raise
+        try:
+            result = validate_judgment(result, proposal)
+        except ValueError:
+            diagnostic["validation"] = {"status": "rejected", "stage": "violation_quote"}
             raise
         diagnostic["validation"] = {"status": "passed"}
         return result

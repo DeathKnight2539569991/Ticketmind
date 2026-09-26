@@ -91,6 +91,8 @@ def test_knowledge_retrieval_refills_after_orphans(monkeypatch, mode):
 
     dataset = SimpleNamespace(
         collection_name="knowledge_test",
+        bm25_collection_name=None,
+        bm25_ready=False,
         manifest={"embedding_model": "text-embedding-v4", "schema_version": 2},
     )
 
@@ -99,6 +101,9 @@ def test_knowledge_retrieval_refills_after_orphans(monkeypatch, mode):
 
         def dataset(self):
             return dataset
+
+        def has_dense_sources(self):
+            return True
 
         def hydrate(self, hits, record):
             result = []

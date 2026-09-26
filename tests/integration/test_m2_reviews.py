@@ -58,7 +58,8 @@ def test_review_paths_preserve_original_and_apply_once(setup, proposal, decision
     ticket = m1.create(client)
     run = m1.run(client, ticket).json()
     key = uuid4().hex
-    changes = {"edited_reply": "人工修改后的建议", "comment": "核对适用环境"} if decision == "edit" else (
+    changes = {"edited_reply": "人工修改后的建议", "comment": "核对适用环境",
+               "final_action": "resolve"} if decision == "edit" else (
         {"comment": "需要人工核查"} if decision == "escalate" else {})
     first = review(client, ticket, run, key=key, decision=decision, **changes)
     assert first.status_code == 201, first.text

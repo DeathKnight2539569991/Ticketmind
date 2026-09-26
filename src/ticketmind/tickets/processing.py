@@ -161,12 +161,10 @@ def _create_run(session_factory, runner_factory, ticket_id, payload, actor_id, k
             cause = exc.__cause__ if isinstance(exc, RunFailure) else exc
             run.error_code = cause.code if isinstance(cause, (RetrievalError, GuardrailFailure)) else "agent_execution_failed"
             stage = exc.stage if isinstance(exc, RunFailure) else "agent"
-            logger.exception(
-    "run_id=%s stage=%s error=%s",
-    run_id,
-    stage,
-    type(exc.__cause__ or exc).__name__,
-)
+            # Exception chains can contain model output, validation input values,
+            # and provider response bodies. Keep routine logs structural only.
+            logger.error("run_id=%s stage=%s code=%s error=%s",
+                         run_id, stage, run.error_code, type(cause or exc).__name__)
             run.error_summary = f"{stage} 阶段未成功完成；请检查模型、检索服务及输出约束后发起新运行"
             if isinstance(cause, GuardrailFailure):
                 run.error_summary = str(cause)

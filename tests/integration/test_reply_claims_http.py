@@ -26,6 +26,8 @@ PASS = {"passed": True, "violations": []}
 @pytest.mark.parametrize("outcome", ["pass", "repair", "reject_twice", "judge_error"])
 def test_semantic_guardrail_http_persistence(setup, monkeypatch, entry, outcome):
     client, synthetic, factory = setup
+    qwen = QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused")
+    processing = ProcessingSettings(_env_file=None, retrieval_mode="bm25")
     decisions, judgments = [], []
     class LocalClient:
         closed = False
@@ -41,21 +43,22 @@ def test_semantic_guardrail_http_persistence(setup, monkeypatch, entry, outcome)
             raise TimeoutError("synthetic-secret-do-not-expose")
         return PASS if outcome == "pass" or (outcome == "repair" and len(judgments) == 2) else FAIL
     def recorded_response(**kwargs):
-        assert kwargs["settings"].model == "glm-5.3"
+        assert kwargs["settings"].model == processing.decision_model
         if len(decisions) == 1:
             assert json.loads(kwargs["user_prompt"])["guardrail_feedback"]["violations"] == FAIL["violations"]
-        return next_decision().model_dump_json()
+        # Model-facing escalation omits runtime-only risk flags.
+        return json.dumps(next_decision().model_dump(exclude={"risk_flags"}), ensure_ascii=False)
     def judge_response(**kwargs):
-        assert kwargs["settings"].model == "deepseek-v4.1-flash"
+        assert kwargs["settings"].model == processing.judge_model
         judgment = next_judgment()
         return json.dumps({"violations": judgment["violations"]}, ensure_ascii=False)
     monkeypatch.setattr(decide, "generate_text", recorded_response)
     monkeypatch.setattr(semantic_judge, "generate_text", judge_response)
     monkeypatch.setattr(runtime, "retrieve_cases", lambda *args, **kwargs: [])
     client.app.state.runner = runtime.AgentRunner(
-        QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
+        qwen,
         MilvusSettings(_env_file=None, uri="http://unused.invalid"),
-        ProcessingSettings(_env_file=None, retrieval_mode="bm25"),
+        processing,
         decision_fn=(lambda *args: next_decision()) if entry == "injected_decision" else None,
         judge_fn=(lambda *args: next_judgment()) if entry == "injected_decision" else None,
         milvus_factory=lambda _: local_client, corpus=synthetic.corpus,
@@ -65,7 +68,8 @@ def test_semantic_guardrail_http_persistence(setup, monkeypatch, entry, outcome)
     result = response.json()
     success = outcome in ("pass", "repair")
     assert response.status_code == 201, result
-    assert result["run_status"] == ("waiting_review" if success else "failed")
+    assert result["run_status"] == ("waiting_review" if success else "failed"), (
+        result["error_code"], result["error_summary"], len(decisions), len(judgments))
     assert result["published_message_id"] is None
     assert "synthetic-secret" not in response.text
     assert m1.run(client, ticket, key=key).json() == result

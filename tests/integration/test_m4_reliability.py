@@ -141,9 +141,10 @@ def test_evaluation_export_keeps_synthetic_final_separate_from_absent_model_outp
     case = {"case_id": "synthetic-export-check", "input": {"subject": "测试读取真实快照", "body": "纯替身输出",
             "channel": "web", "requester_role": "operator"}, "forbidden_label_marker": "MUST_NOT_ENTER_AGENT"}
     result = evaluate_m4.execute_agent(case, QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
-                                      ProcessingSettings(), ledger, "glm-5.2")
+                                      ProcessingSettings(_env_file=None, decision_model="qwen3.8-flash"), ledger)
     assert result["status"] == "succeeded" and result["input_hash"] == digest(case["input"])
     assert result["raw_proposal"] is None and result["final_proposal"]["next_step"] == "ask_clarification"
+    assert result["raw_judges"] == []
     assert not ledger.data["attempts"] and synthetic.calls == 1
     assert "MUST_NOT_ENTER_AGENT" not in str(synthetic.inputs)
     assert result["business_review"] == "not_executed" and result["http_database_consistent"]

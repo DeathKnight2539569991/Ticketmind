@@ -79,8 +79,11 @@ def apply_human_review(client, ticket_id, result, review, auth):
     repeated = client.post(url, json=payload, headers=headers)
     assert repeated.status_code == 200 and repeated.json() == applied
     ticket = client.get(f"/tickets/{ticket_id}").json()
-    action = "escalate" if payload["decision"] == "escalate" else result["proposal"]["next_step"]
-    expected = {"propose_resolution": "open", "ask_clarification": "awaiting_customer", "escalate": "escalated"}[action]
+    action = ("escalate" if payload["decision"] == "escalate" else
+              payload["final_action"] if payload["decision"] == "edit" else
+              result["proposal"]["next_step"])
+    expected = {"resolve": "open", "propose_resolution": "open",
+                "ask_clarification": "awaiting_customer", "escalate": "escalated"}[action]
     assert ticket["status"] == expected and ticket["version"] == before_version + 1
     assert len(ticket["messages"]) == before_messages + 1
     assert applied["proposal"] == result["proposal"]
@@ -92,8 +95,11 @@ def apply_human_review(client, ticket_id, result, review, auth):
 def execute_case(case, qwen, config, ledger, directory, review=None):
     adapters = AcceptanceAdapters(qwen, directory, ledger,
         legacy_directory=LEGACY if case["id"] == "clarification" else None)
+    decisions_adapter = AcceptanceAdapters(qwen.model_copy(update={"model": config.decision_model}), directory, ledger)
+    judges = AcceptanceAdapters(qwen.model_copy(update={"model": config.judge_model}), directory, ledger)
     runner = AgentRunner(qwen, MilvusSettings(), config,
-                         embedding_factory=adapters.embeddings, decision_fn=adapters.decision,
+                         embedding_factory=adapters.embeddings, decision_fn=decisions_adapter.decision,
+                         judge_fn=judges.judge,
                          corpus=load_sources(config.corpus_path))
     auth = AuthSettings(_env_file=None, operator_token=secrets.token_urlsafe(32), reviewer_token=secrets.token_urlsafe(32))
     report = {"case": case, "verification": "asgi_http_real_postgresql_checkpointer_milvus_model_or_exact_cache",
@@ -127,7 +133,7 @@ def execute_case(case, qwen, config, ledger, directory, review=None):
                     decisions = result["usage"].get("acceptance_decisions", [])
                     report["model_final_action"] = None
                     if decisions:
-                        path = adapters.path("decision", decisions[-1]["fingerprint"])
+                        path = decisions_adapter.path("decision", decisions[-1]["fingerprint"])
                         raw = json.loads(path.read_text(encoding="utf-8"))["response"]["choices"][0]["content"]
                         report["model_final_action"] = json.loads(raw).get("next_step")
                     report["model_action_match"] = report["model_final_action"] == case["expected_action"]
@@ -149,16 +155,23 @@ def main():
     parser.add_argument("--execute", action="store_true", help="访问真实数据库/Milvus；默认新增调用上限仍为 0")
     parser.add_argument("--case", choices=[c["id"] for c in load_cases()], action="append")
     parser.add_argument("--reviews", type=Path, help="已人工审阅的 case -> proposal_hash/request JSON；默认不发布")
+    parser.add_argument("--decision-model", default="qwen3.8-flash")
+    parser.add_argument("--judge-model", default="deepseek-v4.1-flash")
     for category in CATEGORIES:
         parser.add_argument("--" + category.replace("_", "-") + "-ceiling", type=int, default=0)
+    parser.add_argument("--judge-ceiling", type=int, default=0,
+                        help="独立 Judge 新调用累计上限；旧 M2 额度不包含 Judge，默认 0")
     args = parser.parse_args()
     ceilings = {c: getattr(args, c + "_ceiling") for c in CATEGORIES}
-    maximum = dict(zip(CATEGORIES, (2, 3, 9)))
+    ceilings["judge"] = args.judge_ceiling
+    maximum = {**dict(zip(CATEGORIES, (2, 3, 9))), "judge": 6}
     if any(v < 0 or v > maximum[c] for c, v in ceilings.items()):
-        parser.error("上限须在方案范围内：首次向量 2、重检索向量 3、决策 9")
+        parser.error("上限须在方案范围内：首次向量 2、重检索向量 3、决策 9、Judge 6")
     cases = [c for c in load_cases() if not args.case or c["id"] in args.case]
-    qwen, config = QwenSettings(), ProcessingSettings()
-    print(json.dumps({"preflight": preflight(qwen, cases), "new_call_ceilings": ceilings}, ensure_ascii=False))
+    qwen = QwenSettings()
+    config = ProcessingSettings(decision_model=args.decision_model, judge_model=args.judge_model)
+    print(json.dumps({"preflight": preflight(qwen, cases), "new_call_ceilings": ceilings,
+                      "decision_model": config.decision_model, "judge_model": config.judge_model}, ensure_ascii=False))
     if not args.execute:
         return
     reviews = json.loads(args.reviews.read_text(encoding="utf-8")) if args.reviews else {}

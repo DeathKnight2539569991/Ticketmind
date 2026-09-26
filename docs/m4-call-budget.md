@@ -1,5 +1,7 @@
 # M4 调用方案与 A 档执行记录
 
+> 2026-09-24 兼容说明：下文 A/B 档命令和结果是旧 `qwen3.7-flash` / `glm-5.2`、旧协议的历史记录，不构成当前模型调用授权，也不能直接作为当前双模型质量验收。现行 `scripts/evaluate_m4.py` 的 Agent 默认 Decision=`qwen3.8-flash`、Judge=`deepseek-v4.1-flash`；两者由独立缓存、请求指纹和累计上限控制。当前 Agent 执行必须显式列出 `--case`，并按已获批准范围分别传入 `--decision-ceiling`、`--judge-ceiling`（以及需要新向量时的 Embedding 上限）。所有新上限默认 0；`--execute` 与 CLI 上限本身都不授予付费许可。Judge 原始响应存放 `data/cache/m4/judge/`，新 `attempts.json` 追加 `judge` 类别；原旧类别与旧缓存保持可读，缺 Judge 上限的旧脚本不能发送 Judge 请求。旧历史结果不重算或改写。
+
 既有额度已用完后，用户明确授权A档（最多81次），并委托Agent审查标签。A档已执行完成：**65次请求尝试，全部成功返回**，固定向量51、理解6、决策7、重检索向量1。结果见[m4-agent-results.json](m4-agent-results.json)。B档尚未授权；未使用的A额度不用于新样本或提示词重测。
 
 实际usage：固定向量2724 tokens、重检索向量25 tokens；理解prompt 2410 / completion 505；决策prompt 30967 / completion 1925。价格未知，不换算金额；没有业务审核、发布或关闭。

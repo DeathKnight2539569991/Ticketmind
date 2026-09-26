@@ -111,7 +111,7 @@ Judge 模型、数据库和模型凭据等其余配置仍来自现有 `.env`。�
 # 默认单元测试及不依赖真实数据库的测试
 uv run --no-sync python -m pytest -q
 
-# 可选：已有隔离测试数据库与 Milvus 可用时执行集成测试
+# 可选：已有本机 PostgreSQL 与 Milvus 可用时执行集成测试
 $env:TICKETMIND_RUN_DB_TESTS = '1'
 $env:TICKETMIND_RUN_MILVUS_TESTS = '1'
 uv run --no-sync python -m pytest -q
@@ -121,6 +121,8 @@ Remove-Item Env:TICKETMIND_RUN_MILVUS_TESTS
 
 仓库提供检索、Agent 决策、人工审核、知识同步等层次的测试及历史验收记录。默认测试与带替身的集成测试不能代替真实模型效果评估；具体实验条件和结果见下方文档。
 
+数据库集成测试只在随机 `tm_test_<UUID>` schema 中迁移和写入，并在结束后清理该 schema。Milvus 知识发布测试同时使用带相同 UUID 的独立 Dense/BM25 集合；客户端保护器拒绝对其他集合写入或删除。冻结历史索引对照测试只读共享集合，要求相应历史索引与查询缓存已存在，不能通过清理或重建共享集合来满足测试。上述 pytest 测试均不新增模型或 Embedding 付费调用。
+
 ## 技术栈
 
 **Python 3.12 · FastAPI · Pydantic · LangGraph · PostgreSQL · SQLAlchemy / Alembic · Milvus · Streamlit · pytest**
@@ -129,6 +131,7 @@ Remove-Item Env:TICKETMIND_RUN_MILVUS_TESTS
 
 ## 文档
 
+- [审查优先问题修复与验证（2026-09-24）](docs/audit-fixes-2026-09-24.md)
 - [架构、业务状态与 API](docs/architecture.md)
 - [工作台操作与演示](docs/m5-demo.md)
 - [知识存储、入库和索引同步](docs/knowledge-writeback.md)

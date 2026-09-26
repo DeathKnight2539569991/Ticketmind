@@ -8,6 +8,20 @@ from test_m1_api import pytestmark
 from ticketmind.workbench.demo import demo_knowledge_sync
 
 
+def prepare_knowledge(at):
+    article = {"问题概述": "本机代理连接失败", "适用条件与不适用情况": "仅适用已核对代理类型的测试客户端",
+               "最终有效的处理步骤": "核对并修正客户端代理配置", "验证结果": "用户复测连接成功"}
+    for label, value in article.items():
+        widget(at, "text_area", label).set_value(value)
+    widget(at, "checkbox", "我已核对原始会话与以上正文，批准作为可检索知识").check()
+    click(at, "批准发布知识")
+    pending = at.session_state.pending
+    assert set(pending.payload) == {"expected_version", "article"}
+    assert pending.payload["article"] == dict(zip(
+        ("problem", "applicability", "solution", "verification"), article.values(), strict=True))
+    return pending
+
+
 @pytest.mark.parametrize("missing_vector", [False, True])
 def test_workbench_knowledge_publish_and_retry(ui, missing_vector):
     at, client, factory, auth = ui
@@ -21,11 +35,10 @@ def test_workbench_knowledge_publish_and_retry(ui, missing_vector):
     widget(at, "checkbox", "我已确认问题解决，可以关闭工单").check()
     click(at, "确认解决并关闭")
     click(at, "确认提交 / 原样重试")
-    widget(at, "checkbox", "我已核对完整会话，批准该案例作为可检索知识").check().run()
-    click(at, "Publish to Knowledge Base")
-    pending = at.session_state.pending
-    click(at, "确认提交 / 原样重试")
+    pending = prepare_knowledge(at)
     headers = {"Authorization": "Bearer " + auth.reviewer_token.get_secret_value()}
+    assert client.get(f"/tickets/{ticket}/knowledge", headers=headers).json()["knowledge"] is None
+    click(at, "确认提交 / 原样重试")
     result = client.get(f"/tickets/{ticket}/knowledge", headers=headers).json()["knowledge"]
     if missing_vector:
         assert result["status"] == "index_failed"
@@ -35,6 +48,7 @@ def test_workbench_knowledge_publish_and_retry(ui, missing_vector):
         click(at, "确认提交 / 原样重试")
         result = client.get(f"/tickets/{ticket}/knowledge", headers=headers).json()["knowledge"]
     assert result["status"] == "active" and result["source_ticket_id"] == ticket
+    assert "核对并修正客户端代理配置" in result["content"]
     replay = client.post(pending.path, json=pending.payload, headers={**headers, "Idempotency-Key": pending.key})
     assert replay.status_code == 200 and replay.json()["source_id"] == result["source_id"]
 
@@ -48,7 +62,7 @@ def test_operator_sees_candidate_but_has_no_publish_control(ui):
     assert response.status_code == 200
     click(at, "刷新当前工单")
     assert any("知识沉淀" in s.value for s in at.subheader)
-    assert not any(b.label == "Publish to Knowledge Base" for b in at.button)
+    assert not any(b.label == "批准发布知识" for b in at.button)
 
 
 def test_reviewer_can_retire_knowledge_from_workbench(ui):
@@ -61,8 +75,7 @@ def test_reviewer_can_retire_knowledge_from_workbench(ui):
     widget(at, "checkbox", "我已确认问题解决，可以关闭工单").check()
     click(at, "确认解决并关闭")
     click(at, "确认提交 / 原样重试")
-    widget(at, "checkbox", "我已核对完整会话，批准该案例作为可检索知识").check().run()
-    click(at, "Publish to Knowledge Base")
+    prepare_knowledge(at)
     click(at, "确认提交 / 原样重试")
     headers = {"Authorization": "Bearer " + auth.reviewer_token.get_secret_value()}
     case = client.get(f"/tickets/{ticket_id}/knowledge", headers=headers).json()["knowledge"]
@@ -100,8 +113,7 @@ def test_retired_index_delete_failure_has_cleanup_action(ui, monkeypatch):
     widget(at, "checkbox", "我已确认问题解决，可以关闭工单").check()
     click(at, "确认解决并关闭")
     click(at, "确认提交 / 原样重试")
-    widget(at, "checkbox", "我已核对完整会话，批准该案例作为可检索知识").check().run()
-    click(at, "Publish to Knowledge Base")
+    prepare_knowledge(at)
     click(at, "确认提交 / 原样重试")
 
     delete = sync.index.delete
@@ -137,8 +149,7 @@ def test_operator_cannot_retire_published_knowledge_from_workbench(ui):
     widget(at, "checkbox", "我已确认问题解决，可以关闭工单").check()
     click(at, "确认解决并关闭")
     click(at, "确认提交 / 原样重试")
-    widget(at, "checkbox", "我已核对完整会话，批准该案例作为可检索知识").check().run()
-    click(at, "Publish to Knowledge Base")
+    prepare_knowledge(at)
     click(at, "确认提交 / 原样重试")
     case = client.get(f"/tickets/{ticket_id}/knowledge", headers={
         "Authorization": "Bearer " + auth.reviewer_token.get_secret_value()}).json()["knowledge"]

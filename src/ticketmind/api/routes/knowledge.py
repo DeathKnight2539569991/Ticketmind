@@ -78,7 +78,10 @@ def get_knowledge(dataset: str, source_id: str, request: Request, actor: ActorDe
 
 @router.post("/knowledge/{dataset}/{source_id}/retry")
 def retry(dataset: str, source_id: str, payload: KnowledgeWrite, request: Request, actor: ReviewerDependency, key: IdempotencyKey):
-    change_knowledge(request.app.state.session_factory, dataset, source_id, payload, actor, key, operation="retry")
+    case, created = change_knowledge(request.app.state.session_factory, dataset, source_id, payload, actor, key,
+                                     operation="retry")
+    if not created and case["status"] == "active" and case["index_error"] is None and case["dense_index_error"] is None:
+        return case
     return sync_case(request, dataset, source_id, repair_active=True)
 
 

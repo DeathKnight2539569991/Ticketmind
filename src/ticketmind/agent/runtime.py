@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import logging
 from time import monotonic
 
 from ticketmind.agent.decide import DECISION_PROTOCOL, decide_ticket
@@ -13,6 +14,8 @@ from ticketmind.retrieval.embeddings import build_embedding_client
 from ticketmind.retrieval.milvus_client import build_milvus_client
 from ticketmind.retrieval.service import retrieve_cases
 from ticketmind.retrieval.versioned_collection import selected_collection
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -248,7 +251,15 @@ class AgentRunner:
             raise RunFailure(stage, partial, evidence, usage) from exc
         finally:
             if client is not None:
-                client.close()
+                try:
+                    client.close()
+                except Exception as exc:
+                    # RunOutput and RunFailure retain this same usage dict. Cleanup
+                    # must not discard a proposal, evidence, or the original cause.
+                    diagnostic = {"resource": "milvus", "code": "milvus_close_failed",
+                                  "error_type": type(exc).__name__}
+                    usage.setdefault("cleanup_errors", []).append(diagnostic)
+                    logger.warning("agent_cleanup_failed resource=milvus error=%s", type(exc).__name__)
 
 
 def build_budgeted_embeddings(settings, remaining, usage_callback=None):

@@ -1,6 +1,7 @@
 """Real PostgreSQL/HTTP; deterministic external doubles, zero provider calls."""
 import os
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID, uuid4
@@ -20,6 +21,7 @@ from ticketmind.knowledge.models import KnowledgeCase, KnowledgeDataset, Knowled
 from ticketmind.knowledge.repository import KnowledgeStore
 from ticketmind.knowledge.seed import seed_knowledge, import_seed_vectors
 from ticketmind.knowledge.service import KnowledgeWrite, approve_knowledge, change_knowledge
+from ticketmind.knowledge.schemas import KnowledgeApprove
 from ticketmind.knowledge.sync import KnowledgeSync, sync_lock
 from ticketmind.main import create_app
 from ticketmind.retrieval.schemas import IndexHit, RetrievalError
@@ -30,7 +32,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.skipif(os.getenv("TICKETMIND_
 
 class MemoryIndex:
     def __init__(self):
-        self.rows, self.upserts = {}, 0
+        self.rows, self.upserts, self.delete_calls = {}, 0, 0
         self.fail = self.fail_delete = False
         self.after_upsert = None
 
@@ -60,6 +62,7 @@ class MemoryIndex:
             self.rows.pop((dataset.version, source_id), None)
 
     def delete(self, dataset, case):
+        self.delete_calls += 1
         self.delete_source_ids(dataset, [case.source_id])
 
 
@@ -103,9 +106,17 @@ def resolved(k):
     return ticket_id, closed.json()["version"]
 
 
+ARTICLE = {"problem": "登录失败", "applicability": "已核对客户端设置的登录问题",
+           "solution": "核对客户端设置并恢复登录", "verification": "客户确认恢复"}
+
+
+def approval(version):
+    return {"expected_version": version, "article": ARTICLE}
+
+
 def publish(k):
     ticket_id, version = resolved(k)
-    response = post(k, f"/tickets/{ticket_id}/knowledge/approve", {"expected_version": version})
+    response = post(k, f"/tickets/{ticket_id}/knowledge/approve", approval(version))
     assert response.status_code == 201, response.text
     return response.json()
 
@@ -175,7 +186,7 @@ def test_unresolved_and_operator_cannot_approve(knowledge):
 def test_approve_audit_and_duplicate_keys_are_safe(knowledge):
     k = knowledge
     ticket, version = resolved(k)
-    path, key, payload = f"/tickets/{ticket}/knowledge/approve", uuid4().hex, {"expected_version": version}
+    path, key, payload = f"/tickets/{ticket}/knowledge/approve", uuid4().hex, approval(version)
     first = post(k, path, payload, key)
     assert first.status_code == 201
     for request_key in (key, uuid4().hex):
@@ -192,7 +203,7 @@ def test_concurrent_approvals_create_one_stable_case(knowledge):
     k = knowledge
     ticket, version = resolved(k)
     def call(_):
-        return approve_knowledge(k.factory, UUID(ticket), KnowledgeWrite(expected_version=version), Actor("reviewer", "reviewer"), uuid4().hex)
+        return approve_knowledge(k.factory, UUID(ticket), KnowledgeApprove.model_validate(approval(version)), Actor("reviewer", "reviewer"), uuid4().hex)
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(call, range(2)))
     assert sum(created for _, created in results) == 1
@@ -209,7 +220,11 @@ def test_management_permissions_versions_idempotency(knowledge, operation):
     assert post(k, path, {"expected_version": 999}).status_code == 409
     first = post(k, path, payload, key)
     assert first.status_code == 200
+    indexed_before_replay = k.index.upserts
+    deletes_before_replay = k.index.delete_calls
     assert post(k, path, payload, key).json() == first.json()
+    assert k.index.upserts == indexed_before_replay
+    assert k.index.delete_calls == deletes_before_replay
     assert post(k, path, {"expected_version": 999}, key).status_code == 409
 
 
@@ -225,6 +240,60 @@ def test_failed_index_retries_reuse_durable_embedding(knowledge):
     assert k.embeddings.calls == 1 and k.index.upserts == 2
     with k.factory() as s:
         assert s.scalar(select(func.count()).select_from(KnowledgeEmbedding)) == 1
+
+
+def test_failed_retry_reuses_key_and_resumes_sync(knowledge):
+    k = knowledge
+    k.index.fail = True
+    case = publish(k)
+    path = f"/knowledge/{case['dataset_version']}/{case['source_id']}/retry"
+    key = uuid4().hex
+    payload = {"expected_version": case["version"]}
+    failed = post(k, path, payload, key)
+    assert failed.status_code == 200 and failed.json()["status"] == "index_failed"
+
+    k.index.fail = False
+    recovered = post(k, path, payload, key)
+    assert recovered.status_code == 200 and recovered.json()["status"] == "active"
+    assert k.embeddings.calls == 1
+    indexed_before_replay = k.index.upserts
+    assert post(k, path, payload, key).json() == recovered.json()
+    assert k.index.upserts == indexed_before_replay
+
+
+@pytest.mark.parametrize("recovery", ["same_key", "default_reconcile"])
+def test_active_retry_commit_before_sync_recovers_missing_index(knowledge, recovery):
+    k = knowledge
+    case = publish(k)
+    k.index.rows.pop((PRODUCTION_DATASET, case["source_id"]))
+    key = uuid4().hex
+    payload = KnowledgeWrite(expected_version=case["version"])
+    pending, created = change_knowledge(k.factory, PRODUCTION_DATASET, case["source_id"],
+        payload, Actor("reviewer", "reviewer"), key, operation="retry")
+    assert created and pending["status"] == "active"
+    assert pending["index_error"] == "index_repair_pending"
+    assert pending["version"] == case["version"] + 1
+    assert (PRODUCTION_DATASET, case["source_id"]) not in k.index.rows
+
+    path = f"/knowledge/{PRODUCTION_DATASET}/{case['source_id']}/retry"
+    if recovery == "same_key":
+        response = post(k, path, payload.model_dump(), key)
+        assert response.status_code == 200
+        repaired = response.json()
+    else:
+        results = k.sync.reconcile(PRODUCTION_DATASET)
+        assert len(results) == 1
+        repaired = results[0]
+    assert repaired["status"] == "active" and repaired["index_error"] is None
+    assert repaired["version"] == pending["version"] + 1
+    assert k.index.rows[(PRODUCTION_DATASET, case["source_id"])] == case["content_hash"]
+    assert k.embeddings.calls == 1 and k.index.upserts == 2
+
+    replay = post(k, path, payload.model_dump(), key)
+    assert replay.status_code == 200
+    assert replay.json()["version"] == repaired["version"]
+    assert datetime.fromisoformat(replay.json()["updated_at"]) == datetime.fromisoformat(str(repaired["updated_at"]))
+    assert k.index.upserts == 2
 
 
 def test_default_zero_budget_is_observable_then_recoverable(knowledge):
@@ -257,10 +326,11 @@ def test_default_http_sync_never_spends_embedding_budget(knowledge, monkeypatch,
 
 def test_oversized_knowledge_fails_before_embedding(knowledge):
     k = knowledge
-    ticket = post(k, "/tickets", {"subject": "large", "body": "长" * 10000, "channel": "web", "requester_role": "user"}).json()["id"]
+    ticket = post(k, "/tickets", {"subject": "large", "body": "需要整理知识", "channel": "web", "requester_role": "user"}).json()["id"]
     post(k, f"/tickets/{ticket}/close", {"expected_version": 1, "reason": "closed"})
-    result = post(k, f"/tickets/{ticket}/knowledge/approve", {"expected_version": 2}).json()
-    assert result["status"] == "index_failed" and result["index_error"] == "knowledge_index_text_too_long"
+    response = post(k, f"/tickets/{ticket}/knowledge/approve",
+                    {"expected_version": 2, "article": {**ARTICLE, "solution": "长" * 7000}})
+    assert response.status_code == 422 and response.json()["error_code"] == "knowledge_text_too_long"
     assert k.embeddings.calls == 0
 
 
@@ -279,7 +349,8 @@ def test_new_knowledge_is_visible_to_an_existing_store(knowledge):
     k = knowledge
     store = KnowledgeStore(k.factory, PRODUCTION_DATASET)
     case = publish(k)
-    assert store.get_case_detail(case["source_id"])["ticket_id"] == case["source_ticket_id"]
+    assert store.get_case_detail(case["source_id"]) == {
+        "source_id": case["source_id"], "title": case["title"], "article": ARTICLE}
 
 
 def test_approval_rejects_stale_ticket_version_without_creating_knowledge(knowledge):
@@ -332,7 +403,7 @@ def test_milvus_written_then_pg_commit_failure_reconciles(knowledge):
 def test_retire_racing_with_upsert_never_reactivates(knowledge):
     k = knowledge
     ticket, version = resolved(k)
-    case, _ = approve_knowledge(k.factory, UUID(ticket), KnowledgeWrite(expected_version=version), Actor("r", "reviewer"), uuid4().hex)
+    case, _ = approve_knowledge(k.factory, UUID(ticket), KnowledgeApprove.model_validate(approval(version)), Actor("r", "reviewer"), uuid4().hex)
     def retire():
         change_knowledge(k.factory, PRODUCTION_DATASET, case["source_id"], KnowledgeWrite(expected_version=case["version"]),
                          Actor("r", "reviewer"), uuid4().hex, operation="retire")
@@ -423,10 +494,12 @@ def test_runtime_and_detail_use_pg_without_jsonl(knowledge, monkeypatch):
     def decision(state, timeout, usage):
         if not state["case_details"]:
             return GetCaseDetail(next_step="get_case_detail", source_id=case["source_id"], reason="核对会话")
-        assert state["case_details"][case["source_id"]] == case["source"]
+        assert state["case_details"][case["source_id"]] == {
+            "source_id": case["source_id"], "title": case["title"], "article": ARTICLE}
         return Clarification(next_step="ask_clarification", reason="缺少现状", reply="请提供当前错误。")
     runner = AgentRunner(k.qwen, MilvusSettings(_env_file=None, uri="http://unused"),
-        k.config.model_copy(update={"corpus_path": Path("does-not-exist"), "retrieval_mode": "bm25"}),
+        k.config.model_copy(update={"corpus_path": Path("does-not-exist"), "retrieval_mode": "bm25",
+                                    "knowledge_dataset": PRODUCTION_DATASET}),
         session_factory=k.factory, milvus_factory=lambda _: client, decision_fn=decision,
         judge_fn=lambda *args: {"passed": True, "violations": []})
     assert not hasattr(runner.corpus, "cases")
@@ -482,7 +555,7 @@ def test_cli_persists_attempt_budget_and_reuses_cache_on_restart(knowledge, tmp_
     from ticketmind.agent import runtime
     k = knowledge
     ticket, version = resolved(k)
-    case, _ = approve_knowledge(k.factory, UUID(ticket), KnowledgeWrite(expected_version=version), Actor("r", "reviewer"), uuid4().hex)
+    case, _ = approve_knowledge(k.factory, UUID(ticket), KnowledgeApprove.model_validate(approval(version)), Actor("r", "reviewer"), uuid4().hex)
     spec = importlib.util.spec_from_file_location("knowledge_cli_test", Path(__file__).resolve().parents[2] / "scripts/knowledge.py")
     script = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(script)

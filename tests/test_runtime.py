@@ -100,3 +100,53 @@ def test_decision_cache_is_bound_to_actual_request(tmp_path, settings, monkeypat
     with pytest.raises(ValueError, match="不匹配"):
         cache({**state, "messages": [AgentMessage(role="customer", content="different body")]}, 1, {})
     assert cache.calls == 1
+
+
+@pytest.mark.parametrize("decision_fails", [False, True])
+def test_cleanup_failure_preserves_result_or_original_failure(monkeypatch, settings, caplog, decision_fails):
+    from pathlib import Path
+    from ticketmind.retrieval.dense import RetrievalHit
+
+    monkeypatch.setattr(runtime.logger, "disabled", False)
+    monkeypatch.setattr(runtime.logger, "handlers", [caplog.handler])
+    monkeypatch.setattr(runtime.logger, "propagate", False)
+    corpus = load_sources(Path(__file__).resolve().parents[1] / "data/synthetic/v2/historical_cases.jsonl")
+    config = ProcessingSettings(_env_file=None, retrieval_mode="bm25")
+    original = RuntimeError("synthetic original failure")
+    close_calls = []
+    case = corpus.cases["SYN-HIST-V2-007"]
+    hit = RetrievalHit(source_id=case.source_id, text=build_case_text(case), score=0.5)
+
+    class Client:
+        def close(self):
+            close_calls.append(True)
+            raise RuntimeError("SYNTHETIC_PRIVATE_CLOSE_MESSAGE")
+
+    monkeypatch.setattr(runtime, "retrieve_cases", lambda *args, **kwargs: [hit])
+
+    def decide(state, timeout, usage):
+        usage["decisions"] = [{"total_tokens": 3}]
+        if decision_fails:
+            raise original
+        return Clarification(next_step="ask_clarification", reason="missing facts", reply="Please clarify")
+
+    runner = AgentRunner(settings, MilvusSettings(_env_file=None, uri="http://unit.invalid"), config,
+                         corpus=corpus, milvus_factory=lambda _: Client(), decision_fn=decide,
+                         judge_fn=lambda *args: {"violations": []})
+    if decision_fails:
+        with pytest.raises(RunFailure) as caught:
+            runner(run_input())
+        result = caught.value
+        assert result.__cause__ is original and result.stage == "decision"
+        assert result.partial["tool_calls"][0]["status"] == "succeeded"
+    else:
+        result = runner(run_input())
+        assert result.state["proposal"].next_step == "ask_clarification"
+        assert result.usage["semantic_judge"][0]["status"] == "passed"
+    assert close_calls == [True]
+    assert result.evidence == corpus.evidence([hit])
+    assert result.usage["decisions"] == [{"total_tokens": 3}]
+    assert result.usage["cleanup_errors"] == [
+        {"resource": "milvus", "code": "milvus_close_failed", "error_type": "RuntimeError"}]
+    assert "SYNTHETIC_PRIVATE_CLOSE_MESSAGE" not in caplog.text
+    assert "agent_cleanup_failed resource=milvus error=RuntimeError" in caplog.text

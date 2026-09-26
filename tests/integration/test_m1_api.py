@@ -246,7 +246,7 @@ def test_migration_preserves_legacy_rows_and_matches_models():
             # Check these constraints explicitly; still reject all other schema drift.
             from sqlalchemy import inspect
             enum_checks = {"agent_action", "processing_run_status", "message_author_type",
-                           "ticket_channel", "ticket_priority", "ticket_status"}
+                           "ticket_channel", "ticket_priority", "ticket_status", "review_final_action"}
             differences = compare_metadata(MigrationContext.configure(connection), Base.metadata)
             assert [item for item in differences if not (
                 item[0] == "remove_constraint" and item[1].name in enum_checks)] == []

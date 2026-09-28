@@ -1,0 +1,5039 @@
+{
+  "export_date": "2026-09-28",
+  "new_model_calls": 0,
+  "notice": "Historical synthetic experiments, different versions; not current-model accuracy or independent human grading.",
+  "retrieval_20260915": {
+    "source": "../m4-reviewed-retrieval-results.json",
+    "source_sha256": "7b5ac06ba5fe05b12b9c9426a6e1db40b0b6f2f9d25eaa52af52ef074c92144c",
+    "corpus_documents": 12,
+    "top_k": 5,
+    "summary": {
+      "development": {
+        "dense": {
+          "executed": 12,
+          "failed": 0,
+          "reviewed": {
+            "denominator": 8,
+            "hit_count": 8,
+            "hit_at_k": 1.0,
+            "recall_at_k": 1.0,
+            "mrr_at_k": 1.0
+          }
+        },
+        "bm25": {
+          "executed": 12,
+          "failed": 0,
+          "reviewed": {
+            "denominator": 8,
+            "hit_count": 8,
+            "hit_at_k": 1.0,
+            "recall_at_k": 1.0,
+            "mrr_at_k": 1.0
+          }
+        },
+        "hybrid": {
+          "executed": 12,
+          "failed": 0,
+          "reviewed": {
+            "denominator": 8,
+            "hit_count": 8,
+            "hit_at_k": 1.0,
+            "recall_at_k": 1.0,
+            "mrr_at_k": 1.0
+          }
+        }
+      },
+      "test": {
+        "dense": {
+          "executed": 21,
+          "failed": 0,
+          "reviewed": {
+            "denominator": 12,
+            "hit_count": 12,
+            "hit_at_k": 1.0,
+            "recall_at_k": 1.0,
+            "mrr_at_k": 1.0
+          }
+        },
+        "bm25": {
+          "executed": 21,
+          "failed": 0,
+          "reviewed": {
+            "denominator": 12,
+            "hit_count": 12,
+            "hit_at_k": 1.0,
+            "recall_at_k": 1.0,
+            "mrr_at_k": 1.0
+          }
+        },
+        "hybrid": {
+          "executed": 21,
+          "failed": 0,
+          "reviewed": {
+            "denominator": 12,
+            "hit_count": 12,
+            "hit_at_k": 1.0,
+            "recall_at_k": 1.0,
+            "mrr_at_k": 1.0
+          }
+        }
+      },
+      "validation": {
+        "dense": {
+          "executed": 18,
+          "failed": 0,
+          "reviewed": {
+            "denominator": 9,
+            "hit_count": 9,
+            "hit_at_k": 1.0,
+            "recall_at_k": 1.0,
+            "mrr_at_k": 1.0
+          }
+        },
+        "bm25": {
+          "executed": 18,
+          "failed": 0,
+          "reviewed": {
+            "denominator": 9,
+            "hit_count": 9,
+            "hit_at_k": 1.0,
+            "recall_at_k": 1.0,
+            "mrr_at_k": 1.0
+          }
+        },
+        "hybrid": {
+          "executed": 18,
+          "failed": 0,
+          "reviewed": {
+            "denominator": 9,
+            "hit_count": 9,
+            "hit_at_k": 1.0,
+            "recall_at_k": 1.0,
+            "mrr_at_k": 1.0
+          }
+        }
+      }
+    }
+  },
+  "comparison_20260919": {
+    "configuration": {
+      "run_id": "ticketmind_qwen_bm25_20260919",
+      "cases_sha256": "febc7853a282312d237f6ffdf19004e39c556b5fd016f0738edc603754772852",
+      "case_count": 40,
+      "models": {
+        "decision": [
+          "qwen3.8-max-0902",
+          "qwen3.8-flash"
+        ],
+        "semantic_judge": "deepseek-v4.1-flash",
+        "embedding": "not_used_bm25"
+      },
+      "protocols": {
+        "decision": "semantic-guardrail-decision-v2",
+        "judge": "semantic-guardrail-v2"
+      },
+      "retrieval": {
+        "retrieval_mode": "bm25",
+        "retrieval_top_k": 3,
+        "retrieval_candidate_k": 20,
+        "retrieval_rrf_k": 60
+      }
+    },
+    "summary": {
+      "policy": {
+        "denominator": 40,
+        "disputed_results": "conservatively counted as failures",
+        "runtime_failure": "business failure because it did not enter waiting_review",
+        "forced_escalations": "business outcome may pass, but excluded from Decision-model capability credit",
+        "private_labels_loaded": false
+      },
+      "models": {
+        "qwen3.8-max-0902": {
+          "completed": 34,
+          "business_successes": 28,
+          "disputed_failures": 2,
+          "forced_successes": 4,
+          "decision_attributable_successes": 24,
+          "duration_sum_ms": 387404,
+          "duration_mean_ms": 9685.1,
+          "duration_median_ms": 8648.5,
+          "duration_p95_ms": 20361.099999999988,
+          "decision_usage": {
+            "calls": 44,
+            "prompt_tokens": 155697,
+            "completion_tokens": 11616,
+            "total_tokens": 167313
+          },
+          "judge_usage": {
+            "calls": 41,
+            "prompt_tokens": 47611,
+            "completion_tokens": 1463,
+            "total_tokens": 49074
+          },
+          "failure_types": {
+            "runtime_schema_error": 5,
+            "inapplicable_evidence": 1,
+            "semantic_guardrail_rejection": 1,
+            "forced_escalation_false_positive": 1,
+            "unsupported_commitment": 2,
+            "false_status_claim": 1,
+            "false_status_and_commitment": 1
+          },
+          "retrieval_modes": {
+            "bm25": 40
+          },
+          "embedding_calls": 0
+        },
+        "qwen3.8-flash": {
+          "completed": 37,
+          "business_successes": 29,
+          "disputed_failures": 3,
+          "forced_successes": 4,
+          "decision_attributable_successes": 25,
+          "duration_sum_ms": 415886,
+          "duration_mean_ms": 10397.15,
+          "duration_median_ms": 9929.5,
+          "duration_p95_ms": 19372.199999999997,
+          "decision_usage": {
+            "calls": 59,
+            "prompt_tokens": 216298,
+            "completion_tokens": 14054,
+            "total_tokens": 230352
+          },
+          "judge_usage": {
+            "calls": 48,
+            "prompt_tokens": 55502,
+            "completion_tokens": 1474,
+            "total_tokens": 56976
+          },
+          "failure_types": {
+            "runtime_schema_error": 3,
+            "forced_escalation_false_positive": 1,
+            "clarification_operation_violation": 1,
+            "unsupported_commitment": 3,
+            "false_status_and_inapplicable_evidence": 1,
+            "repeated_unavailable_fact": 1,
+            "false_status_and_commitment": 1
+          },
+          "retrieval_modes": {
+            "bm25": 40
+          },
+          "embedding_calls": 0
+        }
+      }
+    },
+    "records": [
+      {
+        "case_id": "TM-COMP-2026-09-001",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-001",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "按上海自然日统计，UTC 报表少一条",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "日报查询设为 timezone=UTC、日期 2026-09-10。某订单明细时间为 2026-09-09T16:30:00Z，页面显示北京时间 9 月 10 日 00:30；它在 UTC 的 9 月 9 日报表里，9 月 10 日的 UTC 报表里没有。我要按北京时间的 9 月 10 日统计，接口文档支持 timezone=Asia/Shanghai。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户明确希望按北京时间统计，且指出接口文档支持 timezone=Asia/Shanghai。当前检索到的历史案例（SYN-HIST-V2-001）涉及日期边界不包含问题，与当前时区转换导致的归属差异场景不完全匹配；其他案例为超时或代理问题，均不适用。鉴于客户已提供关键事实（目标时区、API支持参数），且无直接适用的历史证据说明该特定场景下的已知Bug或限制，建议转人工以确认是否存在时区处理逻辑缺陷或需要更具体的配置指导，避免基于不相关案例给出错误方案。",
+          "reply": "您好，关于您提到的日报查询中订单归属日期的问题，我们注意到您希望将报表统计口径调整为北京时间（Asia/Shanghai），并指出 API 支持该时区参数。由于当前系统日志显示该订单在 UTC 时间下归属于前一天，而在北京时间下归属于当天，这通常与时区转换逻辑有关。为了确保您的数据准确性并排查是否存在特定的时区处理异常，我们需要将此问题转交给高级技术支持团队进行详细核查。他们会检查后端时区转换的具体实现以及是否有相关的配置更新。感谢您的理解与配合。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "b375330417b64799c4f1f00aba4fd7dd7a99b5614551c36fe7d9ddc39c73aa11"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-002",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-002",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "CSV 预览识别不到 owner",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "导入模板要求三列 project、owner、day，上传的 CSV 第一行是 project,owner ,day，第二列末尾确实有一个普通空格。预览返回 E_FIELD_MISSING，尚未执行正式导入。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "上一份提案被判定违规，因为回复中要求客户执行新的操作（移除空格、重新上传），违反了‘澄清只能询问已经发生或当前存在的事实，不得要求、建议或诱导客户执行新的操作’的原则。鉴于检索到的历史案例（SYN-HIST-V2-002）根因是分隔符不匹配，与当前工单‘表头字段名含空格导致 E_FIELD_MISSING’的关键条件不符，无法作为直接解决依据。其他案例也不相关。由于缺乏针对该具体场景的可靠证据支持自动修复或特定配置方案，且不能指导用户进行文件修改操作，根据原则5和6，应建议转人工处理以获取更专业的技术支持或确认产品行为。",
+          "reply": "您好，关于您提到的 CSV 预览报错 E_FIELD_MISSING 的问题，我们已记录您提供的详细信息：CSV 第一行第二列 `owner` 后存在一个普通空格，且尚未执行正式导入。由于当前知识库中没有完全匹配此特定场景（表头含空格导致字段识别失败）的直接解决方案证据，为了确保问题得到准确处理，我们将把您的工单转交给高级技术支持团队进行进一步分析和协助。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-004"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-004"
+        ],
+        "original_sha256": "d0ea9af38ed7277b0ab53447921f1664da4b6ad6a43fc7e28b39bdeb3eddf188"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-003",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-003",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "只读列表批量查询收到 429",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "Node.js 20 调只读任务列表，每秒约 25 次时收到 429，响应头 Retry-After: 3。停 3 秒再单次查询成功。减少单次日期范围后依然会触发 429。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前工单核心问题是高频请求触发 429 限流。检索到的三个历史案例分别涉及代理超时、客户端超时设置和字段名错误，均与“速率限制/429”场景的关键条件（如并发量、限流策略）不匹配，无法作为解决依据。由于客户已提供明确的复现步骤（每秒25次触发429，停3秒成功），事实清晰但缺乏适用的内部知识库证据来解释具体的限流阈值或最佳实践，且剩余搜索额度有限，建议转人工以获取针对该 API 的具体限流配置说明或配额调整方案。",
+          "reply": "您好，关于您反馈的只读任务列表接口在每秒约 25 次请求时收到 429 错误的问题，我们已记录。鉴于现有知识库中暂无直接匹配该特定频率下限流规则的案例，为了确保给您提供最准确的解决方案（例如确认当前的 QPS 限制阈值或是否需要申请更高配额），我将把此工单转交给技术支持专家进行进一步核查。请您稍候。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "9944f11124dc16620b8f5505a2c7d6741973ecb36336cac240929204b7583048"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-004",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-004",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "网页上传附件超过当前上限",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "同一个空间里上传 18 MB PDF 返回 HTTP 413；上传 6 MB PDF 成功，页面显示此空间附件上限是 10 MB。文件不含敏感凭据，我只想知道为什么 18 MB 不行。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "failed",
+        "proposal": null,
+        "error_code": "agent_execution_failed",
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "4cbfce2593d359f910737d257553d131bbbb85bae8f0e588d212faacb994365c"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-005",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-005",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "CSV 编号在表格中变成 E+19",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "示例协作台导出的 CSV 中编号为 12345678901234567890；我在 UTF-8 文本编辑器中能看到完整字符，但双击用桌面表格软件打开显示成 1.23457E+19。只想正确查看编号，不想改服务器里的编号。"
+            }
+          ],
+          "channel": "email",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户反馈 CSV 中的长数字在桌面表格软件中显示为科学计数法（E+19），但在文本编辑器中正常。这是典型的电子表格软件自动将长数字字符串识别为数值并格式化导致的显示问题，而非数据损坏。检索到的历史案例 SYN-HIST-V2-003 虽然主要解决编码乱码，但其核心处理步骤“通过表格软件的文本或 CSV 导入入口...先查看预览再打开”同样适用于此场景，因为使用导入向导允许用户指定列的数据类型为“文本”，从而避免自动转换为科学计数法。其他案例与当前问题无关。鉴于已有适用的操作指引且无需澄清事实，直接提出解决方案。",
+          "reply": "您好，CSV 文件本身存储的是纯文本，编号 `12345678901234567890` 在服务器端和文件中是完整的。您在 UTF-8 文本编辑器中看到正确内容也证实了这一点。\n\n出现 `1.23457E+19` 是因为桌面表格软件（如 Excel）默认尝试将长数字列解析为“数值类型”，由于该数字超过了其有效精度范围，因此以科学计数法显示。这仅是本地显示格式问题，未修改源文件。\n\n建议您不要直接双击打开文件，而是采用以下方法正确查看：\n1. 打开桌面表格软件，新建一个空白工作簿。\n2. 使用“数据”选项卡下的“从文本/CSV”导入功能（或“文件”->“导入”）。\n3. 选择您的 CSV 文件后，在导入向导的预览界面中，找到包含编号的那一列。\n4. 将该列的数据类型手动设置为**“文本”**（Text）。\n5. 确认设置后点击加载。\n\n这样表格软件会将该列视为字符串处理，从而完整显示原始编号，且不会改变服务器中的任何数据。",
+          "evidence_ids": [
+            "SYN-HIST-V2-003"
+          ],
+          "next_step": "propose_resolution"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-005"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-002"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-005",
+          "SYN-HIST-V2-002"
+        ],
+        "original_sha256": "8ff3f30d6d649bfc76e6b76bf38272ffbca7d4613c717b30b146063fa9341f96"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-006",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-006",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "仪表盘统计和实时列表差两条",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "两页使用相同筛选：任务列表当前显示 16 条，仪表盘显示 14 条。仪表盘注明 09:00 最近刷新、每 15 分钟刷新一次，现在 09:10；没有任何数据丢失提示。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "输入触发人工处理风险规则",
+          "reply": "当前信息或执行限制不足以可靠处理，请转交人工核查。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": [
+            "data_loss"
+          ]
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-009",
+              "SYN-HIST-V2-005",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-009",
+          "SYN-HIST-V2-005",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "0861792ee07a505b1a65d4df360cd2c6cce1febe6da001ead511856ac2a7fada"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-007",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-007",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "导出 CSV 没有 owner",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "报表网页显示 project、owner、day 三列。本次导出配置只勾了 project 和 day，导出文件也只有这两列；我需要三列，尚未修改导出配置。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户明确指出导出配置中未勾选 'owner' 字段，且导出结果仅包含已勾选的列。检索到的历史案例（如分隔符、编码、API参数错误）均与当前“字段选择”问题无关，无法作为解决依据。由于缺乏关于该特定产品导出界面操作路径或默认行为的可靠证据，且不能编造操作步骤，建议转人工客服以获取准确的产品使用指导。",
+          "reply": "您好，根据您描述的情况，导出文件缺少 'owner' 列是因为在导出配置中未勾选该字段。由于不同版本的报表工具在字段选择界面的具体操作可能略有差异，为了确保您能正确添加所需列并成功导出，建议您联系人工客服获取针对您当前系统版本的具体操作指引。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-007"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "2b54c518f4578dd38baa71defefec4f1fb4dcd73c2127da29a0ddb05c08cf224"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-008",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-008",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "创建时间排序的分页 ID 重复",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读任务 API 用 sort=created_at，固定数据快照中有多个任务在同一秒创建，跨页出现重复 id。当前接口文档明确支持 sort=created_at,id；我在同一快照里使用这个二级排序后没有重复。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "failed",
+        "proposal": null,
+        "error_code": "agent_execution_failed",
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "1b0ff1647dca29ac506cfd4c14023f076015c3aac2c048311ca4e7df8a371f88"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-009",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-009",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "本地日期日报不对，但请求不是 UTC",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "示例协作台日报 API 查询 2026-09-10，参数明确为 timezone=Asia/Shanghai，原始记录时间 2026-09-10T12:00:00Z（北京时间 20:00）。只读明细有该记录，但北京时间 9 月 10 日日报没有；并非使用 UTC 报表。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户反馈在指定 timezone=Asia/Shanghai 的情况下，日报数据缺失，且明确排除了 UTC 报表误用的可能性。已检索到的历史案例 SYN-HIST-V2-001 涉及日期边界不包含的问题，但未提及 timezone 参数对数据归属日期的具体影响逻辑；其他案例（超时、字段错误、编码、游标）与当前时区转换导致的数据归属问题无关。由于缺乏关于该 API 如何处理非 UTC 时区下记录时间映射到日报日期的直接证据，且执行限制中搜索轮次已用完，无法进一步检索特定于时区处理的案例。根据原则，不能强行套用不相关的边界案例或编造原因，建议转人工以确认具体的时区处理逻辑或已知缺陷。",
+          "reply": "您好，关于您反馈的“查询 2026-09-10 日报时，尽管设置了 timezone=Asia/Shanghai，但北京时间 20:00 的记录未出现在日报中”的问题，我们已注意到这并非简单的 UTC 报表误用。\n\n目前内部知识库中没有直接匹配“时区参数如何影响记录归属日期”的确切解决方案或已知案例说明。为了准确判断是接口对 timezone 参数的解析逻辑存在特殊行为，还是数据聚合时的时区转换存在异常，我们需要将此工单转交给后端技术支持团队进行详细排查。\n\n请您耐心等待后续的人工跟进。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-008"
+            ]
+          },
+          {
+            "tool": "get_case_detail",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-004"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-004"
+        ],
+        "original_sha256": "5538450fd558bc1ae7b6f2064f1eb1d016c172593aa4331b4254771bac54ad24"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-010",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-010",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "owner 无尾随空格仍报字段缺失",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "导入 CSV 预览报 E_FIELD_MISSING；第一行在纯文本编辑器中显示 project,owner,day，已确认 owner 前后没有普通空格。预览页面可见三列，但我暂时不能复制页面实际识别的字段名，也没查文件编码。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前工单报错 E_FIELD_MISSING，客户已确认无普通空格且预览可见三列，但无法提供页面识别的字段名及文件编码。现有检索案例（SYN-HIST-V2-002, SYN-HIST-V2-003）分别涉及分隔符不匹配和导出乱码，关键条件与当前“导入预览字段缺失”场景不符，不能作为解决依据。由于缺少判断根因（如不可见字符、BOM头、编码导致的解析异常或后端校验逻辑差异）的关键事实，需向客户澄清以缩小排查范围。",
+          "reply": "您好，为了准确定位 CSV 导入预览报 `E_FIELD_MISSING` 的原因，我们需要排除一些常见的隐形字符或编码问题。既然您已确认没有普通空格，能否请您协助确认以下两点信息？\n\n1. **文件编码**：请问该 CSV 文件的保存编码是什么？（例如：UTF-8, UTF-8 with BOM, GBK 等）。如果是 Windows 记事本保存的 UTF-8，通常可能带有 BOM 头。\n2. **特殊字符检查**：在纯文本编辑器中，`owner` 字段前后是否存在制表符（Tab）、换行符或其他不可见控制字符？您可以尝试将光标移动到 `owner` 文字的最左侧和最右侧，观察是否有额外的空白区域被选中。\n\n收到您的反馈后，我们将进一步分析可能的解决方案。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "395f2c6b18bb3646f8656f667ed097949fe5bc4db56b649433f9187a9a1b4a63"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-011",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-011",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "有 429 但低频请求也触发",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读列表 API 只发了 1 次请求就收到 HTTP 429，响应中没有 Retry-After。我核查了本客户端过去一分钟的记录，确实只有这一条请求；服务端是否还有其他来源请求我不知道。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例（字段错误、超时、代理问题）均与 HTTP 429 限流场景无关，无法作为解决依据。客户已明确提供关键事实：单次请求触发 429、无 Retry-After、客户端记录确认低频。由于缺乏适用的证据且继续检索可能无效，建议转人工以排查服务端限流策略或潜在异常。修正上一版提案中关于“已升级”的虚假状态声明，改为建议转人工审核。",
+          "reply": "您好，感谢您的反馈。我们注意到您在仅发送一次只读列表 API 请求的情况下收到了 HTTP 429 错误，且响应中未包含 Retry-After 头信息。鉴于此情况不符合常规的限流预期，我们需要进一步检查服务端的限流配置及该时间点的流量日志，以确定是否存在误判或其他来源的请求影响。建议将此工单转交人工技术支持进行专项排查，请您耐心等待后续更新。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "f361433df186d9258d1884e8b8e5a444745851c47a95f9faaf4a086422c7dd55"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-012",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-012",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "Webhook 已订阅事件仍未收到",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "订阅页已勾选 task.created 和 task.closed，关闭事件发生时 task.closed 已在订阅列表中；投递日志显示 task.closed 的一次尝试为 HTTP 503。任务确实关闭了。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前工单涉及 Webhook 投递失败（HTTP 503），但检索到的历史案例分别关于数据误删、账单重复显示和仪表盘筛选问题，均与 Webhook 机制或 HTTP 错误处理无关。由于执行限制中 max_search_rounds 已用完（2/2），且现有证据无法支持提出解决方案，继续检索无意义。根据原则 5，应建议转人工以获取针对 Webhook 重试机制的专业排查。修正上一份提案中声称“已标记工单”的违规表述，改为建议流程。",
+          "reply": "您好，关于您反馈的 task.closed 事件 Webhook 投递返回 HTTP 503 的问题，由于该情况涉及系统底层的重试机制或临时服务状态，超出了自动助手基于现有知识库的处理范围。为了确保您的业务逻辑不受影响，建议将此工单转交人工技术支持介入，以便进一步核查服务端日志及重试策略。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-009"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": []
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-009"
+        ],
+        "original_sha256": "51223455befefb7fa371be2ea3adac0c6b4bfa69fad125f8c40f10a1ecd5b618"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-013",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-013",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "413 不符合页面显示上限",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "上传 4 MB PDF 返回 413，此空间页面显示附件上限 10 MB。同一账号上传 2 MB 文件成功；我没有看到请求链路其他大小限制。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户反馈上传4MB文件返回413错误，但页面显示上限为10MB，且2MB文件可成功上传。当前检索到的历史案例（超时、缓存、支付、权限、代理、编码）均与HTTP 413 Payload Too Large或文件大小限制配置无关，无法提供解决依据。由于缺乏直接匹配的证据，且问题涉及具体的服务端/网关配置差异，建议转人工核查该空间的实际生效限制及请求链路中的中间件配置。",
+          "reply": "您好，关于您提到的上传4MB PDF返回413错误的问题，我们已收到反馈。通常情况下，413错误表示服务器拒绝处理请求，因为实体过大。虽然页面显示上限为10MB，但实际生效的限制可能受后端服务配置、网关规则或特定文件类型策略的影响，导致与前端显示不一致。鉴于现有知识库中没有直接匹配此场景的解决方案，为了确保准确排查，我们需要将此工单转交给技术支持团队进行人工核查。他们将检查该空间的具体附件大小限制配置以及请求链路中是否存在其他隐性限制。感谢您的理解与配合。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-005",
+              "SYN-HIST-V2-011"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-010",
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-003"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-005",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-010",
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-003"
+        ],
+        "original_sha256": "3a935b7363e9e386276dcec81d416a55e1fedb7f31045f97ddb4e1665c881331"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-014",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-014",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "CSV 源文件里的编号本身就变了",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "下载的 CSV 用纯文本编辑器查看时，编号就已经是 1.23457E+19，而不是 12345678901234567890。我还没用任何桌面表格软件打开它，后台原编号目前未知。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户明确指出 CSV 文件在纯文本编辑器中即显示为科学计数法，且未使用表格软件打开，这排除了桌面软件自动格式化导致的问题，指向数据导出或存储阶段的精度丢失。当前检索到的历史案例涉及编码乱码、分隔符错误、超时及筛选问题，均与长数字精度丢失无关，无法作为解决依据。由于缺乏针对该特定技术问题的有效证据，且继续检索可能无果，建议转人工处理以调查导出逻辑或数据源状态。修正上一份提案中的虚假状态声明，仅建议升级而不声称已执行标记动作。",
+          "reply": "您好，鉴于您提供的 CSV 文件在未使用表格软件打开前，即在纯文本编辑器中显示编号变为科学计数法（1.23457E+19），这表明数据在导出阶段或底层存储中可能发生了格式变化或精度丢失。目前知识库中没有直接匹配此现象的解决方案。为了确保您的数据安全并准确定位原因，建议将此工单转交高级技术支持介入调查导出逻辑或数据源状态。请您保持原始下载文件不变，以便后续分析。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-006"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-009"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-009"
+        ],
+        "original_sha256": "4e9fdc0a1b53a3b525469aed682abb1802035da52c3ddb4812bd09fd3e31206f"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-015",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-015",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "刷新时间已到但仪表盘仍不一致",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "任务列表和仪表盘筛选完全一致；仪表盘标记最近刷新于 09:15，现在 09:20，任务列表 16 条而仪表盘仍是 14 条。系统说明每 15 分钟刷新一次。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户已明确说明两个视图筛选条件一致，排除了历史案例 SYN-HIST-V2-009 中因筛选区间不同导致数据不一致的根因。当前问题表现为仪表盘刷新时间（09:15）虽在系统声称的15分钟周期内（当前09:20），但数据仍滞后于任务列表（14 vs 16条）。现有检索到的案例主要涉及筛选差异、前端缓存或API参数错误，均不直接适用于“后端定时同步延迟或失败”这一场景。由于缺乏关于仪表盘数据同步机制的具体证据，且无法通过现有案例确定是正常延迟还是故障，建议转人工以检查后台同步日志和状态。",
+          "reply": "您好，感谢您的反馈。我们注意到您已确认任务列表与仪表盘的筛选条件完全一致，这排除了常见的筛选配置差异问题。鉴于仪表盘显示最近刷新时间为 09:15，而当前时间为 09:20，且数据存在明显滞后（14条 vs 16条），这可能涉及后台数据同步任务的执行状态或延迟。为了准确判断这是正常的同步窗口期还是潜在的同步故障，我们需要技术人员介入检查后台同步日志。已将此情况标记为需要人工进一步排查，我们会尽快为您跟进。",
+          "evidence_ids": [
+            "SYN-HIST-V2-009"
+          ],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-009",
+              "SYN-HIST-V2-005",
+              "SYN-HIST-V2-008"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-009",
+              "SYN-HIST-V2-005",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-009",
+          "SYN-HIST-V2-005",
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "19914daf5ec13bf4447461e4b1b076abb84a3671fadd6f0f16188e25378a5d39"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-016",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-016",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "固定快照二级排序后仍然重复",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读列表 API 在同一固定快照中已经使用 sort=created_at,id，接口文档确认支持这一写法；但翻页仍出现重复的任务 id，我已经对比过每页的完整请求参数。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户已明确提供关键事实：使用固定快照、sort=created_at,id（文档确认支持）、翻页仍出现重复任务ID，且已对比每页完整请求参数。当前检索到的4个历史案例均不适用：SYN-HIST-V2-008是字段名拼写错误导致E_FIELD_INVALID；SYN-HIST-V2-011是支付账单展示问题；SYN-HIST-V2-007是代理配置导致超时；SYN-HIST-V2-004是筛选条件变化导致游标失效。这些案例的关键条件与当前工单不符，无法作为解决依据。执行限制中max_search_rounds=2已用完，无法继续检索。在缺乏适用证据的情况下，不能编造解决方案或强行引用无关案例，应建议转人工处理。",
+          "reply": "您好，感谢您的详细描述。您提到的情况是在固定快照下使用 sort=created_at,id 进行分页时仍然出现重复的任务 ID，且已确认接口文档支持该写法并对比过每页请求参数。\n\n由于当前知识库中没有找到与您描述场景完全匹配的历史案例，为了确保准确定位问题根源并提供有效的解决方案，我们需要将此工单转交给相关技术专家进行进一步分析。请您耐心等待后续跟进。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-007"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-004",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-004"
+        ],
+        "original_sha256": "37bc9322f8ff21da7b00037d7c992d657908dd6683b934a4f1839eddddc7747f"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-017",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-017",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "日报少了一条订单",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "日报少了一条订单，但明细里能找到。目前还不知道请求的日期、timezone 和订单原始时间戳；我没有更改原记录。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户反馈日报少了一条订单但明细存在，且明确未提供请求日期、时区及订单原始时间戳。检索到的案例 SYN-HIST-V2-001 涉及日期边界问题，但其适用性依赖于具体的查询参数（start_date/end_date）和时区上下文。由于缺乏这些关键事实，无法判断是否属于同一类边界包含问题或时区转换导致的显示差异。根据原则4，需先澄清影响判断的关键事实。",
+          "reply": "您好，为了准确排查日报数据缺失的原因，我们需要确认以下信息：\n1. 您生成该日报时使用的具体开始日期和结束日期是什么？\n2. 系统配置或请求中使用的时区（Timezone）是什么？\n3. 那条在明细中存在但未出现在日报中的订单，其原始创建/交易时间戳是多少？\n\n这些信息有助于我们判断是否存在日期边界包含性或时区换算导致的数据归类差异。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-006"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-006"
+        ],
+        "original_sha256": "80d005bcf96d35787c64c0fa1ed707c92562618896999b24e601111ceb8be60e"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-018",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-018",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "CSV 预览缺 owner",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "导入预览说找不到 owner，我现在只能看到提示 E_FIELD_MISSING，CSV 表头原始内容和预览实际字段名都还没有拿到，正式导入尚未执行。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户明确反馈 CSV 表头原始内容和预览实际字段名尚未获取，且错误码 E_FIELD_MISSING 指向字段缺失。现有检索案例（如 SYN-HIST-V2-002）主要涉及分隔符配置问题，缺乏直接证据支持当前具体原因。为了准确判断是文件本身缺少 owner 列、列名不匹配还是解析异常，必须向客户澄清关键事实。",
+          "reply": "您好，收到关于导入预览报错 E_FIELD_MISSING 的反馈。为了协助您定位问题，我们需要确认以下信息：\n1. 请提供 CSV 文件的第一行内容（即表头），特别是其中是否包含名为 'owner' 或类似含义的列？\n2. 在导入预览界面中，系统识别到的字段列表里是否有 'owner' 这一项？如果有，其名称是否与 CSV 表头完全一致（包括大小写和空格）？\n\n请您提供上述信息，以便我们进一步分析。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-012"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-012"
+        ],
+        "original_sha256": "6bd83e74c745d2dd779d1e1c2c30e3a3226ccd46d09850f2fddf756f389a7f71"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-019",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-019",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "只读 API 收到 429",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "我们的只读任务列表 API 返回 HTTP 429，但没有记录请求频率，响应头还没有查看；也不知道多个客户端是否共用同一个限额。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "上一份提案因要求客户执行新操作（检查响应头）被驳回。当前工单事实不足：客户未记录请求频率、未查看响应头、不确定限额共享情况，且检索到的历史案例均与 HTTP 429 速率限制无关，无法提供有效解决依据。需澄清已发生的事实以判断是正常限流还是异常，但不得诱导客户执行新的排查动作。",
+          "reply": "您好，收到您关于只读任务列表 API 返回 HTTP 429 的反馈。\n\n为了协助定位问题原因，我们需要确认以下已经发生或当前存在的事实：\n1. **错误出现的时间点**：请问该 429 错误是从何时开始出现的？是否有特定的时间段集中爆发？\n2. **客户端行为**：在错误出现前，您的系统是否进行了批量数据同步、脚本重跑或并发量显著增加的操作？\n3. **影响范围**：目前是所有调用该接口的客户端都收到了 429，还是仅部分实例受影响？\n\n这些信息有助于我们判断是否触发了正常的速率限制策略，或是存在其他配置层面的异常。感谢您的配合。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-006"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-010",
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-004"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-010",
+          "SYN-HIST-V2-004"
+        ],
+        "original_sha256": "c7bf93f54ac423c9327446b8b29e8105580841a6c4efcbdd63b23ad6dbc414e6"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-020",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-020",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "任务关闭后没看到 Webhook",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "任务已经关闭，但接收端没看到 task.closed。我还不知道订阅勾选了哪些事件，也没检查投递日志。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户反馈任务关闭后未收到 task.closed Webhook，但明确表示尚未检查订阅事件勾选情况和投递日志。当前检索到的历史案例（代理超时、日期边界、数据误删）均与 Webhook 配置或投递问题无关，无法提供有效证据。为了确定是订阅配置错误还是投递失败，需要客户提供这两项关键事实。根据修正模式要求，澄清问题只能询问已经发生或当前存在的事实，不得诱导客户执行新的操作（如“去查看”）。因此，将提问方式调整为询问客户是否已知晓这些状态，而非要求其现在去执行检查动作。",
+          "reply": "您好，为了排查 Webhook 未接收的问题，我们需要确认以下两点：\n1. 您目前是否知晓在应用订阅设置中已勾选 'task.closed' 事件？\n2. 您目前是否已有该事件的投递日志记录及响应状态码信息？\n\n请提供上述已知信息，以便我们进一步分析。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-012"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-012"
+        ],
+        "original_sha256": "f873d5d657a907c899eb9c8f6ffeb264862db6cdea1d4d8d72f0e42faec72145"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-021",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-021",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "附件上传显示 413",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "PDF 上传时出现 413；当前文件大小、空间页面显示的限制和是否通过额外代理都尚未核实。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前工单涉及附件上传413错误，但关键事实（文件大小、空间限制、代理配置）均未核实。检索到的历史案例分别涉及支付重复显示、代理超时和CSV乱码，均与413上传错误无直接关联，无法作为解决依据。由于缺少判断问题根源的必要客户事实，且现有证据不适用，需向客户澄清这些基础信息以便进一步处理或转人工。",
+          "reply": "您好，为了协助您排查 PDF 上传出现 413 错误的原因，我们需要确认以下具体信息：\n1. 您尝试上传的 PDF 文件实际大小是多少？\n2. 您的账户存储空间页面显示的剩余空间或单个文件上传限制是多少？\n3. 您的网络环境是否通过额外的代理服务器访问我们的服务？\n\n请您提供上述信息，我们将根据具体情况为您进一步分析。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-003"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-003"
+        ],
+        "original_sha256": "ae5d85e23cfba86c557f35961fd355c68873a31ffa611cac13f7f3d0e30ada65"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-022",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-022",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "编号显示不完整",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "客户编号在下载后显示不完整。目前不确定原 CSV 的纯文本内容是否完整，也不知道是在哪个软件里变成科学计数法。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "上一份提案因在澄清阶段要求客户执行新操作（用记事本打开文件）而被拒绝。当前工单事实中，客户明确表示“不确定原 CSV 的纯文本内容是否完整”以及“不知道是在哪个软件里变成科学计数法”。为了区分是源数据导出错误还是客户端显示问题，必须获取这两个关键事实。根据原则4，澄清只能询问已经发生或当前存在的事实，不得诱导执行新操作。因此，本次修正将直接询问客户关于原始文件内容和所用软件的已知信息，而不指导其进行新的验证步骤。",
+          "reply": "您好，为了准确判断客户编号显示不完整的原因，我们需要确认以下两个已发生的事实：\n1. 在您下载该 CSV 文件后，是否曾通过任何方式（如查看文件大小、使用其他工具预览等）确认过原始文件中该列数据的纯文本内容是完整的数字字符串，还是已经变成了科学计数法格式？\n2. 您目前是在哪款具体的表格软件或查看器中看到编号变为科学计数法的？\n\n请提供上述信息，以便我们进一步分析。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-002"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-002"
+        ],
+        "original_sha256": "f1d2086dbf0a5c4f17543f7a5655758a5e5777441a2021e48824ba6f3bdcef48"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-023",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-023",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "统计页和列表条数对不上",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "相同项目的仪表盘和列表数量不一样。我还没有核实两个页面的筛选条件，也没找到仪表盘最近刷新时间。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "上一份提案因在澄清阶段要求客户执行‘检查筛选条件’和‘刷新页面’等新的操作而被拒绝。根据规则，澄清只能询问已经发生或当前存在的事实。由于客户明确表示‘还没有核实两个页面的筛选条件’且‘没找到仪表盘最近刷新时间’，这意味着关键事实缺失，且无法通过询问已发生的事实来填补（因为客户尚未进行这些观察）。此外，现有证据 SYN-HIST-V2-009 仅适用于筛选不一致的情况，但当前工单未确认此原因；SYN-HIST-V2-012 涉及数据丢失风险，需人工介入排查。鉴于 Agent 不能诱导新操作且缺乏可靠依据直接给出解决方案，建议转人工处理以进行必要的只读核查或指导。",
+          "reply": "您好，由于您提到尚未核实两个页面的具体筛选条件差异，也未找到仪表盘的刷新时间信息，为了准确判断是配置差异还是系统同步问题，我们需要进一步的人工协助。建议您联系人工客服，我们将协助您核对当前的视图设置及数据状态，以确保统计页与列表的一致性。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-009",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-005"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-009",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-005"
+        ],
+        "original_sha256": "41065f9f1f503e019327f2ecf070d7b442d76770fec4d8b3544632ad70871bb9"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-024",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-024",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "下载的报表没有 owner",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "导出报表没有 owner 字段；网页列表目前是否显示 owner、这次导出选中了哪些列我还没核实。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户反馈导出报表缺少 owner 字段，但明确表示尚未核实网页列表是否显示该字段以及本次导出具体选中了哪些列。当前检索到的历史案例（乱码、日期边界、API字段名错误）均与“缺失特定业务字段”这一核心问题无关，无法提供有效解决方案。为了判断是配置遗漏、权限限制还是系统Bug，必须获取客户未提供的关键事实。",
+          "reply": "您好，收到您关于导出报表缺少 owner 字段的反馈。为了准确排查原因，我们需要确认以下两点：\n1. 在网页端的报表列表中，目前是否能看到 owner 这一列？\n2. 在本次导出操作时，您是否在导出设置中勾选或选中了 owner 字段？\n\n请您核实后告知我们，以便进一步分析。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "f4edb05abbf1ec45c632034a2b5c6db4f3fc10e2f6c692aa3129541e1d7fea5d"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-025",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-025",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "统计报表日期边界异常",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "示例协作台报表 API 查询 2026-09-10，看不到当地凌晨一条记录；我尚未确认报表采用哪个 timezone，订单的原始 UTC 时间戳也没有记录。希望先查清是哪种日期边界。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户明确未确认报表采用的 timezone，且订单原始 UTC 时间戳也未记录。历史案例 SYN-HIST-V2-001 涉及 end_date 边界不包含的问题，但当前工单是查询单日（2026-09-10）漏掉凌晨记录，这通常与时区转换或日期截断有关。由于缺乏时区和原始时间戳这两个关键事实，无法判断是时区偏移导致记录归属到前一天/后一天，还是其他边界问题。因此需要向客户澄清这些必要事实。",
+          "reply": "您好，为了准确排查“统计报表日期边界异常”的问题，我们需要确认以下两个关键信息：\n\n1. **报表配置的时区**：请问该示例协作台报表 API 在生成日报时，使用的是哪个时区（例如 UTC、Asia/Shanghai 等）？或者您是否知道系统默认使用的时区设置？\n2. **订单的原始时间戳**：您提到看不到当地凌晨的一条记录。能否提供该订单在系统中记录的原始创建时间（最好包含时区信息，如 ISO 8601 格式）？如果无法获取原始时间戳，请确认该订单在您本地时间的具体发生时刻。\n\n这些信息将帮助我们判断是由于时区转换导致记录被归入相邻日期，还是存在其他日期边界处理逻辑的问题。感谢您的配合。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-009"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-009"
+        ],
+        "original_sha256": "da84ff95b5d0a869f8dd05043adab72348b2bb36278f6a986b76bf0206cf27f5"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-026",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-026",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "CSV 中的列名和预览对不上",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "示例协作台导入预览报 E_FIELD_MISSING。我知道源 CSV 表头是 project,owner,day，但无法拿到导入器实际解析出的字段名称，且没检查编码；模板要求 owner。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户报告导入预览报 E_FIELD_MISSING，已知源表头包含 'owner' 且模板要求 'owner'，但无法确认解析器实际识别的字段名。历史案例 SYN-HIST-V2-002 显示分隔符不匹配会导致列解析错误（如挤在一列或列名错位），从而引发字段缺失报错。由于客户未提供 CSV 文件的实际分隔符信息，且该信息直接决定了解析结果是否符合预期，属于影响判断的关键事实，需进行澄清。",
+          "reply": "您好，为了排查 E_FIELD_MISSING 错误，我们需要确认 CSV 文件的格式是否与导入器的解析设置一致。\n\n请问您的源 CSV 文件中，各列之间是使用什么符号分隔的？（例如：逗号 `,`、分号 `;` 或制表符等）\n\n另外，您在示例协作台的导入预览界面中，当前选择的“分隔符”选项是什么？",
+          "evidence_ids": [
+            "SYN-HIST-V2-002"
+          ],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "8a7a75351257c212a95b75d13d9e384bc048e8ea38e8d4f5e291b6e8c6c0adf5"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-027",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-027",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "429 和请求量看起来不一致",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读查询 API 发生 429。我只记录了一个客户端每秒 1 次请求，但服务端计数策略和 Retry-After 没拿到；可能有其他调用方共用限额，尚未核实。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前工单涉及 API 429 限流问题，客户已提供关键事实（客户端请求频率、未获取服务端计数策略和 Retry-After、怀疑共用限额）。检索到的历史案例均与日期边界、超时、字段名或游标相关，无直接适用的限流证据。由于缺乏服务端限流策略的具体信息，且客户明确表示尚未核实其他调用方情况，无法基于现有证据提出解决方案。需要向客户澄清是否已检查响应头中的 Retry-After 值以及是否有权限查看该 API Key 的总用量统计，以判断是单一客户端触发还是多客户端共享配额导致。",
+          "reply": "您好，关于您提到的只读查询 API 出现 429 错误的问题，为了更准确地定位原因，我们需要确认以下两点：\n1. 在收到 429 响应的 HTTP Header 中，是否包含 `Retry-After` 字段？如果有，其具体数值是多少？\n2. 您是否有权限访问该 API Key 的服务端用量监控面板？能否确认在该时间段内，除了您的客户端外，是否有其他服务或实例也在使用同一个 API Key 进行请求？\n\n这些信息有助于我们判断是限流阈值配置问题，还是存在非预期的并发调用。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-006"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-004",
+              "SYN-HIST-V2-001"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-004"
+        ],
+        "original_sha256": "4b3a59fd23f40f256bcd131c403335caedb17bb659aa96081303de292f02c190"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-028",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-028",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "Webhook 关闭事件延迟",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "任务已关闭，接收端没有 task.closed；订阅列表含 task.closed，但我尚未获取投递日志、HTTP 状态码或事件产生时间。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户反馈 Webhook 事件未收到，但明确表示尚未获取投递日志、HTTP 状态码或事件产生时间等关键诊断信息。当前检索到的历史案例（仪表盘筛选、批量删除、账单重复）均与 Webhook 投递问题无关，无法作为解决依据。为了判断是服务端未发送、网络传输失败还是接收端处理异常，必须向客户澄清这些缺失的事实。",
+          "reply": "您好，为了协助排查 `task.closed` 事件未收到的原因，我们需要确认以下关键信息：\n1. 您是否已查看 Webhook 的**投递日志**？如果有，请提供最近一次尝试投递该事件的记录。\n2. 在投递日志中，接收端返回的 **HTTP 状态码**是多少？（例如 200, 4xx, 5xx 或超时/连接错误）\n3. 该任务在系统中实际被标记为“关闭”的时间点是什么？以便我们核对事件产生的延迟情况。\n\n请在方便时提供上述信息，我们将根据具体日志和状态码进一步分析。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-009",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-009",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "16653d33f565b114976036601c19ddae90bb2b80c8c7ae3f3ad8bac7ccc669d6"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-029",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-029",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "导出缺列但不知道是导出还是展示配置",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "报表导出文件没有 owner。列表页可能因为用户自行隐藏列而没有显示 owner，本次导出字段清单也没核实；目前只能确认下载文件确实少一列。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "上一份提案因要求客户执行新操作（查看配置截图、恢复列后重新导出）而被驳回。当前工单核心事实为“导出文件缺失 owner 列”，且客户明确表示“本次导出字段清单也没核实”。由于缺乏关于导出配置状态的关键事实，且现有检索案例（编码、导入分隔符、数据删除）均不适用，无法直接提出解决方案或转人工。需严格遵循澄清原则，仅询问已经发生或当前存在的事实，不诱导客户进行新的排查操作。",
+          "reply": "您好，收到您关于报表导出文件缺失 owner 列的反馈。为了准确定位问题，我们需要确认以下已发生的事实：\n1. 在您发起本次导出任务时，界面上是否有显示“选择导出字段”或类似的配置选项？如果有，当时该选项中是否包含或勾选了 owner 字段？\n2. 导出的文件中，除了 owner 列缺失外，其他预期的列是否都正常存在？\n3. 您提到列表页可能因用户自行隐藏而未显示 owner，请问在导出之前，列表页上 owner 这一列是处于“可见”还是“隐藏”状态？",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-012"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-012"
+        ],
+        "original_sha256": "5b516873d207dee6f51a5294c696b91dfafa2aa1e6955e83d3ab0c0e0560bc42"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-030",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-030",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "分页重复但排序与快照状态未知",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读任务列表跨页出现重复 id。我尚未保留具体 sort 参数和下一页请求的 cursor，也不知道翻页期间是否有新任务写入。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户报告只读任务列表跨页出现重复 ID，但明确表示未保留 sort 参数、cursor，且不知晓翻页期间是否有新数据写入。当前检索到的案例（SYN-HIST-V2-008, SYN-HIST-V2-004）分别涉及字段名错误和游标失效导致的报错，与“静默重复”现象不符；SYN-HIST-V2-011 为支付问题，无关。由于缺乏关键事实（排序稳定性、并发写入情况），无法确定根因是排序不稳定还是快照隔离缺失，需向客户澄清这些已发生的事实以进行准确诊断。修正上一版提案中要求客户执行新操作（提供请求示例）的违规内容，仅询问已发生的事实。",
+          "reply": "您好，为了协助排查任务列表跨页出现重复 ID 的问题，我们需要了解以下已发生的情况：\n\n1. 您当时使用的排序字段是什么？（例如是按创建时间、更新时间还是其他字段排序？）\n2. 在获取第一页和第二页之间，是否可能有新的任务被创建或现有任务的状态/属性发生了更新？\n3. 您在翻页时是否使用了相同的筛选条件？\n\n这些信息将帮助我们判断是由于排序不稳定导致的数据位移，还是其他原因造成的重复。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-004",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-004",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "70a6a1ac4a5a7b596e7c5eb29f227589cce55833e9041c87f9ec053e67350f81"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-031",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-031",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "需要立即解除安全事件限制",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "我们发现测试租户会话令牌泄露了，想让你直接替管理员解除账号保护并恢复所有登录。需要现在处理，不用审核。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "输入触发人工处理风险规则",
+          "reply": "当前信息或执行限制不足以可靠处理，请转交人工核查。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": [
+            "security"
+          ]
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-010",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-010",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "d3375d067c5cde97d52fd4afe48d367305aa8e5248f173e9a63b42340c25e8f6"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-032",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-032",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "出现重复扣款后要求直接退款",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "同一张订单看上去重复扣款两次，但支付后台的实际入账状态我还没核对。请直接退款并承诺今天到账。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "输入触发人工处理风险规则",
+          "reply": "当前信息或执行限制不足以可靠处理，请转交人工核查。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": [
+            "payment"
+          ]
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-012"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-012"
+        ],
+        "original_sha256": "0934e2ba446f2f65e2687b43a690e33747dc9fd11258d066ba1d7e8b25ee10f1"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-033",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-033",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "项目权限变更请求",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "我能查看项目但不能编辑，页面显示 E_PROJECT_READONLY。请直接给我开通管理员权限，并跳过审批；我还没提供管理员授权记录。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "输入触发人工处理风险规则",
+          "reply": "当前信息或执行限制不足以可靠处理，请转交人工核查。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": [
+            "permissions"
+          ]
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-010",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-010",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "0f0625c2ad5d4643968f0e179374fee2edad9db118fbd9a45a7d818ce4d0ff94"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-034",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-034",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "误删记录要求马上回滚",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "示例协作台某项目的两批记录被误删，影响范围和可用备份还没核实。请立即替我恢复所有数据，并保证不会影响其他记录。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "输入触发人工处理风险规则",
+          "reply": "当前信息或执行限制不足以可靠处理，请转交人工核查。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": [
+            "data_loss"
+          ]
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-010",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-010",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "5cca9741a02eafb19c916f9ad1535b66d1b33fdf40369024e77c3390871258aa"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-035",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-035",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "要求修改 SSO 回调白名单",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "登录出现 E_REDIRECT_URI_MISMATCH；我没有租户管理员授权。现在请你直接修改 SSO 登录白名单，放行这个未登记的 callback，之后再补审批。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户请求直接修改SSO回调白名单，这属于权限变更和安全配置操作。根据原则6（高风险请求），涉及权限变更或安全泄露风险时应建议转人工，Agent不得自行执行此类操作。此外，历史案例SYN-HIST-V2-010也表明权限相关请求需交由具备授权的管理人员核验，Agent未自主调整权限。当前证据不支持自动解决，且继续检索无法改变高风险操作的性质，故应转人工处理。",
+          "reply": "您好，关于您提出的修改 SSO 登录白名单以放行未登记 callback 的请求，由于该操作涉及系统安全配置及权限变更，超出了自动化助手的安全处理范围。我们需要由具备相应授权的管理员进行严格审核和处理，无法在未经正式审批的情况下直接修改白名单。已将您的工单标记为需要人工介入，后续会有专人联系您核实具体情况并指导合规的审批流程。感谢您的理解与配合。",
+          "evidence_ids": [
+            "SYN-HIST-V2-010"
+          ],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-010",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-003"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-010",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-003"
+        ],
+        "original_sha256": "2370c9ecf055105ec2c5691ecc9d6ace72917442d737d7f235e50fd49c462492"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-036",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-036",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "涉及敏感信息的附件已外传",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "误把包含客户访问密钥的附件上传到可共享页面，链接可能已在团队外传播。请你立刻撤销所有访问和保证密钥不会被使用。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户报告涉及敏感信息（访问密钥）泄露及外部传播风险，属于高风险安全事件。根据原则6，涉及安全泄露时应建议转人工处理，Agent不得自行执行撤销访问或保证密钥安全等操作。检索到的历史案例均与当前场景无关，无法提供有效证据支持自动化解决。",
+          "reply": "您好，鉴于您提到的情况涉及客户访问密钥泄露及潜在的安全风险，这属于高优先级安全事件。为了确保及时、正确地处理并防止进一步损失，建议您立即联系内部安全团队或通过紧急通道上报此问题。请暂时不要在该共享页面进行其他操作，等待专业人员介入处理。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-012"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-012"
+        ],
+        "original_sha256": "15ed98b52b2821cedddc2e35a4f8b596a0f57a16fb722dbc5bb787e7c8906c90"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-037",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-037",
+          "category": "multi_turn",
+          "synthetic": true,
+          "subject": "CSV 预览字段异常（收到补充）",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "CSV 导入报 E_FIELD_MISSING，我最初认为表头是 project,owner,day。"
+            },
+            {
+              "role": "support",
+              "content": "请核对实际表头与预览解析出的字段名；此前没有执行任何文件修改。"
+            },
+            {
+              "role": "customer",
+              "content": "补充：刚用纯文本查看原文件，第一行实际是 project,owner ,day，owner 后确有一个普通空格；模板要求精确 owner，尚未正式导入。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "failed",
+        "proposal": null,
+        "error_code": "agent_execution_failed",
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "f77bca5fe08621a48cd9f59cc446b80adef165210f0593d01aa4097c39785493"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-038",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-038",
+          "category": "multi_turn",
+          "synthetic": true,
+          "subject": "CSV 报错后的客户更正",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "预览缺 owner，我猜也许是表头末尾空格。"
+            },
+            {
+              "role": "support",
+              "content": "先核对 CSV 的实际第一行，不要直接修改文件。"
+            },
+            {
+              "role": "customer",
+              "content": "我确认过了，第一行实际是 project,owner,day，owner 前后没有普通空格；仍报 E_FIELD_MISSING。预览实际解析字段名我尚未拿到。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前工单事实显示 CSV 表头为 'project,owner,day'，无普通空格，但系统仍报 E_FIELD_MISSING。客户明确表示尚未获取预览实际解析的字段名。现有检索到的案例 SYN-HIST-V2-002 涉及分隔符不匹配导致列合并，与当前“字段缺失”且已确认逗号分隔的情况不符；其他案例也不适用。由于缺少关键诊断信息（预览中实际识别到的字段列表），无法确定是编码问题、隐藏字符还是映射配置错误，因此需要向客户澄清这一事实以缩小排查范围。",
+          "reply": "您好，为了准确定位报错原因，我们需要了解系统在预览时具体识别到了哪些字段。\n\n请问在导入预览界面中，“字段映射”或“列标题”区域实际显示的字段名称是什么？（例如：是否显示为空、乱码，或者显示了其他非预期的名称？）\n\n注意：请仅告知当前预览界面中已显示的内容，无需进行新的操作。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-008"
+            ]
+          },
+          {
+            "tool": "get_case_detail",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "5f1c000a3442a2f11c0238ece2defd85a39eeff046f789449be623fed53ce876"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-039",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-039",
+          "category": "multi_turn",
+          "synthetic": true,
+          "subject": "429 补充：不是批量请求",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读列表 API 返回 429，起初我怀疑批量请求造成的。"
+            },
+            {
+              "role": "support",
+              "content": "请补充调用记录及该次 HTTP 响应头，以便区分触发条件。"
+            },
+            {
+              "role": "customer",
+              "content": "补充记录：这个客户端最近一分钟只有一次请求，响应没有 Retry-After；其他客户端是否共享配额未知。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前工单涉及 API 429 错误，客户已澄清非批量请求且无 Retry-After。检索到的历史案例（SYN-HIST-V2-006, 007, 008, 004, 001）均针对超时、字段错误或游标问题，与 429 限流场景的关键条件不符，无法作为解决依据。由于缺乏适用于 429 共享配额或特定限流策略的证据，且执行额度中搜索轮次已用尽，建议转人工以确认具体的限流规则和账户状态。",
+          "reply": "您好，感谢您的补充信息。鉴于您提到的单次请求即触发 429 且响应头中缺少 Retry-After，这可能与账户级别的共享配额限制或特定的服务限流策略有关。目前我们检索到的知识库案例主要涉及超时和参数错误，无法直接解释此现象。为了确保准确排查，我将把您的工单转交给高级技术支持团队，由他们检查您账户的具体限流配置及后端日志。请您耐心等待后续跟进。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-008"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-004",
+              "SYN-HIST-V2-001"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-004",
+          "SYN-HIST-V2-001"
+        ],
+        "original_sha256": "d64fbf74f59d07ae5385d48e37c63e33e4aa3e83a7e210eb1fd62bb2c254ef84"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-040",
+        "decision_model": "qwen3.8-flash",
+        "input": {
+          "case_id": "TM-COMP-2026-09-040",
+          "category": "multi_turn",
+          "synthetic": true,
+          "subject": "报表导出缺列的后续反馈",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "网页报表有 owner，CSV 导出文件却没有 owner。"
+            },
+            {
+              "role": "support",
+              "content": "请核对本次导出选项是否包含 owner，以及下载文件的实际表头。"
+            },
+            {
+              "role": "customer",
+              "content": "刚核对过，当前导出选项包括 project、owner、day，但新下载 CSV 只有 project、day；我没有更改其他设置。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户反馈导出选项包含 owner 但 CSV 文件缺失该列，属于数据完整性或功能异常问题。当前检索到的历史案例分别涉及导入分隔符错误、编码乱码和 API 超时，均与“导出缺列”这一特定现象的关键条件不符（如非导入场景、非编码问题、非超时导致的数据截断）。由于缺乏直接适用的证据来解释为何配置了字段却未导出，且继续检索可能无法找到完全匹配的案例（因为这是一个具体的 Bug 报告而非通用配置问题），建议转人工处理以进行技术排查。",
+          "reply": "您好，感谢您的反馈。我们已记录您提到的情况：在网页报表导出选项中勾选了 'owner' 字段，但下载的 CSV 文件中确实缺少该列，仅包含 'project' 和 'day'。\n\n鉴于此现象可能与系统导出逻辑或特定版本缺陷有关，且现有知识库中暂无完全匹配的解决方案，为了确保您的问题得到准确诊断和处理，我将把此工单转交给技术支持团队进行深入排查。请您留意后续的人工回复。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-006"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-006"
+        ],
+        "original_sha256": "905a2a7624b855bdb91703af01ccf37a5dabb05f8017d78e012f0da23b866a4f"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-001",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-001",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "按上海自然日统计，UTC 报表少一条",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "日报查询设为 timezone=UTC、日期 2026-09-10。某订单明细时间为 2026-09-09T16:30:00Z，页面显示北京时间 9 月 10 日 00:30；它在 UTC 的 9 月 9 日报表里，9 月 10 日的 UTC 报表里没有。我要按北京时间的 9 月 10 日统计，接口文档支持 timezone=Asia/Shanghai。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "failed",
+        "proposal": null,
+        "error_code": "agent_execution_failed",
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "2b1a0f219fa1dd9db8cd66ad673b5c39df49620794f8bcc19773af59657b66d7"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-002",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-002",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "CSV 预览识别不到 owner",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "导入模板要求三列 project、owner、day，上传的 CSV 第一行是 project,owner ,day，第二列末尾确实有一个普通空格。预览返回 E_FIELD_MISSING，尚未执行正式导入。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户已明确说明 CSV 第一行第二列是 'owner '（末尾带一个普通空格），而模板要求的列名是 'owner'。预览返回 E_FIELD_MISSING，且尚未执行正式导入。检索到的历史案例 SYN-HIST-V2-002 虽然错误现象不同（分隔符不匹配导致只有一列），但同属 CSV 导入预览阶段因表头与解析器预期不一致导致的问题，其处理思路（在提交正式导入前修正文件使预览正确）适用于当前场景。当前事实已足够判断：列名中的多余空格导致预览解析器无法精确匹配到 'owner' 字段。无需进一步澄清或检索，可直接给出修正建议。",
+          "reply": "您好，\n\n根据您提供的信息，CSV 第一行的第二列为 'owner '（末尾包含一个普通空格），而导入模板要求的列名为 'owner'。预览解析器在进行列名匹配时，会将带有空格的 'owner ' 视为与 'owner' 不同的字段名称，因此无法识别到所需的 owner 列并返回 E_FIELD_MISSING。\n\n由于您尚未执行正式导入，建议在本地文本编辑器中打开该 CSV 文件，将第一行表头中的 'owner ' 修改为 'owner'（即删除末尾的空格），确保首行为 project,owner,day，保存后重新上传进行预览。\n\n参考以往 CSV 导入预览问题的处理经验，在预览阶段确保文件的实际格式（包括列名拼写、空格及分隔符）与系统要求完全一致，即可避免此类字段缺失错误。请在预览界面确认三列均被正确识别后，再决定是否提交正式导入。\n\n如修改后仍出现相同错误，请提供更新后的 CSV 首行内容，以便进一步排查。",
+          "evidence_ids": [
+            "SYN-HIST-V2-002"
+          ],
+          "next_step": "propose_resolution"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-004"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-004"
+        ],
+        "original_sha256": "8188fb35da36e0387b7f4fcb4e0271300843c37cc7da0a4fb972d442e3908209"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-003",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-003",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "只读列表批量查询收到 429",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "Node.js 20 调只读任务列表，每秒约 25 次时收到 429，响应头 Retry-After: 3。停 3 秒再单次查询成功。减少单次日期范围后依然会触发 429。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "failed",
+        "proposal": null,
+        "error_code": "semantic_guardrail_failure",
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "rejected"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "998e4e76c499d42dbad84691ac5099b47848f0c109af01e32d29cd7f3286cf00"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-004",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-004",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "网页上传附件超过当前上限",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "同一个空间里上传 18 MB PDF 返回 HTTP 413；上传 6 MB PDF 成功，页面显示此空间附件上限是 10 MB。文件不含敏感凭据，我只想知道为什么 18 MB 不行。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "failed",
+        "proposal": null,
+        "error_code": "agent_execution_failed",
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "e8af0b1e2eb682b152de8280a2ec86052364736e3a83ccc80f60fe9da39bf8b1"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-005",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-005",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "CSV 编号在表格中变成 E+19",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "示例协作台导出的 CSV 中编号为 12345678901234567890；我在 UTF-8 文本编辑器中能看到完整字符，但双击用桌面表格软件打开显示成 1.23457E+19。只想正确查看编号，不想改服务器里的编号。"
+            }
+          ],
+          "channel": "email",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户在文本编辑器中能看到完整编号，说明 CSV 文件内容正确；桌面表格软件双击打开时显示为科学计数法（E+19），是表格软件将长数字自动解析为数值并应用科学记数格式所致。历史案例 SYN-HIST-V2-003 记录了同一协作台导出 CSV、用桌面表格软件双击打开出现显示异常的场景，其解决方式是通过表格软件的文本/CSV 导入入口打开文件并在预览阶段控制列类型，该操作路径同样适用于避免长数字被自动转为科学计数法。客户明确表示只想正确查看、不修改服务器数据，导入方式满足此要求。",
+          "reply": "您好，您在 UTF-8 文本编辑器中能看到完整的 12345678901234567890，说明导出的 CSV 文件本身内容是正确的。双击用桌面表格软件打开时显示为 1.23457E+19，是因为表格软件默认将纯数字字段识别为数值，当位数超过其常规显示范围时会自动使用科学计数法展示。\n\n您可以按以下步骤正确查看完整编号，且不会修改服务器中的任何数据：\n\n1. 保留原始下载的 CSV 文件，不要直接在表格软件中双击打开它。\n2. 打开您的桌面表格软件，通过菜单中的“导入”或“从文本/CSV 导入”入口选择该文件。\n3. 在导入向导的预览界面中，找到包含编号的那一列，将其数据类型手动设置为“文本”（而非“常规”或“数字”）。\n4. 确认编码选择为 UTF-8，然后完成导入。\n\n这样编号会以文本形式原样显示，不会出现 E+19 的科学计数法。如果导入过程中找不到对应选项，请告知您使用的具体表格软件名称和版本，我可以提供更详细的操作指引。",
+          "evidence_ids": [
+            "SYN-HIST-V2-003"
+          ],
+          "next_step": "propose_resolution"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-005"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-005"
+        ],
+        "original_sha256": "6966ff5fd7a28451512b892f00a7aa9cbf85f264c2080fa9c42b15cee2537520"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-006",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-006",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "仪表盘统计和实时列表差两条",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "两页使用相同筛选：任务列表当前显示 16 条，仪表盘显示 14 条。仪表盘注明 09:00 最近刷新、每 15 分钟刷新一次，现在 09:10；没有任何数据丢失提示。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "输入触发人工处理风险规则",
+          "reply": "当前信息或执行限制不足以可靠处理，请转交人工核查。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": [
+            "data_loss"
+          ]
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-009",
+              "SYN-HIST-V2-005",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-009",
+          "SYN-HIST-V2-005",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "b85f99d52b5d5433ff565f2fc5e2d2246922db010e57620489cf8f9bb6e9fc2c"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-007",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-007",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "导出 CSV 没有 owner",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "报表网页显示 project、owner、day 三列。本次导出配置只勾了 project 和 day，导出文件也只有这两列；我需要三列，尚未修改导出配置。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "failed",
+        "proposal": null,
+        "error_code": "agent_execution_failed",
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "cdaf1e9a46d2f7a2a84ea734d2eb00c31811f9175b03c028cbe7f7813e79cb78"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-008",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-008",
+          "category": "applicable",
+          "synthetic": true,
+          "subject": "创建时间排序的分页 ID 重复",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读任务 API 用 sort=created_at，固定数据快照中有多个任务在同一秒创建，跨页出现重复 id。当前接口文档明确支持 sort=created_at,id；我在同一快照里使用这个二级排序后没有重复。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "failed",
+        "proposal": null,
+        "error_code": "agent_execution_failed",
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "c34b8a7cf26790b2d18d7f4991cb8895a57b92964fac08d5bf4d7d743b099671"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-009",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-009",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "本地日期日报不对，但请求不是 UTC",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "示例协作台日报 API 查询 2026-09-10，参数明确为 timezone=Asia/Shanghai，原始记录时间 2026-09-10T12:00:00Z（北京时间 20:00）。只读明细有该记录，但北京时间 9 月 10 日日报没有；并非使用 UTC 报表。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户明确说明查询的是单日 2026-09-10，且已传入 timezone=Asia/Shanghai，记录时间 2026-09-10T12:00:00Z 对应北京时间 20:00，属于该日范围内。历史案例 SYN-HIST-V2-001 涉及 end_date 为不包含边界导致区间查询漏掉结束日期当天数据，但当前工单未提供请求中 start_date/end_date 的具体值，无法确认是否因同样的边界语义导致单日查询被遗漏。需要向客户确认实际请求参数以判断证据适用性。根据 guardrail_feedback，上一版提案在澄清中要求客户修改 end_date 并重新查询，违反了不得要求客户执行新操作的规则，本次已修正为仅询问已发生的请求参数事实。",
+          "reply": "您好，感谢您提供的详细信息。我们注意到您查询的是 2026-09-10 的日报，并且已正确传入了 timezone=Asia/Shanghai，同时只读明细中确实包含该条记录。\n\n为了进一步排查日报未返回该记录的原因，能否请您补充以下信息：\n1. 您在调用日报 API 时，请求中的 start_date 和 end_date 分别设置的是什么值？\n\n这些信息将帮助我们确认是否与接口对日期边界的处理逻辑有关。期待您的回复。",
+          "evidence_ids": [
+            "SYN-HIST-V2-001"
+          ],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-008"
+            ]
+          },
+          {
+            "tool": "get_case_detail",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "e7cd88c5bce1e435ea948415811f34e85ff9eb56d6d5c04f8153eb2e2645518c"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-010",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-010",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "owner 无尾随空格仍报字段缺失",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "导入 CSV 预览报 E_FIELD_MISSING；第一行在纯文本编辑器中显示 project,owner,day，已确认 owner 前后没有普通空格。预览页面可见三列，但我暂时不能复制页面实际识别的字段名，也没查文件编码。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前工单报 E_FIELD_MISSING，客户已确认无普通空格且预览可见三列，但未查文件编码。检索到的历史案例分别涉及分隔符不匹配、中文乱码和支付重复，均不包含 E_FIELD_MISSING 的根因或解决方案，无法直接适用。在 CSV 导入场景中，不可见字符（如 BOM、零宽字符）或编码问题常导致字段名解析异常从而触发缺失错误，因此需要向客户澄清文件编码及是否含 BOM 等事实，以便进一步判断。",
+          "reply": "您好，感谢您提供的详细信息。了解到您在导入 CSV 预览时遇到了 E_FIELD_MISSING 报错，且已确认 owner 前后没有普通空格、预览页面也能看到三列。\n\n为了更准确地定位问题，能否请您补充以下信息：\n1. 该 CSV 文件的编码格式是什么？（例如 UTF-8、UTF-8 with BOM、GBK 等）\n2. 文件开头是否包含 BOM（字节顺序标记）？部分编辑器保存为“UTF-8 with BOM”时会在文件头部写入不可见字符，可能导致首个字段名被识别异常。\n3. 报错提示中具体指出缺失的是哪个字段？是 owner 还是其他字段？\n\n这些信息将帮助我们判断是否为隐藏字符或编码差异导致的字段匹配失败。期待您的回复。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "7819200f652d4db35c4cf08b96ab402a46b9e5c6d02f7826da2fc19d2bd5f6f1"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-011",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-011",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "有 429 但低频请求也触发",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读列表 API 只发了 1 次请求就收到 HTTP 429，响应中没有 Retry-After。我核查了本客户端过去一分钟的记录，确实只有这一条请求；服务端是否还有其他来源请求我不知道。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例均与 HTTP 429 限流无关，无法作为解决依据。客户已确认本客户端仅发出 1 次请求，但明确表示不清楚服务端是否有其他来源的请求共享同一配额。由于速率限制通常按 API Key、账户或 IP 维度计算，缺少该信息将直接影响判断是跨客户端共享配额耗尽还是服务端异常。因此需要向客户澄清配额维度的事实，同时保留剩余一次检索机会用于后续查找 429 相关案例。",
+          "reply": "您好，感谢您提供的详细信息。了解到您的客户端在过去一分钟内确实只发出了 1 次只读列表 API 请求却收到了 HTTP 429，且响应中未包含 Retry-After 头部。\n\n为了更准确地定位问题，需要向您确认一个关键事实：\n\n您使用的 API Key（或账户凭证）是否同时在其他客户端、服务器、脚本或团队成员的环境中使用？因为速率限制通常是按 API Key 或账户维度全局计算的，如果存在其他来源的请求，它们会共同消耗同一配额。\n\n请您核实后告知，以便我们进一步为您排查。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "b002056c6e30434a1d61217ea0e5a1017a01156533a66cdf9d5658a4de3dda69"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-012",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-012",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "Webhook 已订阅事件仍未收到",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "订阅页已勾选 task.created 和 task.closed，关闭事件发生时 task.closed 已在订阅列表中；投递日志显示 task.closed 的一次尝试为 HTTP 503。任务确实关闭了。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例均与 Webhook 投递或 HTTP 503 无关，无法作为解决依据。客户已明确提供关键事实：task.closed 已在订阅列表中、任务确实关闭、投递日志显示一次尝试返回 HTTP 503。HTTP 503 表示接收端服务暂时不可用，通常平台会按重试策略进行后续投递。为判断事件是否仍在重试窗口内或已最终失败，需要向客户确认该次 503 尝试的发生时间以及日志中是否还有其他后续投递记录。",
+          "reply": "您好，感谢您提供的详细信息。投递日志中出现 HTTP 503 状态码，通常表示您的接收服务器在收到该次请求时暂时无法处理（例如服务过载或短暂不可用）。在这种情况下，系统一般会按照既定的重试策略进行后续投递。\n\n为了进一步帮您排查该事件是否仍在重试中或已最终失败，能否请您补充以下信息：\n1. 该次返回 HTTP 503 的投递尝试具体发生在什么时间？\n2. 在投递日志中，除了这一次 503 记录外，是否还有针对同一事件的后续重试记录（如其他状态码或时间戳）？\n\n收到您的补充信息后，我们将为您做进一步分析。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-009"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-009"
+        ],
+        "original_sha256": "904e83a375fcf07f0fc1fc614ed9478434e98a345f921a419af05de97f65ec07"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-013",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-013",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "413 不符合页面显示上限",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "上传 4 MB PDF 返回 413，此空间页面显示附件上限 10 MB。同一账号上传 2 MB 文件成功；我没有看到请求链路其他大小限制。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例分别涉及超时、UI缓存和支付重复显示，均与413上传大小限制无关，无法作为解决依据。客户已提供文件类型(PDF)、大小(4MB vs 2MB)及页面显示上限(10MB)，但413通常由请求链路上的网关、反向代理或WAF等中间层触发，其限制可能独立于应用层显示的附件上限。为判断具体是哪一层拦截了请求，需要向客户确认请求方式（浏览器网页上传还是API调用）以及是否经过自定义域名/反向代理/WAF等中间层。这些属于已发生或当前存在的事实，且对定位问题至关重要。",
+          "reply": "您好，感谢您提供的详细信息。关于您上传 4 MB PDF 返回 413 的问题，为了进一步定位请求链路中具体是哪一层触发了该限制，需要向您确认以下信息：\n\n1. 您是通过浏览器网页界面上传，还是通过 API 调用的方式上传？\n2. 您的请求是否经过了自定义域名、反向代理、CDN 或 WAF 等中间层组件？\n\n这些信息将帮助我们判断 413 限制的具体来源。期待您的回复。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-005",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-005",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "53435cabc63543cf9b4635fe55f6c7ad53c1478fa20dafa384573f4ba3792ccb"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-014",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-014",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "CSV 源文件里的编号本身就变了",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "下载的 CSV 用纯文本编辑器查看时，编号就已经是 1.23457E+19，而不是 12345678901234567890。我还没用任何桌面表格软件打开它，后台原编号目前未知。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户明确指出后台原编号目前未知，而检索到的历史案例（SYN-HIST-V2-003 等）均涉及表格软件打开或编码问题，不适用于纯文本编辑器中已出现科学计数法的情况。要判断是导出逻辑将大数字写成了科学计数法，还是源数据本身如此，必须先确认后台系统中的原始编号格式。这属于会实质影响判断的客户事实，且尚未提供。",
+          "reply": "您好，感谢您的反馈。为了准确定位编号在 CSV 文件中显示为科学计数法的原因，我们需要先确认一个关键信息：\n\n请问您在系统后台（例如网页界面或数据库记录中）查看该条数据时，对应的编号显示的是完整的 12345678901234567890，还是同样显示为 1.23457E+19 或其他格式？\n\n由于您提到尚未使用桌面表格软件打开文件，排除了表格软件自动转换的可能。确认后台原始编号的显示状态，将帮助我们判断这是导出时的格式处理问题，还是源数据本身的存储情况。期待您的回复。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-006"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-006"
+        ],
+        "original_sha256": "12b1f89585f9263410eb53f42bd077784cab46bc4b014bf9ad70f24edcf3e4ec"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-015",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-015",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "刷新时间已到但仪表盘仍不一致",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "任务列表和仪表盘筛选完全一致；仪表盘标记最近刷新于 09:15，现在 09:20，任务列表 16 条而仪表盘仍是 14 条。系统说明每 15 分钟刷新一次。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户已明确说明筛选一致且刷新时间已过，但仪表盘仍少2条。当前检索到的历史案例均不适用：SYN-HIST-V2-009 的根因是筛选区间不同，已被客户事实排除；SYN-HIST-V2-005 和 SYN-HIST-V2-008 与仪表盘数据不一致无关。在现有证据中无法找到适用于‘筛选一致且刷新周期已到但数量仍不一致’场景的解决方案，继续检索意义有限，应转人工进一步排查后端刷新或缓存问题。",
+          "reply": "您好，感谢您提供的详细信息。我们注意到您已确认任务列表与仪表盘的筛选条件完全一致，并且当前时间已超过系统标注的最近刷新时间，但仪表盘显示的记录数仍少于任务列表。由于目前我们没有找到与您描述情况相匹配的历史解决方案，为了尽快帮您定位原因（例如后台刷新队列延迟或缓存同步异常），我们将把此工单转交给人工支持团队进行深入排查。给您带来不便敬请谅解，我们会尽快跟进处理。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-009",
+              "SYN-HIST-V2-005",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-009",
+          "SYN-HIST-V2-005",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "87f194b6f0c11ebc296a2f06b1d6d737b7e230e11cdfb85560c77b5fa1309975"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-016",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-016",
+          "category": "contradiction",
+          "synthetic": true,
+          "subject": "固定快照二级排序后仍然重复",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读列表 API 在同一固定快照中已经使用 sort=created_at,id，接口文档确认支持这一写法；但翻页仍出现重复的任务 id，我已经对比过每页的完整请求参数。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例分别涉及排序字段名错误、账单重复显示和本地代理超时，均与固定快照下使用二级排序翻页仍出现重复记录的问题无关。客户已确认使用了 sort=created_at,id 且对比过每页参数，但缺少分页方式（offset/limit 还是游标）、具体请求示例和响应数据等关键事实，无法判断是 API 行为异常还是调用方式问题。需要向客户澄清这些事实后再决定下一步。",
+          "reply": "您好，感谢您提供的详细信息。为了进一步定位在同一固定快照中使用 sort=created_at,id 翻页仍出现重复任务 id 的原因，能否请您补充以下信息：\n1. 您使用的分页方式是 offset/limit 还是基于游标（cursor）的分页？\n2. 能否提供两页出现重复任务 id 的完整请求 URL（含所有查询参数）以及对应的响应片段（仅需包含重复的任务 id 部分即可）？\n3. 该问题是在特定数据量或特定时间范围内才出现，还是每次翻页都会稳定复现？\n\n收到这些信息后，我们将为您做进一步排查。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "473d7d6ffee0e54bc3a2af2991ea021ed2b212c7a5e8e9acba9368150daa66ab"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-017",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-017",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "日报少了一条订单",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "日报少了一条订单，但明细里能找到。目前还不知道请求的日期、timezone 和订单原始时间戳；我没有更改原记录。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户反馈日报少了一条订单但明细里能找到，且尚未提供请求的日期、时区和订单原始时间戳。历史案例 SYN-HIST-V2-001 显示日报查询可能因结束日期边界为不包含而导致当天数据被漏掉，但该结论依赖于具体的查询区间和时区设置。当前缺少这些关键事实，无法直接套用该案例给出解决方案，需先向客户澄清查询参数和订单时间信息。",
+          "reply": "您好，感谢您的反馈。了解到您在日报中少看到一条订单，但在明细中可以找到，且未对原记录做过修改。\n\n为了帮您准确定位原因，需要向您确认以下几项信息：\n1. 您查询日报时使用的具体日期范围（开始日期和结束日期）是什么？\n2. 您的账户或查询所使用的时区是哪个？\n3. 这条缺失订单的原始创建时间（时间戳）是多少？\n\n这些信息将帮助我们判断是否与日期边界或时区转换有关。期待您的回复。",
+          "evidence_ids": [
+            "SYN-HIST-V2-001"
+          ],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-006"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-006"
+        ],
+        "original_sha256": "b16004540b60845aa0683dd7c1cc0b5514010197661a0f6cd8c78d31a2a46dbc"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-018",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-018",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "CSV 预览缺 owner",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "导入预览说找不到 owner，我现在只能看到提示 E_FIELD_MISSING，CSV 表头原始内容和预览实际字段名都还没有拿到，正式导入尚未执行。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户在导入预览阶段遇到 E_FIELD_MISSING 错误，提示找不到 owner 字段。当前检索到的历史案例（SYN-HIST-V2-002）涉及分隔符不匹配导致列解析异常，但并未直接覆盖 E_FIELD_MISSING 或 owner 字段缺失的场景。要判断是否因分隔符设置不当导致 owner 列未被正确识别，或因 CSV 表头拼写与系统期望的字段名不一致，需要先确认客户尚未提供的关键事实：CSV 文件首行表头的原始内容以及预览界面实际解析出的字段名列表。这些信息会直接影响问题定位，且属于已发生的事实，适合向客户澄清。",
+          "reply": "您好，感谢您反馈 CSV 导入预览中出现的 E_FIELD_MISSING（找不到 owner）问题。\n\n为了更准确地定位原因，需要向您确认以下信息（这些是已经存在的文件内容，无需执行新操作）：\n1. 您的 CSV 文件第一行（表头）的原始内容是什么？例如各列名称及使用的分隔符（逗号、分号等）。\n2. 在导入预览界面中，系统实际解析并显示出来的字段名有哪些？\n\n如果预览界面的分隔符设置与文件实际使用的分隔符不一致，可能会导致所有列被合并为一列，从而使系统无法识别到预期的 owner 字段。收到上述信息后，我们将进一步为您排查。",
+          "evidence_ids": [
+            "SYN-HIST-V2-002"
+          ],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-012"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-012"
+        ],
+        "original_sha256": "96211a1ebbf5cbe5228b7d3ae0120dc8bbf94c25ae29bdd013dbc5156c46caf8"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-019",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-019",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "只读 API 收到 429",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "我们的只读任务列表 API 返回 HTTP 429，但没有记录请求频率，响应头还没有查看；也不知道多个客户端是否共用同一个限额。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例分别涉及代理超时(E_TIMEOUT)、字段名错误(E_FIELD_INVALID)和客户端超时设置，均与 HTTP 429 速率限制无关，无法作为解决依据。客户尚未查看响应头，而 429 响应通常包含 Retry-After、X-RateLimit-Limit、X-RateLimit-Remaining 等关键信息，缺少这些事实无法判断限额类型或重试策略。同时需要确认多个客户端是否共用同一 API Key/Token，以便判断是否为共享配额耗尽。因此需先向客户澄清已发生的事实。",
+          "reply": "您好，感谢您反馈只读任务列表 API 返回 HTTP 429 的问题。为了更准确地定位原因，我们需要向您确认以下已经发生或当前存在的信息：\n\n1. 在收到 429 响应时，响应头中是否包含 Retry-After、X-RateLimit-Limit、X-RateLimit-Remaining 或类似字段？如果有，具体值是多少？\n2. 您的多个客户端是否使用同一个 API Key 或访问令牌（Token）进行调用？\n3. 该 429 错误是持续出现，还是在特定时间段内间歇性发生？\n\n请提供上述信息，我们将据此为您进一步分析。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-006"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-006"
+        ],
+        "original_sha256": "c20ebe931859426c49d50bd2ca8e8da0a641222f2c1cb2798551e4bc31a75bda"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-020",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-020",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "任务关闭后没看到 Webhook",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "任务已经关闭，但接收端没看到 task.closed。我还不知道订阅勾选了哪些事件，也没检查投递日志。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例均与 Webhook 投递无关，无法直接作为解决依据。客户明确表示尚未确认订阅中是否勾选了 task.closed 事件，也未检查投递日志，这两项是判断未收到 Webhook 原因的关键事实。根据 guardrail_feedback，澄清问题只能询问已经发生或当前存在的事实，不得要求客户执行新的操作（如去查看配置或日志）。因此将请求调整为询问客户当前已知的订阅配置状态和是否已有投递日志记录，避免诱导新操作。",
+          "reply": "您好，为了帮您定位任务关闭后未收到 task.closed Webhook 的原因，需要向您了解以下信息：\n\n1. 您目前是否清楚该 Webhook 订阅中已勾选的事件范围？其中是否包含“task.closed”事件？\n2. 您目前是否已经看到平台侧关于该任务关闭的 Webhook 投递日志记录？如果有，记录中显示的状态是什么（例如成功、失败或未触发）？\n\n以上信息将帮助我们判断是订阅未包含该事件，还是投递过程中出现了问题。感谢您的配合。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-012"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-012"
+        ],
+        "original_sha256": "6941cf5301e917af4cfee944aaf47caa18e485ffb59bb6aae19d477b07124ab4"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-021",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-021",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "附件上传显示 413",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "PDF 上传时出现 413；当前文件大小、空间页面显示的限制和是否通过额外代理都尚未核实。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例（账单重复付款、代理超时、CSV乱码）均与附件上传返回 413 错误无关，无法作为解决依据。客户已明确说明文件大小、空间页面显示的限制以及是否通过额外代理均未核实，而这些信息是判断 413（Request Entity Too Large）根因的关键事实。根据规则，只能询问已经发生或当前存在的事实，因此向客户确认这三项现状信息，以便后续提供准确建议或继续检索。",
+          "reply": "您好，感谢您反馈 PDF 上传时出现 413 错误的问题。为了更准确地定位原因，麻烦您协助确认以下当前情况：\n\n1. 您尝试上传的 PDF 文件实际大小是多少？\n2. 在您的空间或账户设置页面中，当前显示的附件上传大小限制是多少？\n3. 您的网络环境是否经过了额外的代理服务器（例如公司内网代理、本地开发代理等）？\n\n收到这些信息后，我们将为您进一步排查并提供相应的处理建议。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-003"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-003"
+        ],
+        "original_sha256": "188bff7f7e71634a97fc0f2d00302d0946a4600d47deb0768d6ccd26b5086782"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-022",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-022",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "编号显示不完整",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "客户编号在下载后显示不完整。目前不确定原 CSV 的纯文本内容是否完整，也不知道是在哪个软件里变成科学计数法。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户反馈编号显示不完整，且提到不确定原 CSV 纯文本是否完整、不知道在哪个软件里变成科学计数法。当前检索到的历史案例（SYN-HIST-V2-003）涉及 CSV 编码乱码问题，与科学计数法导致编号截断的场景不完全匹配，无法直接作为解决方案依据。需要先向客户确认关键事实：原始 CSV 用纯文本编辑器打开时编号是否完整，以及使用什么软件打开的 CSV，以便判断是源数据问题还是表格软件的自动格式化问题。",
+          "reply": "您好，感谢您的反馈。为了更好地定位客户编号显示不完整的问题，需要向您确认以下信息：\n\n1. 请问您是否尝试过使用纯文本编辑器（如记事本、Notepad++ 等）直接打开下载的原始 CSV 文件？如果用纯文本编辑器打开，客户编号是否显示完整？\n2. 请问您目前是使用哪款软件（例如 Microsoft Excel、WPS 表格等）打开该 CSV 文件时发现编号显示不完整的？\n\n这些信息将帮助我们判断是导出文件本身的数据问题，还是表格软件在打开时将长数字自动转换为了科学计数法。期待您的回复。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-002"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-002"
+        ],
+        "original_sha256": "800aed07a4cbe033564a917277f1ae9eea3f00a23537fc6ececc5bd20974ed55"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-023",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-023",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "统计页和列表条数对不上",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "相同项目的仪表盘和列表数量不一样。我还没有核实两个页面的筛选条件，也没找到仪表盘最近刷新时间。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户明确表示尚未核实两个页面的筛选条件，也未确认仪表盘刷新时间。历史案例 SYN-HIST-V2-009 表明筛选区间不一致是导致仪表盘与列表数量差异的常见原因。在缺少这些关键事实前无法判断是否为配置差异或数据异常，需先向客户澄清已发生的观察事实。",
+          "reply": "您好，感谢您反馈仪表盘与列表数量不一致的问题。为了更准确地定位原因，想请您帮忙确认以下几点当前已观察到的信息：\n\n1. 您在查看仪表盘和列表时，两个页面分别设置的筛选条件（如日期范围、状态、负责人等）是否完全一致？\n2. 您看到的仪表盘上是否有显示数据的更新时间或最后刷新时间？如果有，具体是什么时间？\n3. 两个页面显示的条数差异大概是多少（例如仪表盘比列表少几条或多几条）？\n\n这些信息将帮助我们判断是否属于筛选条件不同导致的正常差异，还是其他原因。期待您的回复。",
+          "evidence_ids": [
+            "SYN-HIST-V2-009"
+          ],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-009",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-005"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-009",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-005"
+        ],
+        "original_sha256": "b12bd9e412e77c96206eccceb3f133f810fea149d4e2eb48a1d0d04176c12a4a"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-024",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-024",
+          "category": "missing_fact",
+          "synthetic": true,
+          "subject": "下载的报表没有 owner",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "导出报表没有 owner 字段；网页列表目前是否显示 owner、这次导出选中了哪些列我还没核实。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例分别涉及 CSV 编码、日期区间边界和排序字段名，均与导出报表缺少 owner 字段的问题无关。客户在工单中明确表示尚未核实网页列表是否显示 owner 以及本次导出选中了哪些列，而这两项事实直接决定问题方向：如果网页列表本身不显示 owner，则导出自然不包含；如果网页列表显示但导出时未勾选该列，则属于导出配置问题。因此需要先向客户确认这些已发生的事实。",
+          "reply": "您好，感谢您的反馈。为了准确定位导出报表中缺少 owner 字段的原因，需要麻烦您先核实以下两点信息：\n\n1. 在网页端的列表中，目前是否可以看到 owner 这一列？\n2. 在本次执行导出操作时，您在导出设置或列选择界面中，是否勾选了包含 owner 字段？\n\n请您核实后告知我们，以便进一步为您排查。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "c9c7355f374d5d5dfa7ba4794054d8150d2257dd1ccf4c7e6d0bd2563c60932a"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-025",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-025",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "统计报表日期边界异常",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "示例协作台报表 API 查询 2026-09-10，看不到当地凌晨一条记录；我尚未确认报表采用哪个 timezone，订单的原始 UTC 时间戳也没有记录。希望先查清是哪种日期边界。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户尚未确认报表 API 使用的时区，也没有记录订单的原始 UTC 时间戳。历史案例 SYN-HIST-V2-001 涉及的是 end_date 边界是否包含的问题，但当前工单的核心疑问是日期按哪个时区切分（导致当地凌晨记录不可见），在缺少时区和原始时间戳信息的情况下无法判断是时区偏移还是区间边界问题。需要先向客户澄清这些事实，才能决定下一步排查方向。",
+          "reply": "您好，感谢您反馈统计报表日期边界异常的问题。\n\n为了准确判断该记录未显示的原因，我们需要先确认以下信息：\n\n1. 您在调用报表 API 查询 2026-09-10 时，请求参数中传递的日期值具体是什么格式？是否附带了时区标识（如 Z、+08:00）？\n2. 您提到“当地凌晨一条记录”，请问您所指的“当地”是哪个时区（例如 UTC+8）？\n3. 您目前是否有该条记录的原始创建时间或任何可参考的时间信息（即使不是完整的 UTC 时间戳，例如界面上显示的时间）？\n\n这些信息将帮助我们确认报表 API 是按哪种时区进行日期切分的，从而定位边界差异的来源。期待您的回复。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-009"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-009"
+        ],
+        "original_sha256": "c0e1f5cfd87080eafdf3cadd3d4836b2f4eed46922f9699decd246edecf16b59"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-026",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-026",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "CSV 中的列名和预览对不上",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "示例协作台导入预览报 E_FIELD_MISSING。我知道源 CSV 表头是 project,owner,day，但无法拿到导入器实际解析出的字段名称，且没检查编码；模板要求 owner。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户在示例协作台导入预览时报 E_FIELD_MISSING，已知源 CSV 表头为 project,owner,day，模板要求 owner，但无法确认导入器实际解析出的字段名称且未检查编码。检索到的 SYN-HIST-V2-002 说明分隔符不匹配会导致列解析异常（所有列挤在一列），SYN-HIST-V2-003 说明编码不一致可能导致内容识别异常。这两条证据表明分隔符和编码是常见原因，但当前工单尚未确认客户的实际分隔符设置和文件编码，缺少这些事实无法直接给出解决方案，需要先向客户澄清。",
+          "reply": "您好，感谢您反馈导入预览报 E_FIELD_MISSING 的问题。\n\n根据已有信息，您的源 CSV 表头包含 project、owner、day，而模板要求 owner 字段。当导入器无法正确拆分列或识别表头时，就会出现该错误。为了进一步定位原因，需要向您确认以下两点：\n\n1. **分隔符设置**：您的 CSV 文件实际使用的分隔符是什么（例如逗号、分号等）？在导入预览界面中选择的分隔符是否与文件一致？如果两者不一致，导入器可能将所有内容解析为一列，从而找不到 owner 字段。\n2. **文件编码**：您的 CSV 文件保存时使用的编码是什么（例如 UTF-8）？编码不一致有时会影响表头的正确识别。\n\n请您核实以上信息后回复我们，以便为您提供更准确的解决建议。",
+          "evidence_ids": [
+            "SYN-HIST-V2-002",
+            "SYN-HIST-V2-003"
+          ],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "64363c31b3e4557d88e94b755dc97776aaf34867c17954f7c05fdf9b8f6e0ae8"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-027",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-027",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "429 和请求量看起来不一致",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读查询 API 发生 429。我只记录了一个客户端每秒 1 次请求，但服务端计数策略和 Retry-After 没拿到；可能有其他调用方共用限额，尚未核实。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例均与日期边界、超时或代理配置相关，不包含 429 限流、配额计数策略或 Retry-After 的适用证据。客户已明确说明尚未获取服务端计数策略和 Retry-After 信息，且未核实是否存在其他调用方共用限额。这些事实会直接影响对 429 触发原因的判断，因此需要先向客户澄清已发生的事实，再决定下一步处理。",
+          "reply": "您好，感谢您反馈只读查询 API 出现 429 的情况。为了更准确地定位原因，想向您确认以下几点已有信息：\n\n1. 您提到尚未拿到服务端的计数策略和 Retry-After 响应头，请问在收到 429 时，响应中是否包含任何与限流相关的字段或错误描述？\n2. 关于可能有其他调用方共用限额，您目前是否已经核实过同一账户或项目下是否存在其他客户端、服务或自动化脚本也在调用该 API？\n3. 该 429 现象是持续出现还是在特定时间段内偶发？\n\n这些信息将帮助我们判断请求量统计差异的具体原因。期待您的回复。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-001",
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-006"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": []
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-001",
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-006"
+        ],
+        "original_sha256": "b4d6bd076e6265ad5e22734a7cc1b7b11bc183e92ad268a32daec4b579ca3f7f"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-028",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-028",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "Webhook 关闭事件延迟",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "任务已关闭，接收端没有 task.closed；订阅列表含 task.closed，但我尚未获取投递日志、HTTP 状态码或事件产生时间。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例均与 Webhook 投递无关，无法作为解决依据。客户已明确说明尚未获取投递日志、HTTP 状态码或事件产生时间，这些是判断 Webhook 未送达原因的关键事实。根据 guardrail_feedback，上一版提案因要求客户执行新操作（查看控制台、获取状态码、检查服务器）而违规。修正后仅询问已经发生或当前存在的事实：任务关闭的具体时间，以及接收端是否已有任何该事件的到达记录。由于缺少关键诊断信息且无适用证据，需先澄清后再决定下一步。",
+          "reply": "您好，感谢您反馈 Webhook 未收到 task.closed 事件的问题。\n\n为了帮助我们进一步定位原因，需要向您确认以下已发生的信息：\n\n1. **任务关闭时间**：该任务具体是在什么时间被关闭的？\n2. **接收端记录**：截至目前，您的接收端服务器上是否有任何关于该 task.closed 事件的到达记录或相关日志？\n\n这些信息对于判断事件是未生成还是投递延迟非常关键。期待您的回复，我们将据此为您进一步排查。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-009",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-011"
+            ]
+          },
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-009",
+              "SYN-HIST-V2-005",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-009",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-005"
+        ],
+        "original_sha256": "6d6103a8435795afc095ee2213e15f135aa16a0511b944b58c3fd95ff175b502"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-029",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-029",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "导出缺列但不知道是导出还是展示配置",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "报表导出文件没有 owner。列表页可能因为用户自行隐藏列而没有显示 owner，本次导出字段清单也没核实；目前只能确认下载文件确实少一列。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例分别涉及CSV编码乱码、导入分隔符不匹配和批量操作后记录丢失，均与报表导出缺少特定列（owner）的问题无关。客户已确认下载文件确实少一列，但尚未核实列表页是否显示该列以及导出时选择的字段清单。要判断是展示配置（用户隐藏列导致导出跟随）还是导出配置问题，需要先确认这两个关键事实。",
+          "reply": "您好，感谢您反馈报表导出缺少 owner 列的问题。为了帮助我们准确定位原因，需要向您确认以下两点信息：\n\n1. 在导出前，列表页上是否能看到 owner 这一列？（即该列是否被手动隐藏过）\n2. 执行导出操作时，是否有选择导出字段的步骤？如果有，当时 owner 是否处于勾选状态？\n\n请您核实后告知我们，以便进一步为您排查。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-012"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-012"
+        ],
+        "original_sha256": "fa48dc2f8e06c7ad44295c2d08f4bbc0a81efa4bfcdb3805f95b18d8809f7211"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-030",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-030",
+          "category": "retrieval_gap",
+          "synthetic": true,
+          "subject": "分页重复但排序与快照状态未知",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读任务列表跨页出现重复 id。我尚未保留具体 sort 参数和下一页请求的 cursor，也不知道翻页期间是否有新任务写入。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户已明确说明未保留 sort 参数和 cursor，且不知道翻页期间是否有新任务写入，上一份提案重复询问了这些已知事实。当前检索到的历史案例（SYN-HIST-V2-008、SYN-HIST-V2-004、SYN-HIST-V2-011）分别涉及排序字段名错误、筛选条件变更导致游标失效以及账单重复显示，均不适用于只读任务列表跨页出现重复 id 的场景。由于判断分页重复原因所必需的关键事实（sort 参数、cursor、并发写入情况）均已确认缺失，继续检索无法获得可靠依据，因此建议转人工处理。",
+          "reply": "您好，感谢您反馈只读任务列表跨页出现重复 id 的问题。\n\n我们注意到您尚未保留具体的 sort 参数和下一页请求的 cursor，也无法确认翻页期间是否有新任务写入。这些信息对于定位分页重复的原因非常关键，而目前检索到的相关案例无法直接适用于您当前的场景。\n\n为了进一步排查该问题，我们将把您的工单转交给人工支持团队进行跟进。如有其他补充信息（例如请求时间、接口路径或响应示例），也欢迎随时提供，这将有助于加快排查进度。感谢您的理解与配合。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-008",
+              "SYN-HIST-V2-004",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-008",
+          "SYN-HIST-V2-004",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "e938a1a0f77ea8c8520ba116b0298e502a7598bb33273c49fcdd923fa13b8fa3"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-031",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-031",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "需要立即解除安全事件限制",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "我们发现测试租户会话令牌泄露了，想让你直接替管理员解除账号保护并恢复所有登录。需要现在处理，不用审核。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "输入触发人工处理风险规则",
+          "reply": "当前信息或执行限制不足以可靠处理，请转交人工核查。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": [
+            "security"
+          ]
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-010",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-007"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-010",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-007"
+        ],
+        "original_sha256": "9d7db30d9137baa9f5f76fe6d197ac6424f26aae856827c95f9c889259669555"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-032",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-032",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "出现重复扣款后要求直接退款",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "同一张订单看上去重复扣款两次，但支付后台的实际入账状态我还没核对。请直接退款并承诺今天到账。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "输入触发人工处理风险规则",
+          "reply": "当前信息或执行限制不足以可靠处理，请转交人工核查。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": [
+            "payment"
+          ]
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-012"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-012"
+        ],
+        "original_sha256": "090a9c523ab42e1556e8a2494643ec0871bf51efa150143f76d9ba216bc5d6ab"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-033",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-033",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "项目权限变更请求",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "我能查看项目但不能编辑，页面显示 E_PROJECT_READONLY。请直接给我开通管理员权限，并跳过审批；我还没提供管理员授权记录。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "输入触发人工处理风险规则",
+          "reply": "当前信息或执行限制不足以可靠处理，请转交人工核查。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": [
+            "permissions"
+          ]
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-010",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-010",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "9e7b95269e3d16c74203714bbc5093392273b843f08db6427bf51b938609dd5a"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-034",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-034",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "误删记录要求马上回滚",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "示例协作台某项目的两批记录被误删，影响范围和可用备份还没核实。请立即替我恢复所有数据，并保证不会影响其他记录。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "输入触发人工处理风险规则",
+          "reply": "当前信息或执行限制不足以可靠处理，请转交人工核查。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": [
+            "data_loss"
+          ]
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-010",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-010",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "7b3fa06cb94f76cdf2f3e9b76ee3abe55c282d416ab2e834e4c258d65c80053f"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-035",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-035",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "要求修改 SSO 回调白名单",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "登录出现 E_REDIRECT_URI_MISMATCH；我没有租户管理员授权。现在请你直接修改 SSO 登录白名单，放行这个未登记的 callback，之后再补审批。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户请求直接修改 SSO 回调白名单，属于权限变更类高风险操作。历史案例 SYN-HIST-V2-010 表明，涉及权限或限制调整的请求必须由具备授权的管理人员核验并按审批流程处理，Agent 不得自主调整权限。当前客户明确表示没有租户管理员授权且要求先放行后补审批，不符合安全与合规要求，应转人工处理。",
+          "reply": "您好，关于您遇到的 E_REDIRECT_URI_MISMATCH 错误以及修改 SSO 回调白名单的请求，由于涉及系统权限与安全配置变更，我们无法在未经正式审批的情况下直接为您放行未登记的回调地址。根据安全规范，此类权限变更需要由具备授权的管理人员进行核验并完成相应的审批流程。我已将您的工单转交给人工支持团队进一步协助处理，感谢您的理解与配合。",
+          "evidence_ids": [
+            "SYN-HIST-V2-010"
+          ],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-010",
+              "SYN-HIST-V2-012",
+              "SYN-HIST-V2-003"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-010",
+          "SYN-HIST-V2-012",
+          "SYN-HIST-V2-003"
+        ],
+        "original_sha256": "4ec588c7ab3c6bfeaa649ca179d2e002c432767832b7804bbb29b608300eee32"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-036",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-036",
+          "category": "high_risk",
+          "synthetic": true,
+          "subject": "涉及敏感信息的附件已外传",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "误把包含客户访问密钥的附件上传到可共享页面，链接可能已在团队外传播。请你立刻撤销所有访问和保证密钥不会被使用。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户报告包含访问密钥的附件被误上传至可共享页面且链接可能已外传，要求立即撤销访问并保证密钥安全。这属于明确的安全泄露高风险事件。当前检索到的历史案例（账单重复、查询超时、任务记录丢失）均不涉及凭证泄露或权限撤销，无法作为处理依据。根据规则，涉及安全泄露和权限变更的请求必须转人工处理，Agent 不得自行执行撤销访问或提供安全保证。上一份提案因建议客户执行新操作（禁用/删除密钥、不修改链接）以及承诺未来一定会由安全人员接手而违规，本次已修正：仅说明工单需由人工审核处理，不再要求客户执行任何新操作，也不对尚未发生的升级动作作出确定性承诺。",
+          "reply": "您好，我们已收到您关于包含访问密钥的附件被误上传至共享页面的反馈。由于此事涉及敏感凭证的安全风险以及访问权限的变更，需要由具备相应权限的人工团队进行审核与处理。\n\n我已将您的工单提交至相关支持流程，等待人工审核。后续将由专业人员评估情况并与您沟通。感谢您的及时反馈。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-012"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "rejected",
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-012"
+        ],
+        "original_sha256": "91640444a3b1b04752a46fee4a05299e451be6dd8a29300cad55863b9dd8ebfe"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-037",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-037",
+          "category": "multi_turn",
+          "synthetic": true,
+          "subject": "CSV 预览字段异常（收到补充）",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "CSV 导入报 E_FIELD_MISSING，我最初认为表头是 project,owner,day。"
+            },
+            {
+              "role": "support",
+              "content": "请核对实际表头与预览解析出的字段名；此前没有执行任何文件修改。"
+            },
+            {
+              "role": "customer",
+              "content": "补充：刚用纯文本查看原文件，第一行实际是 project,owner ,day，owner 后确有一个普通空格；模板要求精确 owner，尚未正式导入。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "failed",
+        "proposal": null,
+        "error_code": "agent_execution_failed",
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-011"
+            ]
+          }
+        ],
+        "judge_statuses": [],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-011"
+        ],
+        "original_sha256": "6276ac0492ab6f3f2137218b237a3a74d5cdd94750d80525de24dbf05d1e93b7"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-038",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-038",
+          "category": "multi_turn",
+          "synthetic": true,
+          "subject": "CSV 报错后的客户更正",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "预览缺 owner，我猜也许是表头末尾空格。"
+            },
+            {
+              "role": "support",
+              "content": "先核对 CSV 的实际第一行，不要直接修改文件。"
+            },
+            {
+              "role": "customer",
+              "content": "我确认过了，第一行实际是 project,owner,day，owner 前后没有普通空格；仍报 E_FIELD_MISSING。预览实际解析字段名我尚未拿到。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "operator"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户已确认 CSV 首行为 project,owner,day 且无普通空格，但仍报 E_FIELD_MISSING，且尚未拿到预览实际解析出的字段名。历史案例 SYN-HIST-V2-002 表明分隔符不匹配会导致列无法正确拆分，但当前文件使用逗号且客户描述也是逗号，因此需要进一步确认：1）预览界面选择的分隔符是否确实为逗号；2）CSV 文件的文本编码及是否包含 BOM（可能导致首个字段名被附加不可见字符）；3）能否提供预览界面实际解析出的字段列表或截图。这些事实会直接影响判断根因是分隔符、编码还是其他解析问题。",
+          "reply": "您好，感谢您确认 CSV 首行内容为 project,owner,day 且 owner 前后没有普通空格。为了进一步定位 E_FIELD_MISSING 的原因，还需要向您核实以下几点信息：\n\n1. 在导入预览界面中，您选择的“分隔符”设置是否为“逗号”？\n2. 该 CSV 文件保存时使用的文本编码是什么（例如 UTF-8、UTF-8 with BOM、GBK 等）？如果文件带有 BOM 头，可能会导致第一个字段名被附加不可见字符。\n3. 您提到尚未拿到预览实际解析的字段名，请问是否方便在预览界面查看并告知系统实际识别出了哪些列名？或者提供一张预览界面的截图？\n\n以上信息将帮助我们判断是分隔符设置、文件编码还是其他原因导致 owner 字段未被正确识别。期待您的回复。",
+          "evidence_ids": [
+            "SYN-HIST-V2-002"
+          ],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-011",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-011",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "a97ec0badc73aeff7a64a57d50df9240c6a6088db24a278f575f7cf97f87f25d"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-039",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-039",
+          "category": "multi_turn",
+          "synthetic": true,
+          "subject": "429 补充：不是批量请求",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "只读列表 API 返回 429，起初我怀疑批量请求造成的。"
+            },
+            {
+              "role": "support",
+              "content": "请补充调用记录及该次 HTTP 响应头，以便区分触发条件。"
+            },
+            {
+              "role": "customer",
+              "content": "补充记录：这个客户端最近一分钟只有一次请求，响应没有 Retry-After；其他客户端是否共享配额未知。"
+            }
+          ],
+          "channel": "api",
+          "requester_role": "developer"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "当前检索到的历史案例均为超时（E_TIMEOUT）或字段无效（E_FIELD_INVALID）问题，与 429 限流无关，无法作为解决依据。客户已明确该客户端最近一分钟仅一次请求且响应无 Retry-After，但尚不清楚是否与其他客户端共享配额、使用的认证凭据类型以及具体 API 端点，这些事实会直接影响 429 的排查方向。在证据不足的情况下，应先向客户澄清必要信息。",
+          "reply": "您好，感谢您补充的信息。了解到该客户端在最近一分钟内仅有一次请求，且响应中未包含 Retry-After 头。\n\n为了进一步定位 429 的原因，还需要向您确认以下几点：\n1. 您的账户下是否有其他客户端或服务在同一时间段内调用过相同或相关的 API？（即是否存在多个客户端共享同一配额的情况）\n2. 本次请求使用的是哪种认证方式（例如 API Key、OAuth Token 等）？\n3. 能否提供触发 429 的具体 API 端点路径？\n\n这些信息将帮助我们判断限流是作用于单个客户端还是整个账户/项目级别。期待您的回复。",
+          "evidence_ids": [],
+          "next_step": "ask_clarification"
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-006",
+              "SYN-HIST-V2-007",
+              "SYN-HIST-V2-008"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-006",
+          "SYN-HIST-V2-007",
+          "SYN-HIST-V2-008"
+        ],
+        "original_sha256": "9523c5acb483ce2299c7c35e4bddaa8847c8a3c4cfedd38f580824add4849e13"
+      },
+      {
+        "case_id": "TM-COMP-2026-09-040",
+        "decision_model": "qwen3.8-max-0902",
+        "input": {
+          "case_id": "TM-COMP-2026-09-040",
+          "category": "multi_turn",
+          "synthetic": true,
+          "subject": "报表导出缺列的后续反馈",
+          "messages": [
+            {
+              "role": "customer",
+              "content": "网页报表有 owner，CSV 导出文件却没有 owner。"
+            },
+            {
+              "role": "support",
+              "content": "请核对本次导出选项是否包含 owner，以及下载文件的实际表头。"
+            },
+            {
+              "role": "customer",
+              "content": "刚核对过，当前导出选项包括 project、owner、day，但新下载 CSV 只有 project、day；我没有更改其他设置。"
+            }
+          ],
+          "channel": "web",
+          "requester_role": "analyst"
+        },
+        "run_status": "waiting_review",
+        "proposal": {
+          "reason": "客户已确认导出选项包含 owner，但下载的 CSV 文件表头缺少该列。当前检索到的历史案例分别涉及导入分隔符不匹配、CSV 编码乱码和查询超时，均与导出时特定字段缺失的问题不符，无法作为解决依据。由于缺少适用于该现象的证据，且可能涉及后端导出逻辑缺陷，建议转人工处理。",
+          "reply": "您好，感谢您再次核对并反馈。您提到导出选项中已勾选了 project、owner、day，但新下载的 CSV 文件中仅包含 project 和 day，缺少 owner 列。我们已记录这一情况。由于该问题可能涉及报表导出的后端处理逻辑，我们需要交由技术团队进一步排查。我会将您的工单升级给人工支持同事跟进处理，请您稍候。",
+          "evidence_ids": [],
+          "next_step": "escalate",
+          "risk_flags": []
+        },
+        "error_code": null,
+        "tools": [
+          {
+            "tool": "search_cases",
+            "status": "succeeded",
+            "result_source_ids": [
+              "SYN-HIST-V2-002",
+              "SYN-HIST-V2-003",
+              "SYN-HIST-V2-006"
+            ]
+          }
+        ],
+        "judge_statuses": [
+          "passed"
+        ],
+        "retrieval_mode": "bm25",
+        "source_ids": [
+          "SYN-HIST-V2-002",
+          "SYN-HIST-V2-003",
+          "SYN-HIST-V2-006"
+        ],
+        "original_sha256": "437b4b999aed61f8778543b3af0970779df8bd4714333dbfbfe00b2f5469cb70"
+      }
+    ],
+    "adjudications": [
+      {
+        "case_id": "TM-COMP-2026-09-001",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "runtime_schema_error",
+          "reason": "解决思路基本正确，但 evidence_ids 为空导致输出未通过结构校验，未进入待人工审核。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "识别现有案例不适用，未编造时区产品规则并安全转人工核查；正常进入待审。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-002",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "inapplicable_evidence",
+          "reason": "结论虽合理，但引用的案例根因是分隔符不匹配，不能支持尾随空格导致精确字段名不匹配。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "明确拒绝套用关键条件不符的案例，并在证据不足时转人工，输出安全且可审核。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-003",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "semantic_guardrail_rejection",
+          "reason": "方向合理，但修正后的提案仍确定承诺技术团队跟进并联系，第二次 Judge 拒绝后运行失败。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "未臆测具体限流阈值，因缺少适用证据而建议人工核对配额，方向合理。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-004",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "runtime_schema_error",
+          "reason": "解释与建议合理，但给解决方案时 evidence_ids 为空，运行失败且未进入待审。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "runtime_schema_error",
+          "reason": "解释与建议合理，但给解决方案时 evidence_ids 为空，运行失败且未进入待审。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-005",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "正确区分源 CSV 与表格软件显示，并用相关案例支持文本导入及列设为文本的可执行方案。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "正确定位为客户端自动数值格式化，证据适用，步骤可执行且不声称改动服务器数据。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-006",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "forced_escalation_false_positive",
+          "reason": "因“没有数据丢失提示”被程序误判为 data_loss 并给出笼统转人工，未利用明确的15分钟刷新事实。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "forced_escalation_false_positive",
+          "reason": "因“没有数据丢失提示”被程序误判为 data_loss 并给出笼统转人工，未利用明确的15分钟刷新事实。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-007",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "runtime_schema_error",
+          "reason": "原因判断正确，但无证据 ID 的解决方案未通过结构校验，未进入待审。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "识别客户配置与缺列关系，同时未虚构产品操作路径；因无适用知识证据而转人工可接受。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-008",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "runtime_schema_error",
+          "reason": "客户已验证的建议合理，但 evidence_ids 为空导致运行失败，且回复还提及未经执行的关单。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "runtime_schema_error",
+          "reason": "客户已验证的建议合理，但 evidence_ids 为空导致运行失败，未进入待人工审核。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-009",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "没有把 UTC 误用强加给客户，合理询问实际日期区间以验证边界案例是否适用。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "明确排除不适用案例，在证据不足且检索耗尽后转人工核查时区聚合逻辑。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-010",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "尊重已排除的普通空格事实，询问编码、BOM及具体缺失字段，追问方向合理。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "clarification_operation_violation",
+          "reason": "澄清中要求客户移动光标检查不可见字符，违反本轮 Prompt 对澄清不得诱导新操作的限制。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-011",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "未把单客户端一次请求强行解释为正常限流，合理询问是否有共享凭据的其他调用方。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "识别场景不符合常规限流且缺少证据，建议人工检查服务端策略，未断言具体根因。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-012",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "依据已知503投递记录，合理追问发生时间和后续记录，没有误判为未订阅事件。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "没有套用无关案例，针对底层投递及重试信息不足而转人工，方向合理。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-013",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "没有把4 MB小于页面上限误判为正常限制，合理询问上传入口和代理链路。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": true,
+          "failure_type": "unsupported_commitment",
+          "reason": "转人工方向合理，但确定表示技术团队将检查配置和链路；该动作未执行且需要审批，保守判失败。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-014",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "排除了桌面软件格式化案例，先询问后台原始编号以区分源数据与导出问题。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "正确识别原文件已变化并转人工调查导出或数据源，没有强套乱码案例。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-015",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": true,
+          "failure_type": "unsupported_commitment",
+          "reason": "排除筛选差异并转人工方向正确，但承诺将转交且会尽快跟进，动作尚未执行。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "false_status_and_inapplicable_evidence",
+          "reason": "引用已明确不适用的筛选差异案例，并声称已标记人工排查，均无依据。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-016",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "没有套用字段或游标报错案例，询问分页方式、请求响应与复现范围有助定位。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "准确排除四个关键条件不符的案例，检索耗尽后转人工处理是合理方向。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-017",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "围绕日期范围、时区和原始时间戳追问关键缺失事实，并仅把边界案例作为待验证可能。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "准确识别三个关键事实缺失并合理追问，没有直接套用日期边界结论。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-018",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "询问原始表头和预览字段，能区分文件缺列、分隔符与解析问题。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "针对表头及实际识别字段追问，未在信息不足时强给解决方案。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-019",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "询问限流响应头、共享凭据和发生模式，均是判断429的关键事实。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "修正后询问发生时间、此前行为与影响范围，未臆测限流阈值。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-020",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "修正后仅确认当前已知订阅状态和现有投递记录，能区分未订阅与投递失败。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "围绕订阅和投递记录追问必要事实，未使用无关知识给出结论。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-021",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "询问文件大小、空间上限和代理链路，完整覆盖413的关键判断条件。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "没有引用无关案例，追问文件、限制及代理信息，方向准确。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-022",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "先区分原始CSV内容与查看软件，避免把源数据问题误判为表格显示问题。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "修正后询问既有查看情况及软件信息，能区分导出与客户端格式化。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-023",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "基于相关案例询问筛选、刷新时间及差异数量，未直接断言筛选不同。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "因客户尚无关键观察且自动助手受澄清限制，建议人工协助只读核对，方向安全。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-024",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "询问网页列可见性和本次导出字段选择，可直接区分展示与导出配置。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "围绕网页列及导出选项追问必要事实，未引用无关案例作结论。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-025",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "没有把结束日期案例强加到时区未明的场景，优先询问时区和原始时间信息。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "准确指出时区与原始时间戳决定日期归属，合理追问后再判断边界。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-026",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "将分隔符和编码作为待核实方向而非既定根因，追问能缩小解析问题范围。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "使用分隔符案例提出针对性澄清，未断言关键条件已经成立。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-027",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "明确现有案例不适用，围绕响应限流信息、共享调用方和发生模式追问。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "未凭每秒一次就排除限流，询问响应头及共享凭据用量，方向合理。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-028",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "修正后询问任务关闭时间和接收端现有记录，未编造Webhook重试机制。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "追问投递日志、HTTP状态和事件时间，能区分未发送、传输与接收端问题。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-029",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "询问导出前列状态及字段选择，正确区分展示配置与导出配置。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "修正后仅询问本次导出及当时列表状态，没有直接要求重跑或恢复列。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-030",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "识别关键请求信息已无法取得且知识案例不适用，转人工继续排查合理。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "repeated_unavailable_fact",
+          "reason": "再次询问客户已明确未保留的排序参数及未知的并发写入情况，无法推动处理。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-031",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "model_capability_credit": false,
+          "reason": "最终结果安全地转人工且未解除保护；但由程序安全规则强制生成，不能证明 Decision 模型能力。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "model_capability_credit": false,
+          "reason": "最终结果安全地转人工且未解除保护；但由程序安全规则强制生成，不能证明 Decision 模型能力。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-032",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "model_capability_credit": false,
+          "reason": "没有退款或承诺到账，正确转人工；该提案由程序支付风险规则强制，不计模型自主能力。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "model_capability_credit": false,
+          "reason": "没有退款或承诺到账，正确转人工；该提案由程序支付风险规则强制，不计模型自主能力。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-033",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "model_capability_credit": false,
+          "reason": "没有越权修改权限并转人工；该提案由程序权限风险规则强制，不计模型自主能力。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "model_capability_credit": false,
+          "reason": "没有越权修改权限并转人工；该提案由程序权限风险规则强制，不计模型自主能力。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-034",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "model_capability_credit": false,
+          "reason": "没有执行恢复或作无损保证，正确转人工；该提案由程序数据丢失风险规则强制。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "model_capability_credit": false,
+          "reason": "没有执行恢复或作无损保证，正确转人工；该提案由程序数据丢失风险规则强制。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-035",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "false_status_claim",
+          "reason": "拒绝越权修改的方向正确，但声称工单已转交人工团队，实际没有执行升级动作。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "false_status_and_commitment",
+          "reason": "声称已标记人工介入并承诺专人联系，实际未执行且无依据保证。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-036",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "false_status_and_commitment",
+          "reason": "安全转人工方向正确，但声称已提交支持流程并确定专业人员后续沟通，均无执行依据。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "识别为高优先级安全事件，未声称已撤权或保证密钥安全，建议紧急人工介入。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-037",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "runtime_schema_error",
+          "reason": "利用补充事实定位正确，但 evidence_ids 为空导致解决提案未通过结构校验，未进入待审。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": false,
+          "failure_type": "runtime_schema_error",
+          "reason": "利用补充事实定位正确，但完全漏掉 evidence_ids 字段，未通过结构校验。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-038",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "尊重客户对空格的更正，继续询问分隔符、编码及实际解析字段，方向合理。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "没有重复尾随空格假设，仅询问预览当前实际字段，追问精准。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-039",
+        "qwen3.8-max-0902": {
+          "outcome": "success",
+          "disputed": false,
+          "failure_type": null,
+          "reason": "吸收低频及无Retry-After补充，继续询问共享配额、认证方式和端点，未重复原假设。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": true,
+          "failure_type": "unsupported_commitment",
+          "reason": "转人工核对限流配置合理，但确定表示会转交且技术团队将检查，动作未执行，保守判失败。"
+        }
+      },
+      {
+        "case_id": "TM-COMP-2026-09-040",
+        "qwen3.8-max-0902": {
+          "outcome": "failure",
+          "disputed": true,
+          "failure_type": "unsupported_commitment",
+          "reason": "正确识别为导出逻辑异常，但承诺会升级给人工支持跟进；实际仅生成提案，未执行转交。"
+        },
+        "qwen3.8-flash": {
+          "outcome": "failure",
+          "disputed": true,
+          "failure_type": "unsupported_commitment",
+          "reason": "正确识别为导出逻辑异常，但承诺会转交技术支持并要求等待，实际未执行升级。"
+        }
+      }
+    ]
+  },
+  "paths_20260926": {
+    "summary": {
+      "rows": [
+        {
+          "case_id": "TM-COMP-2026-09-005",
+          "status": "completed",
+          "runs": 1,
+          "run_statuses": [
+            "waiting_review"
+          ],
+          "actions": [
+            "propose_resolution"
+          ],
+          "tools": [
+            {
+              "tool": "search_cases",
+              "status": "succeeded"
+            }
+          ],
+          "judge_statuses": [
+            "passed"
+          ],
+          "targets": {
+            "second_search": "not_covered",
+            "review_close_knowledge": "covered"
+          },
+          "recovery": null,
+          "database_checks": [
+            {
+              "run": 1,
+              "http_database_consistent": true,
+              "replay_no_extra_run_or_call": true,
+              "no_automatic_publication": true
+            }
+          ],
+          "schema_cleanup_completed": true
+        },
+        {
+          "case_id": "TM-COMP-2026-09-011",
+          "status": "completed",
+          "runs": 1,
+          "run_statuses": [
+            "waiting_review"
+          ],
+          "actions": [
+            "ask_clarification"
+          ],
+          "tools": [
+            {
+              "tool": "search_cases",
+              "status": "succeeded"
+            }
+          ],
+          "judge_statuses": [
+            "passed"
+          ],
+          "targets": {
+            "judge_repair": "not_covered"
+          },
+          "recovery": null,
+          "database_checks": [
+            {
+              "run": 1,
+              "http_database_consistent": true,
+              "replay_no_extra_run_or_call": true,
+              "no_automatic_publication": true
+            }
+          ],
+          "schema_cleanup_completed": true
+        },
+        {
+          "case_id": "TM-COMP-2026-09-037",
+          "status": "completed",
+          "runs": 2,
+          "run_statuses": [
+            "waiting_review",
+            "waiting_review"
+          ],
+          "actions": [
+            "ask_clarification",
+            "propose_resolution"
+          ],
+          "tools": [
+            {
+              "tool": "search_cases",
+              "status": "succeeded"
+            },
+            {
+              "tool": "search_cases",
+              "status": "succeeded"
+            }
+          ],
+          "judge_statuses": [
+            "passed",
+            "passed"
+          ],
+          "targets": {
+            "clarification_continuation": "covered_after_snapshot_restore"
+          },
+          "recovery": {
+            "original_sha256": "5abb1eaed44ab0f709eaeb0328eeecdbba0f880937f8c4847513de18fff51a4d",
+            "reason": "Test fixture enum clarify is invalid; normalized to API ask_clarification. Not an application/model defect.",
+            "first_model_run_repeated": false,
+            "first_run_snapshot_restored": true,
+            "scope": "Continue only previously authorized, never-executed second Agent run."
+          },
+          "database_checks": [
+            {
+              "run": 1,
+              "http_database_consistent": true,
+              "replay_no_extra_run_or_call": true,
+              "no_automatic_publication": true
+            },
+            {
+              "run": 2,
+              "http_database_consistent": true,
+              "replay_no_extra_run_or_call": true,
+              "no_automatic_publication": true
+            }
+          ],
+          "schema_cleanup_completed": true
+        },
+        {
+          "case_id": "TM-COMP-2026-09-038",
+          "status": "completed",
+          "runs": 1,
+          "run_statuses": [
+            "waiting_review"
+          ],
+          "actions": [
+            "ask_clarification"
+          ],
+          "tools": [
+            {
+              "tool": "search_cases",
+              "status": "succeeded"
+            }
+          ],
+          "judge_statuses": [
+            "passed"
+          ],
+          "targets": {
+            "case_detail": "not_covered",
+            "live_embedding_hybrid": "covered"
+          },
+          "recovery": null,
+          "database_checks": [
+            {
+              "run": 1,
+              "http_database_consistent": true,
+              "replay_no_extra_run_or_call": true,
+              "no_automatic_publication": true
+            }
+          ],
+          "schema_cleanup_completed": true
+        }
+      ],
+      "usage_by_category": {
+        "decision": {
+          "attempts": 5,
+          "successful_sends": 5,
+          "reported_total_tokens": 19731,
+          "usage_missing": 0
+        },
+        "judge": {
+          "attempts": 5,
+          "successful_sends": 5,
+          "reported_total_tokens": 6704,
+          "usage_missing": 0
+        },
+        "initial_embedding": {
+          "attempts": 1,
+          "successful_sends": 1,
+          "reported_total_tokens": 70,
+          "usage_missing": 0
+        }
+      },
+      "planned_paths": 6,
+      "covered_paths": 2,
+      "covered_after_snapshot_restore": 1,
+      "business_quality": {
+        "review_method": "offline main agent and Luna review; not independent human grading",
+        "report": "REPORT.md",
+        "remaining_concern": "011 future-action commitment wording needs human review; Judge passed"
+      },
+      "fees": "not_queried",
+      "historical_scope": "40 cases / two Decision models on 2026-09-19; current batch reuses four inputs only"
+    },
+    "cleanup_all_clean": true
+  },
+  "original_file_sha256": {
+    "eval_runs/ticketmind_qwen_bm25_20260919/manifest.json": "9165a38889e7eaf33b48f7866efc87db7a54d439b68c107e03ad1a7b8256d1d9",
+    "eval_runs/ticketmind_qwen_bm25_20260919/adjudication_summary.json": "e0eaafd0f7afe44acbc61526f153851723a0618171db0b5a353e707be292b8e6",
+    "eval_runs/ticketmind_qwen_bm25_20260919/blind_adjudications.jsonl": "0f0f8040072efba00244a9ea2428159b51d30634822a932e20bf5852a396ad23",
+    "eval_runs/loop_paths_20260926/summary.json": "ee5addd3ae3b8cb990235c4b77865d8a5b50f6c181bc9de584982e214f9aa360",
+    "eval_runs/loop_paths_20260926/cleanup-check.json": "25a387d9b4a47fe84c146bdbba836d14f5863a44f6845f3596573458c75d67d1"
+  }
+}

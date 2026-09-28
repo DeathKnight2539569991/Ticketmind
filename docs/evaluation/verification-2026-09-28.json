@@ -1,0 +1,20 @@
+{
+  "completed_at": "2026-09-28T01:50:24.856060+00:00",
+  "exit_code": 0,
+  "tests": 286,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "passed": 286,
+  "duration_seconds": 103.746,
+  "real_postgresql": true,
+  "real_milvus": true,
+  "provider_calls": 0,
+  "model_and_vectors": "deterministic test doubles",
+  "evidence_directory": "data/cache/verification/20260928T014837Z-5a349329bb8e44c09a38c1039efe4884",
+  "baseline_commit": "69630c9",
+  "evidence_sha256": {
+    "results.xml": "15ce5933d5db2dde02d0782c4f09926028a62da36aa07b74f055d5713fbfae56",
+    "results.log": "832591e53d29159e3c926cc3a56011e07fb0e1f09992897be0d5603a3e84e42d"
+  }
+}

@@ -6,6 +6,8 @@ TicketMind 是一个可在本地运行的工单处理系统：接收客户问题
 
 项目面向**合成 SaaS 业务场景与个人工程实践**，包含 FastAPI 服务、Streamlit 工作台、PostgreSQL 持久化、Milvus 检索及模型调用链路。它不是已接入真实客户渠道的线上客服服务。
 
+求职展示从[交付说明](docs/internship-handoff.md)开始：[五分钟演示](docs/demo-guide.md)、[RAG 与 Agent 评估](docs/rag-evaluation.md)、[面试讲解](docs/interview-guide.md)。2026-09-28 使用真实 PostgreSQL、Milvus 和确定性模型替身完成 **286 项测试，全部通过**；条件与边界见[本轮验收记录](docs/verification-2026-09-28.md)。
+
 ## 核心功能
 
 | 模块 | 能力 |
@@ -61,7 +63,7 @@ if (-not (Test-Path .env)) { Copy-Item env.example .env }
 uv run --no-sync python scripts/configure_local_auth.py
 ```
 
-`.env` 仅保存在本地，不提交真实凭据。**v2 数据集需要预先完成 seed、向量缓存导入和索引同步，并确认知识状态为 `active`**；新机器的初始化与缓存缺失处理参见[知识库初始化与同步说明](docs/knowledge-writeback.md#初始化与运维命令)。日常启动不会重复导入知识或生成文档 Embedding。
+`.env` 仅保存在本地，不提交真实凭据。**v2 数据集需要预先完成 seed 和索引同步，并确认 BM25 就绪、知识状态为 `active`**；Dense 还需要向量缓存和独立索引就绪。新机器的初始化与缓存缺失处理参见[知识库初始化与同步说明](docs/knowledge-writeback.md#初始化与运维命令)。日常启动不会重复导入知识或生成文档 Embedding。
 
 ### 一键启动（v2 + Flash + BM25）
 
@@ -103,20 +105,16 @@ Judge 模型、数据库和模型凭据等其余配置仍来自现有 `.env`。�
 
 当前核心操作支持：编辑审核时同时选择最终动作、独立人工接管、从检查点恢复已结束请求的运行状态，以及发布前人工整理知识正文。每次处理可以选择 BM25 / Hybrid / Dense；BM25 发布不要求文档向量，Hybrid 可通过关键词通道召回尚无向量的知识。知识发布到 `production-v1`，只有检索该数据集的运行才能使用；`active` 表示文本索引就绪，Dense 就绪状态单独展示。
 
-更新代码需要升级数据库。变更细节、使用流程、迁移与尚未运行验证的范围见[核心代码修改报告](docs/core-fixes-2026-09-22.md)。
+更新代码需要升级数据库。变更细节、使用流程与迁移见[核心代码修改报告](docs/core-fixes-2026-09-22.md)；该报告是历史记录，后续验证以[本轮验收记录](docs/verification-2026-09-28.md)和[真实路径评估](docs/rag-evaluation.md#最新代码的真实路径证据)为准。
 
 ## 测试
 
 ```powershell
-# 默认单元测试及不依赖真实数据库的测试
-uv run --no-sync python -m pytest -q
+# 默认单元测试及不依赖真实数据库的测试，并保存结果
+uv run --no-sync python scripts/verify_project.py
 
 # 可选：已有本机 PostgreSQL 与 Milvus 可用时执行集成测试
-$env:TICKETMIND_RUN_DB_TESTS = '1'
-$env:TICKETMIND_RUN_MILVUS_TESTS = '1'
-uv run --no-sync python -m pytest -q
-Remove-Item Env:TICKETMIND_RUN_DB_TESTS
-Remove-Item Env:TICKETMIND_RUN_MILVUS_TESTS
+uv run --no-sync python scripts/verify_project.py --db --milvus
 ```
 
 仓库提供检索、Agent 决策、人工审核、知识同步等层次的测试及历史验收记录。默认测试与带替身的集成测试不能代替真实模型效果评估；具体实验条件和结果见下方文档。
@@ -132,11 +130,14 @@ Remove-Item Env:TICKETMIND_RUN_MILVUS_TESTS
 ## 文档
 
 - [审查优先问题修复与验证（2026-09-24）](docs/audit-fixes-2026-09-24.md)
+- [交付范围与复现入口](docs/internship-handoff.md)
+- [收尾验收（2026-09-28）](docs/verification-2026-09-28.md)
 - [架构、业务状态与 API](docs/architecture.md)
-- [工作台操作与演示](docs/m5-demo.md)
+- [工作台操作与演示](docs/demo-guide.md)
 - [知识存储、入库和索引同步](docs/knowledge-writeback.md)
 - [BM25、Hybrid 检索实现与验证](docs/m3-retrieval.md)
-- [评测方法与历史结果](docs/m4-evaluation.md)
+- [RAG / Agent 评估与历史证据](docs/rag-evaluation.md)
+- [简历与面试讲解](docs/interview-guide.md)
 - [来源、复用与项目贡献](docs/sources-and-contributions.md)
 - [历史 README：开发过程、旧配置与阶段验收](docs/README-archive.md)
 

@@ -1,5 +1,7 @@
 # 启动与 3—5 分钟演示
 
+> 本文为 M5 阶段的历史演示记录，保留当时的配置和评测口径。当前启动与讲解请使用[五分钟演示](demo-guide.md)，最新评测汇总见[RAG 与 Agent 评估](rag-evaluation.md)。下文的 6 题结果不是全部历史评测，也不代表当前代码效果。
+
 ## 零付费隔离演示
 
 前提：Python 3.12、uv、可连接且可创建 schema 的 PostgreSQL。复制根目录 `env.example` 为 `.env`，配置数据库；无需有效模型凭据和 Milvus。

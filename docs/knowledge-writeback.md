@@ -2,6 +2,8 @@
 
 本文记录 2026-09-17 的历史实现。2026-09-22 起，知识需人工整理后发布，BM25 与 Dense 独立就绪；当前行为和迁移要求以[核心代码修改报告](core-fixes-2026-09-22.md)为准。
 
+当前使用要点（2026-09-28 核对）：人工发布前填写问题、适用条件、步骤、验证结果；正文保存在 PG。`active` 表示文本索引就绪，缺向量时仍可用 BM25，Dense 状态另行展示。本文早期“缺向量即 index_failed”等描述属于历史行为。最新测试与演示入口见[收尾验收](verification-2026-09-28.md)和[演示指南](demo-guide.md)。
+
 日期：2026-09-17。沿用单 Agent、模块化单体和既有依赖；没有新增模型调用、reranker、后台队列或分布式事务。
 
 ## 架构与两条链路
@@ -82,6 +84,7 @@ reviewer 在工单底部查看全文、勾选确认、点击 **Publish to Knowle
 ```powershell
 uv run --no-sync alembic upgrade head
 uv run --no-sync python scripts/knowledge.py seed
+# 可选：已有匹配的文档向量缓存时导入，BM25 就绪不要求此步骤
 uv run --no-sync python scripts/knowledge.py import-cache
 uv run --no-sync python scripts/knowledge.py reconcile --dataset production-v1
 ```
@@ -114,7 +117,7 @@ HTTP 发布/重试没有付费开关，默认只用缓存。只有取得新的�
 uv run --no-sync python scripts/knowledge.py reconcile --dataset production-v1 --source-id TICKET-实际UUID --embedding-budget 1 --ledger data/cache/knowledge/approved-batch/attempts.json
 ```
 
-复用项目的 AttemptLedger 和单次 HTTP transport：发送前持久化记账，累计上限、重复请求指纹及失败尝试均受约束；不自动重试、不能删除台账恢复额度。知识文档只使用 initial_embedding 类别，其他三类额度为零。正预算必须指定台账；缺缓存的零预算请求返回非零退出码。
+复用项目的 AttemptLedger 和单次 HTTP transport：发送前持久化记账，累计上限、重复请求指纹及失败尝试均受约束；不自动重试、不能删除台账恢复额度。知识文档只使用 initial_embedding 类别，其他三类额度为零。正预算必须指定台账。当前零预算缺缓存时记录 Dense 未就绪，BM25 同步仍可成功；须同时检查文本与向量状态。
 
 `serve_m5_demo.py` 的知识索引/向量替身仅在隔离演示明确注入，数据仍通过真实 PG/API 保存；界面已有演示标记。其 active 只说明替身索引状态，不能当作真实 Milvus 验收。
 

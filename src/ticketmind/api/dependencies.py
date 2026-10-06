@@ -18,7 +18,8 @@ def get_session(request: Request):
 
 def get_runner(request: Request, *, retrieval_mode=None):
     if request.app.state.runner is not None:
-        if retrieval_mode is not None:
+        if retrieval_mode is not None and (not isinstance(request.app.state.runner, AgentRunner) or
+                                          request.app.state.runner.config.retrieval_mode != retrieval_mode):
             raise AppError(422, "fixed_runner_mode", "当前固定演示适配器不支持切换检索模式")
         return request.app.state.runner
     try:

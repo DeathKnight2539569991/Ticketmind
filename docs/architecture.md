@@ -4,6 +4,8 @@
 
 ## 请求如何走完
 
+2026-10-06 durable 重构：生产图将 retrieve、decision、两种只读工具、judge、最多一次 final-only repair 和 review 共挂 PostgreSQL checkpointer（sync）。计算恢复为短认领事务 → 释放业务连接 → reviewer 授权的图续算 → 短事务重检版本/status/active 并保存待审核结果。启动仅分类；fatal、配置漂移、非法/缺失 checkpoint 与预算耗尽禁止续算。已观察失败耗时保留，人工等待/离线不计时；未知硬退出的单模型调用（Decision/Judge/Repair）按冻结 effective timeout=min(30 秒, 原剩余预算)保守扣减，账本明确标记 conservative/estimated，与 observed 分开累计；扣后耗尽先持久化终止标记，再保存预算耗尽失败，不执行能力。冻结上限缺失或未知复合 retrieve/search/detail 调用无法可靠确定上限时拒绝。恢复扣减 prepared 先持久化，唯一 resume_gate 再持久化 started 后路由原未完成节点；prepared 崩溃复用扣减，started 后再次硬退出创建新的估算 attempt。started 表示已允许进入调用阶段，不证明供应商实际收到请求，因此仍属保守估算。已 checkpoint 节点跳过，未完成节点可能重复；失败 attempt usage 独立记录，不叠加逻辑成功 usage。旧审核 checkpoint 仅恢复已有 output/审核，旧 compute 不升级。Phase 6 已移除旧 inner graph、compute 黑盒节点和 bounded_decision/finish_proposal 的 Python while；ReviewWorkflow 在初始化只编译一次，runner 与失败异常 sink 通过 LangGraph invocation context 注入。AgentRunner 直接调用同一拓扑到 Judge 通过后 END（无 saver），业务执行仍经 review interrupt（PostgresSaver、sync）。旧 callable 测试/演示适配器在 retrieve 入口接入已计算结果，不具备计算续算能力；同名 review/output 保留旧审核 checkpoint 兼容。
+
 ```mermaid
 flowchart LR
   UI[Streamlit 工作台] -->|Bearer / 幂等标识 / 版本| API[FastAPI]
@@ -63,7 +65,7 @@ flowchart LR
 | POST /tickets/{id}/runs/{run}/review | reviewer 批准、编辑或改为转人工 |
 | POST /tickets/{id}/close | reviewer 明确确认解决 |
 | POST /tickets/{id}/escalate | reviewer 独立人工接管，不要求 Agent 已生成提案 |
-| POST /tickets/{id}/runs/{run}/recover | reviewer 从检查点恢复已结束请求，不调用模型或发布回复 |
+| POST /tickets/{id}/runs/{run}/recover | reviewer 显式恢复检查点；计算续算可能调用模型，已有提案/审核重放不调用模型，恢复不发布回复 |
 | GET /sources/{id}?corpus_version=... | 对应版本合成来源，版本不可用则保留运行快照供查看 |
 | GET /tickets/{id}/knowledge | 已解决工单候选全文或知识状态 |
 | POST /tickets/{id}/knowledge/approve | reviewer 显式批准，expected_version 绑定工单 |

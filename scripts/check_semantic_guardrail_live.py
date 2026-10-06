@@ -17,7 +17,7 @@ from ticketmind.agent.decide import DECISION_PROTOCOL
 from ticketmind.agent.proposals import proposal_adapter, validate_proposal
 from ticketmind.agent.schemas import AgentMessage
 from ticketmind.agent.retrieve import build_retrieval_query
-from ticketmind.agent.tools import bounded_decision
+from ticketmind.agent.dev_workflow import run_decision_workflow
 from ticketmind.core.config import ProcessingSettings, QwenSettings
 from ticketmind.llm.client import generate_text
 from ticketmind.retrieval.schemas import EvidenceHit
@@ -239,7 +239,7 @@ def main():
                     "instruction": "修正违规并输出最终提案，不得请求工具；这是唯一一次重生成机会"}
                 state["agent_steps"] += 1
             checkpoint()
-        # Actual bounded_decision guard path: old proposal + saved live verdict,
+        # Actual run_decision_workflow guard path: old proposal + saved live verdict,
         # then one real Decision regeneration and a fresh live Judge.
         for number in ("016", "034", "036"):
             state, original = cases[number]
@@ -274,7 +274,7 @@ def main():
             def forbidden_search(*args):
                 raise RuntimeError("guardrail repair must not execute retrieval")
             try:
-                proposal, _ = bounded_decision(state, decide=repair_decision, judge=repair_judge,
+                proposal, _ = run_decision_workflow(state, decide=repair_decision, judge=repair_judge,
                     corpus=None, config=config, remaining=repair_remaining,
                     audit=list(state["tool_calls"]), search_fn=forbidden_search)
                 row.update(status="passed", final_proposal=proposal.model_dump())

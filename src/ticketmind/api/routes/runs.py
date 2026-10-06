@@ -57,4 +57,5 @@ def review_endpoint(ticket_id: UUID, run_id: UUID, payload: ReviewCreate, actor:
 def recover_endpoint(ticket_id: UUID, run_id: UUID, payload: RunRecover, actor: ReviewerDependency,
                      key: IdempotencyKey, request: Request):
     return recover_run(request.app.state.session_factory, request.app.state.workflow,
-                       ticket_id, run_id, payload, actor, key)
+                       ticket_id, run_id, payload, actor, key,
+                       runner_factory=lambda mode: get_runner(request, retrieval_mode=mode))

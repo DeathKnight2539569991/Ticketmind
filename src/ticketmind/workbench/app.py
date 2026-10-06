@@ -132,10 +132,10 @@ def run_view(api, ticket, run, reviewer):
     elif run["run_status"] == "waiting_review":
         st.info("草稿尚未发布。请核对事实、引用及状态承诺。")
     if reviewer and run["run_status"] in ("running", "failed"):
-        st.caption("请求结束后，可从已保存结果恢复状态；不会重新调用模型或发布回复。仍在执行时会拒绝恢复。")
+        st.caption("reviewer 可显式恢复检查点；未完成的计算可能继续调用模型。恢复不发布回复，仍需人工审核。仍在执行时会拒绝恢复。")
         if st.button("恢复运行状态", key=f"recover-{run['id']}"):
             queue(f"/tickets/{ticket['id']}/runs/{run['id']}/recover",
-                  {"expected_version": ticket["version"]}, "从检查点恢复运行状态，不重新调用模型")
+                  {"expected_version": ticket["version"]}, "显式恢复检查点，可能继续调用模型；不发布回复")
     proposal = run.get("proposal") or {}
     st.write(ACTION.get(proposal.get("next_step"), proposal.get("next_step") or "尚无提案"))
     st.text(proposal.get("reason") or "")

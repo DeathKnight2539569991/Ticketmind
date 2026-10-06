@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryFile
 
 from ticketmind.agent.dev_cache import CachedQueryEmbeddings, build_single_attempt_embeddings
-from ticketmind.agent.graph import build_ticket_graph
+from ticketmind.agent.retrieve import retrieve_ticket
 from ticketmind.agent.retrieve import build_retrieval_query
 from ticketmind.agent.schemas import AgentMessage
 from ticketmind.agent.state import TicketAgentState
@@ -98,15 +98,15 @@ def run_check(*, cache_dir: Path, check_only: bool = False, allow_embedding: boo
         if not rows or rows[0]["count(*)"] < 1:
             raise RuntimeError("历史案例集合为空；先按 README 导入")
 
-        graph = build_ticket_graph(
+        retrieval_args = dict(
             embeddings=embeddings,
             client=client,
             top_k=3,
             timeout=milvus.timeout_seconds,
         )
-        final_state = graph.invoke(initial_state)
+        final_state = {**initial_state, **retrieve_ticket(state=initial_state, **retrieval_args)}
         validate_result(initial_state, final_state)
-        print("图检索检查通过；Milvus 为本次真实查询。")
+        print("检索能力检查通过；Milvus 为本次真实查询。")
         print(
             json.dumps(
                 final_state,

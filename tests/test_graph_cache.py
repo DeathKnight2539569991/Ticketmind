@@ -11,7 +11,7 @@ from requests.exceptions import ConnectionError
 
 from ticketmind.agent import dev_cache
 from ticketmind.agent.dev_cache import CachedQueryEmbeddings
-from ticketmind.agent.graph import build_ticket_graph
+from ticketmind.agent.retrieve import retrieve_ticket
 from ticketmind.agent.retrieve import build_retrieval_query
 from ticketmind.agent.run_cache import QueryVectorCache, query_fingerprint, save_cache
 from ticketmind.agent.schemas import AgentMessage
@@ -76,12 +76,12 @@ def test_graph_persists_query_cache_before_search_failure_and_replays(tmp_path, 
                 raise RuntimeError("synthetic Milvus failure")
             return [[{"entity": {"source_id": "unit-only", "text": "synthetic evidence"}, "distance": 0.5}]]
 
-    graph = build_ticket_graph(embeddings=embeddings, client=Search(), top_k=3, timeout=1)
+    retrieval_args = dict(embeddings=embeddings, client=Search(), top_k=3, timeout=1)
     with pytest.raises(RuntimeError, match="Milvus failure"):
-        graph.invoke(state)
+        {**state, **retrieve_ticket(state=state, **retrieval_args)}
 
     embeddings.factory = forbidden
-    final = graph.invoke(state)
+    final = {**state, **retrieve_ticket(state=state, **retrieval_args)}
     assert final["subject"] == state["subject"]
     assert final["messages"] == state["messages"]
     assert final["retrieval_hits"][0].source_id == "unit-only"
@@ -161,12 +161,12 @@ def test_cache_write_failure_stops_before_search(tmp_path, settings, monkeypatch
         factory=Embedder,
         allow_call=True,
     )
-    graph = build_ticket_graph(embeddings=embeddings, client=Search(), top_k=3, timeout=1)
+    retrieval_args = dict(embeddings=embeddings, client=Search(), top_k=3, timeout=1)
     with pytest.raises(OSError, match="disk failure"):
-        graph.invoke(agent_state("s", "b"))
+        retrieve_ticket(state=agent_state("s", "b"), **retrieval_args)
 
 
-def test_business_graph_accepts_new_ticket_without_understanding_node():
+def test_retrieval_adapter_accepts_new_ticket_without_understanding_node():
     class Embedder:
         def embed_query(self, text):
             return [1.0] * 1024
@@ -175,8 +175,8 @@ def test_business_graph_accepts_new_ticket_without_understanding_node():
         def search(self, **kwargs):
             return [[]]
 
-    graph = build_ticket_graph(embeddings=Embedder(), client=Search(), top_k=3, timeout=1)
-    result = graph.invoke(agent_state("new", "ticket"))
+    retrieval_args = dict(embeddings=Embedder(), client=Search(), top_k=3, timeout=1)
+    result = retrieve_ticket(state=agent_state("new", "ticket"), **retrieval_args)
     assert "understanding" not in result
     assert result["retrieval_hits"] == []
 

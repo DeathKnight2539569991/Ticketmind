@@ -2,7 +2,7 @@ import pytest
 
 from ticketmind.agent.schemas import AgentMessage
 from ticketmind.agent.proposals import decision_adapter, proposal_adapter, validate_proposal
-from ticketmind.agent.tools import bounded_decision
+from ticketmind.agent.dev_workflow import run_decision_workflow
 from ticketmind.core.config import ProcessingSettings
 from ticketmind.knowledge.corpus import build_case_text
 from ticketmind.knowledge.sources import load_sources
@@ -70,17 +70,17 @@ def execute(decisions, *, changes=None, limits=None, tool_error=False):
             raise RuntimeError("synthetic failure")
         result = [hits[2]]
         # Retrieval-service diagnostics belong to the retrieval adapter, not
-        # bounded_decision; mimic that boundary in this unit test.
+        # run_decision_workflow; mimic that boundary in this unit test.
         record["result_hits"] = [{"source_id": hits[2].source_id}]
         return result
     args = dict(decide=decide, judge=lambda *args: {"passed": True, "violations": []},
                 corpus=corpus, config=config, remaining=lambda: 1.0, audit=audit, search_fn=search)
     if tool_error:
         with pytest.raises(RuntimeError):
-            bounded_decision(state, **args)
+            run_decision_workflow(state, **args)
         assert audit[-1]["status"] == "failed" and audit[-1]["error"] == "tool_execution_failed"
         return
-    result, evidence = bounded_decision(state, **args)
+    result, evidence = run_decision_workflow(state, **args)
     return result, evidence, seen, searches, audit
 
 
@@ -161,7 +161,7 @@ def test_expired_budget_stops_before_decision_or_tool():
     def forbidden(*args):
         pytest.fail("expired budget executed a decision")
     with pytest.raises(TimeoutError):
-        bounded_decision({"subject": "s", "messages": [AgentMessage(role="customer", content="b")],
+        run_decision_workflow({"subject": "s", "messages": [AgentMessage(role="customer", content="b")],
                           "retrieval_query": "q", "retrieval_hits": []},
             decide=forbidden, judge=forbidden, corpus=None,
             config=ProcessingSettings(_env_file=None), remaining=expired, audit=[], search_fn=forbidden)

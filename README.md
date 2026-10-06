@@ -105,6 +105,8 @@ Judge 模型、数据库和模型凭据等其余配置仍来自现有 `.env`。�
 
 当前核心操作支持：编辑审核时同时选择最终动作、独立人工接管、从检查点恢复已结束请求的运行状态，以及发布前人工整理知识正文。每次处理可以选择 BM25 / Hybrid / Dense；BM25 发布不要求文档向量，Hybrid 可通过关键词通道召回尚无向量的知识。知识发布到 `production-v1`，只有检索该数据集的运行才能使用；`active` 表示文本索引就绪，Dense 就绪状态单独展示。
 
+Agent 生产图使用同一 PostgreSQL checkpointer：`retrieve → decision ↔ search_cases/get_case_detail → judge → repair → judge → review`。启动只识别检查点；计算续算需要 reviewer 显式恢复，并核对原配置、版本及累计 active 预算。恢复可能重复当前未完成节点，已持久化成功节点跳过；已有待审核提案与审核重放不调用模型，恢复不发布回复。硬退出耗时未知时，Decision/Judge/Repair 的未完成单模型调用按冻结的 effective timeout（30 秒与原剩余预算的较小值）保守扣减，单独标记 `conservative/estimated`；扣后耗尽直接失败且不调用能力。缺少可靠冻结上限或未完成 retrieve/search/detail 复合调用时拒绝续算。扣减先持久化再经恢复 gate 执行；gate 前崩溃复用扣减，进入调用阶段后再次硬退出按新 attempt 扣减。生产与直接 AgentRunner 调用共用一个显式 workflow 拓扑；Workflow 实例只编译一次，模型/资源通过 invocation context 注入，不进入 checkpoint。直接调用仅计算到 Judge 通过，业务入口仍必须持久化 review interrupt。旧审核 checkpoint 可恢复，旧 compute 不执行。阶段记录见 [重构记录](docs/agent-durable-refactor.md)。
+
 更新代码需要升级数据库。变更细节、使用流程与迁移见[核心代码修改报告](docs/core-fixes-2026-09-22.md)；该报告是历史记录，后续验证以[本轮验收记录](docs/verification-2026-09-28.md)和[真实路径评估](docs/rag-evaluation.md#最新代码的真实路径证据)为准。
 
 ## 测试

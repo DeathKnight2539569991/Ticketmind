@@ -261,7 +261,7 @@ class ProcessingReview(Base):
 
 
 class ProcessingRecovery(Base):
-    """Idempotent, reviewer-initiated recovery audit; never a model retry."""
+    """Reviewer recovery claim/audit; compute may resume, publication requires review."""
     __tablename__ = "processing_recoveries"
     __table_args__ = (
         UniqueConstraint("run_id", "actor_id", "idempotency_key", name="uq_recovery_request"),

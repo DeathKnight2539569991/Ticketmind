@@ -139,6 +139,8 @@ def _create_run(session_factory, runner_factory, ticket_id, payload, actor_id, k
         snapshot.update(run_id=str(run_id), agent_version=metadata["agent_version"],
                         corpus_version=metadata["corpus_version"], retrieval_mode=metadata["retrieval_mode"],
                         execution_limits=metadata.get("model_config", {}).get("limits", {}))
+        if hasattr(runner, "recovery_contract"):
+            snapshot["runtime_contract"] = runner.recovery_contract
         run = ProcessingResult(id=run_id, ticket_id=ticket_id, trigger_message_id=payload.trigger_message_id,
                                run_sequence=sequence + 1, actor_id=actor_id, idempotency_key=key,
                                request_hash=digest, ticket_version=ticket.version,

@@ -110,8 +110,11 @@ class AcceptanceAdapters:
         return self.directory / kind / f"{fingerprint}.json"
 
 
-    def embeddings(self, remaining):
-        self.remaining, self.embedding_index = remaining, 0
+    def embeddings(self, remaining, *, retrieval_phase="initial"):
+        if retrieval_phase not in ("initial", "research"):
+            raise ValueError("未知 retrieval phase")
+        self.remaining = remaining
+        self.embedding_index = 0 if retrieval_phase == "initial" else 1
         return self
 
     def embed_query(self, text):

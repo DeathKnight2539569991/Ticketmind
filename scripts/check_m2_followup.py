@@ -47,7 +47,7 @@ def load_case():
 class FirstSearchMiss:
     def __init__(self, client, source_id, audit):
         self.client, self.source_id, self.audit = client, source_id, audit
-        self.first = True
+        self.first = not audit
 
     def search(self, **kwargs):
         actual = self.client.search(**kwargs)

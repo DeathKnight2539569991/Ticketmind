@@ -121,16 +121,28 @@ def apply_review(factory, ticket_id, run_id):
 
 
 def recover_interrupted_runs(factory, workflow):
-    """Recover durable review interrupts without ever re-running the Agent."""
+    """Classify at startup; computing checkpoints require explicit reviewer action."""
     with factory() as session, session.begin():
         runs = session.scalars(select(ProcessingResult).where(ProcessingResult.run_status == RunStatus.RUNNING)).all()
         for run in runs:
             if run.review is None and run.thread_id:
                 try:
-                    output = workflow.pending_output(run.thread_id)
+                    kind = workflow.recovery_kind(run.thread_id, run.input_snapshot)
+                    output = workflow.pending_output(run.thread_id) if kind == "review" else None
+                    if kind == "compute":
+                        ticket = require_ticket(session, run.ticket_id)
+                        if ticket.status == TicketStatus.OPEN and ticket.version == run.ticket_version:
+                            run.error_code = "explicit_recovery_required"
+                            run.error_summary = "存在可继续计算的检查点；需要 reviewer 显式恢复"
+                            run.completed_at = None
+                            continue
+                        run.run_status, run.completed_at = RunStatus.FAILED, datetime.now(UTC)
+                        run.error_code, run.error_summary = "version_conflict", "工单已变化，计算检查点不能继续"
+                        continue
                 except Exception as exc:
                     logger.error("run_id=%s stage=startup_recovery error=%s", run.id, type(exc).__name__)
                     output = None
+                    kind = "invalid"
                 if output is not None:
                     ticket = require_ticket(session, run.ticket_id)
                     if ticket.status == TicketStatus.OPEN and ticket.version == run.ticket_version:
@@ -153,6 +165,12 @@ def recover_interrupted_runs(factory, workflow):
                     run.error_summary = "工单版本在处理期间变化，已完成结果未进入待审核"
                     continue
             run.run_status, run.completed_at = RunStatus.FAILED, datetime.now(UTC)
-            run.error_code = "review_interrupted" if run.review else "execution_interrupted"
+            run.error_code = "review_interrupted" if run.review else (
+                "agent_fatal_failure" if run.thread_id and kind == "fatal" else "execution_interrupted")
             run.error_summary = "进程中断；重试原审核请求" if run.review else "计算被中断；确认调用预算后使用新 key 发起新运行"
+            if not run.review and run.thread_id and kind == "fatal":
+                budget = workflow.terminal_budget(run.thread_id)
+                if budget is not None:
+                    run.error_code = "execution_budget_exhausted"
+                    run.usage = {"execution_budget": budget}
         return len(runs)

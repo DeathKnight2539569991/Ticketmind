@@ -118,7 +118,8 @@ def main():
 
             runner = AgentRunner(qwen, milvus, config.model_copy(update={"retrieval_mode": mode}),
                 decision_fn=decide, embedding_factory=lambda remaining: Embeddings(),
-                milvus_factory=lambda settings: FaultClient(build_milvus_client(settings), fault), corpus=corpus)
+                milvus_factory=lambda settings: FaultClient(build_milvus_client(settings), fault), corpus=corpus,
+                session_factory=factory)
             app = create_app(session_factory=factory, runner=runner, auth_settings=auth)
             with TestClient(app) as http:
                 http.headers["Authorization"] = "Bearer " + auth.operator_token.get_secret_value()

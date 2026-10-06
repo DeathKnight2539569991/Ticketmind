@@ -1,4 +1,5 @@
 """Deterministic substitutes test contracts/orchestration, not LLM semantic accuracy."""
+from docs_fakes import FakeDocStore, doc_hit
 import json
 from copy import deepcopy
 
@@ -33,7 +34,7 @@ def test_judge_payload_excludes_derived_context_without_changing_audit():
             {"tool": "search_cases", "parameters": {"query": "连接失败"},
              "status": "succeeded", "result_source_ids": ["case-1"],
              "result_summary": "检索摘要", "duration_ms": 10},
-            {"tool": "get_case_detail", "parameters": {"source_id": "case-1"},
+            {"tool": "search_docs", "parameters": {"source_id": "case-1"},
              "status": "failed", "result_source_ids": [], "error": "tool_execution_failed"},
         ],
     }
@@ -41,7 +42,7 @@ def test_judge_payload_excludes_derived_context_without_changing_audit():
     _, user_prompt = semantic_judge.judge_messages(state, GOOD)
     payload = json.loads(user_prompt)
     assert "understanding" not in payload and "body" not in payload
-    assert set(payload) == {"subject", "messages", "proposal", "tool_calls", "system_capabilities"}
+    assert set(payload) == {"subject", "messages", "cases", "docs", "proposal", "tool_calls", "system_capabilities"}
     assert payload["subject"] == state["subject"]
     assert payload["messages"] == [{"role": "customer", "content": "当前使用本地代理。"}]
     assert payload["proposal"] == GOOD.model_dump()
@@ -81,7 +82,7 @@ def make_runner(monkeypatch, decisions, judgments, **overrides):
                 corpus=load_sources(config.corpus_path))
     args.update(overrides)
     runner = AgentRunner(QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
-                         MilvusSettings(_env_file=None, uri="http://unused.invalid"), config, **args)
+                         MilvusSettings(_env_file=None, uri="http://unused.invalid"), config, **args, docs_store=FakeDocStore())
     return runner, seen, judged, client
 
 
@@ -98,7 +99,7 @@ def test_rejected_then_repaired_once(monkeypatch):
     _, user = decision_messages(seen[1])
     repair_payload = json.loads(user)
     assert repair_payload["guardrail_feedback"]["violations"] == FAIL["violations"]
-    assert set(repair_payload) == {"subject", "messages", "evidence", "case_details", "guardrail_feedback"}
+    assert set(repair_payload) == {"subject", "messages", "cases", "docs", "guardrail_feedback"}
     assert [a["status"] for a in result.usage["semantic_judge"]] == ["rejected", "passed"]
     assert len(result.state["tool_calls"]) == 1  # Only initial read-only retrieval.
     assert runner.metadata["model_config"]["decision"] == "glm-5.3"

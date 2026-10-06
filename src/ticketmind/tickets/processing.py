@@ -132,15 +132,17 @@ def _create_run(session_factory, runner_factory, ticket_id, payload, actor_id, k
                 f"Agent 单条消息限 {MESSAGE_MAX_CHARS} 字符，完整上下文限 {CONVERSATION_MAX_CHARS} 字符；"
                 "未创建运行或调用模型，请人工接管此工单") from None
         runner = runner_factory()
-        metadata = runner.metadata
+        contract = getattr(runner, "recovery_contract", None)
+        metadata = ({key: contract[key] for key in ("agent_version", "corpus_version", "retrieval_mode", "model_config")}
+                    if contract is not None else runner.metadata)
         sequence = session.scalar(select(func.max(ProcessingResult.run_sequence))
                                   .where(ProcessingResult.ticket_id == ticket_id)) or 0
         run_id = uuid4()
         snapshot.update(run_id=str(run_id), agent_version=metadata["agent_version"],
                         corpus_version=metadata["corpus_version"], retrieval_mode=metadata["retrieval_mode"],
                         execution_limits=metadata.get("model_config", {}).get("limits", {}))
-        if hasattr(runner, "recovery_contract"):
-            snapshot["runtime_contract"] = runner.recovery_contract
+        if contract is not None:
+            snapshot["runtime_contract"] = contract
         run = ProcessingResult(id=run_id, ticket_id=ticket_id, trigger_message_id=payload.trigger_message_id,
                                run_sequence=sequence + 1, actor_id=actor_id, idempotency_key=key,
                                request_hash=digest, ticket_version=ticket.version,

@@ -68,15 +68,15 @@ class SearchCases(BaseModel):
     query: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
 
 
-class GetCaseDetail(BaseModel):
+class SearchDocs(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    next_step: Literal["get_case_detail"]
+    next_step: Literal["search_docs"]
     reason: Text
-    source_id: SourceId
+    query: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
 
 
 Decision = Annotated[
-    ModelResolution | Clarification | ModelEscalation | SearchCases | GetCaseDetail,
+    ModelResolution | Clarification | ModelEscalation | SearchCases | SearchDocs,
     Field(discriminator="next_step"),
 ]
 decision_adapter = TypeAdapter(Decision)

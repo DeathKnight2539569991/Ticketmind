@@ -1,4 +1,5 @@
 """Real PostgreSQL/checkpointer, synthetic model and Milvus, for new follow-up entry."""
+from docs_fakes import FakeDocStore
 import importlib.util
 import json
 from pathlib import Path
@@ -26,6 +27,7 @@ def load_script(monkeypatch):
     # explicit offline adapter; running the legacy script itself stays closed.
     original_init = module.FollowupRunner.__init__
     def offline_init(self, *args, **kwargs):
+        kwargs["docs_store"] = FakeDocStore()
         kwargs["judge_fn"] = lambda *args: {"passed": True, "violations": []}
         original_init(self, *args, **kwargs)
     monkeypatch.setattr(module.FollowupRunner, "__init__", offline_init)
@@ -72,11 +74,11 @@ def test_followup_snapshot_and_model_selected_research(tmp_path, monkeypatch, ex
         state = json.loads(kwargs["user_prompt"])
         decisions.append(state)
         if len(decisions) == 1:
-            assert all(h["source_id"] != "SYN-HIST-V2-006" for h in state["evidence"])
+            assert all(h["source_id"] != "SYN-HIST-V2-006" for h in state["cases"])
             result = {"next_step": "search_cases", "query": "只读全年聚合报表 E_TIMEOUT 2 秒 4 秒",
                       "reason": "缺少客户端等待上限的适用案例，需要继续匹配"}
         else:
-            assert any(h["source_id"] == "SYN-HIST-V2-006" for h in state["evidence"])
+            assert any(h["source_id"] == "SYN-HIST-V2-006" for h in state["cases"])
             assert state["clarification_rounds"] == 1
             assert any(message["role"] == "support" and message["content"] == old.reply for message in state["messages"])
             assert any(message["role"] == "customer" and message["content"] == script.load_case()["customer_update"]

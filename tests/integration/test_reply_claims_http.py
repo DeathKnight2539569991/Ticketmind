@@ -1,4 +1,5 @@
 """Real HTTP/PostgreSQL/checkpointer, explicit offline Decision/Judge responses."""
+from docs_fakes import FakeDocStore
 import json
 from uuid import UUID, uuid4
 
@@ -61,7 +62,7 @@ def test_semantic_guardrail_http_persistence(setup, monkeypatch, entry, outcome)
         processing,
         decision_fn=(lambda *args: next_decision()) if entry == "injected_decision" else None,
         judge_fn=(lambda *args: next_judgment()) if entry == "injected_decision" else None,
-        milvus_factory=lambda _: local_client, corpus=synthetic.corpus,
+        milvus_factory=lambda _: local_client, corpus=synthetic.corpus, docs_store=FakeDocStore(),
     )
     ticket, key = m1.create(client), uuid4().hex
     response = m1.run(client, ticket, key=key)

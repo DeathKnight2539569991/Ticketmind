@@ -42,7 +42,7 @@ def test_semantic_fixtures_via_structured_judge(monkeypatch, reply, kind):
         state, value)
     assert result.model_dump() == expected
     payload = json.loads(calls[0]["user_prompt"])
-    assert set(payload) == {"subject", "messages", "proposal", "tool_calls", "system_capabilities"}
+    assert set(payload) == {"subject", "messages", "cases", "docs", "proposal", "tool_calls", "system_capabilities"}
     assert payload["proposal"] == value.model_dump()
     assert payload["messages"] == [{"role": "customer", "content": "当前使用本地代理。"}]
     assert "FORBIDDEN" not in calls[0]["user_prompt"]

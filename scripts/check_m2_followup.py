@@ -176,7 +176,7 @@ def verify(*, execute=False, ceilings=None, final_review=None, directory=OUTPUT,
                 app.state.runner = FollowupRunner(qwen, MilvusSettings(), config,
                     embedding_factory=adapters.embeddings,
                     decision_fn=decision_adapters.decision, milvus_factory=milvus,
-                    decision_model=decision_settings.model)
+                    decision_model=decision_settings.model, session_factory=factory)
                 result = start(client, ticket_id)
                 report["run"] = result
                 report["ticket_before_review"] = client.get(f"/tickets/{ticket_id}").json()

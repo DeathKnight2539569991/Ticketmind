@@ -1,4 +1,5 @@
 """Real PostgreSQL boundaries; deterministic capabilities and no paid calls."""
+from docs_fakes import FakeDocStore, doc_hit
 import json
 from types import SimpleNamespace
 from uuid import uuid4
@@ -52,7 +53,7 @@ def test_retrieve_checkpoint_survives_new_saver_runtime_and_pool(database, monke
             MilvusSettings(_env_file=None, uri="http://unused.invalid"),
             ProcessingSettings(_env_file=None, retrieval_mode="bm25", processing_timeout_seconds=90),
             corpus=SimpleNamespace(evidence=lambda hits: []), milvus_factory=lambda _: SimpleNamespace(close=close),
-            decision_fn=decide, judge_fn=judge)
+            decision_fn=decide, judge_fn=judge, docs_store=FakeDocStore())
     thread = uuid4().hex
     with checkpoint_resources(engine) as saver:
         workflow = ReviewWorkflow(saver)
@@ -88,12 +89,12 @@ def test_retrieve_checkpoint_survives_new_saver_runtime_and_pool(database, monke
     assert calls["decision"] == 2 and calls["judge"] == 1
 
 
-@pytest.mark.parametrize("tool", ["search_cases", "get_case_detail"])
+@pytest.mark.parametrize("tool", ["search_cases", "search_docs"])
 def test_successful_tool_checkpoint_is_not_repeated_after_failed_decision(database, monkeypatch, tool):
     from ticketmind.retrieval.dense import RetrievalHit
 
     engine, _, _ = database
-    calls = {"retrieve": 0, "search_cases": 0, "get_case_detail": 0, "decision": 0, "judge": 0, "close": 0}
+    calls = {"retrieve": 0, "search_cases": 0, "search_docs": 0, "decision": 0, "judge": 0, "close": 0}
     seen = []
     hit = RetrievalHit(source_id="case-1", text="synthetic case", score=0.5)
     def search(query, **kwargs):
@@ -102,9 +103,10 @@ def test_successful_tool_checkpoint_is_not_repeated_after_failed_decision(databa
         kwargs["record"]["result_hits"] = [{"source_id": hit.source_id}]
         return [hit]
     monkeypatch.setattr(runtime, "retrieve_cases", search)
-    def detail(source_id):
-        calls["get_case_detail"] += 1
-        return {"source_id": source_id, "text": "full case"}
+    def detail(query, **kwargs):
+        calls["search_docs"] += 1
+        return [doc_hit("full case")]
+    monkeypatch.setattr(runtime, "retrieve_docs", detail)
     def close():
         calls["close"] += 1
     def decide(state, timeout, usage):
@@ -113,7 +115,7 @@ def test_successful_tool_checkpoint_is_not_repeated_after_failed_decision(databa
         usage.setdefault("decisions", []).append({"total_tokens": 7})
         if calls["decision"] == 1:
             return {"next_step": tool, "reason": "inspect facts", **(
-                {"query": "additional customer facts"} if tool == "search_cases" else {"source_id": hit.source_id})}
+                {"query": "additional customer facts"} if tool == "search_cases" else {"query": "additional customer facts"})}
         if calls["decision"] == 2:
             raise RuntimeError("unfinished decision")
         return {"next_step": "propose_resolution", "reason": "facts checked", "reply": "请核对配置", "evidence_ids": [hit.source_id]}
@@ -125,8 +127,8 @@ def test_successful_tool_checkpoint_is_not_repeated_after_failed_decision(databa
             QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
             MilvusSettings(_env_file=None, uri="http://unused.invalid"),
             ProcessingSettings(_env_file=None, retrieval_mode="bm25"),
-            corpus=SimpleNamespace(evidence=lambda hits: [{"source_id": h.source_id} for h in hits], get_case_detail=detail),
-            milvus_factory=lambda _: SimpleNamespace(close=close), decision_fn=decide, judge_fn=judge)
+            corpus=SimpleNamespace(evidence=lambda hits: [{"source_id": h.source_id} for h in hits]),
+            milvus_factory=lambda _: SimpleNamespace(close=close), decision_fn=decide, judge_fn=judge, docs_store=FakeDocStore())
     thread = uuid4().hex
     with checkpoint_resources(engine) as saver:
         workflow = ReviewWorkflow(saver)
@@ -141,16 +143,17 @@ def test_successful_tool_checkpoint_is_not_repeated_after_failed_decision(databa
         assert all(record["status"] == "succeeded" for record in data["tool_calls"])
         assert data["usage"]["decisions"] == [{"total_tokens": 7}]
         assert data["search_rounds"] == (2 if tool == "search_cases" else 1)
-        if tool == "get_case_detail":
-            assert data["detail_ids"] == [hit.source_id]
-            assert data["case_details"][hit.source_id]["text"] == "full case"
+        if tool == "search_docs":
+            assert data["seen_docs_queries"] == ["additional customer facts"]
+            assert data["docs_hits"][0]["text"] == "full case"
+            assert data["docs_search_rounds"] == 1
         saved_audit = data["tool_calls"]
         decision_boundary = next(item for item in workflow.graph().get_state_history(workflow.config(thread))
                                  if item.next == (tool,))
         decision_data = decision_boundary.values["agent_data"]
         assert decision_data["decision_result"]["next_step"] == tool
         assert decision_data["agent_steps"] == 2 and len(decision_data["tool_calls"]) == 1
-        assert decision_data["search_rounds"] == 1 and decision_data["detail_ids"] == []
+        assert decision_data["search_rounds"] == 1 and decision_data["seen_docs_queries"] == []
         assert decision_data["usage"]["decisions"] == [{"total_tokens": 7}]
     # Explicit continuation with all runtime, workflow, saver and pool objects replaced.
     with checkpoint_resources(engine) as saver:
@@ -166,11 +169,11 @@ def test_successful_tool_checkpoint_is_not_repeated_after_failed_decision(databa
         workflow.resume(thread, {"decision": "approve"})
         workflow.resume(thread, {"decision": "approve"})
     assert calls == {"retrieve": 1, "search_cases": int(tool == "search_cases"),
-                     "get_case_detail": int(tool == "get_case_detail"), "decision": 3, "judge": 1,
-                     "close": 2 if tool == "search_cases" else 1}
+                     "search_docs": int(tool == "search_docs"), "decision": 3, "judge": 1,
+                     "close": 2}
     assert [state["agent_steps"] for state in seen] == [2, 4, 4]
     # Both failed and retried turns receive the exact completed-tool state.
-    for key in ("retrieval_hits", "case_details", "tool_calls", "seen_queries", "detail_ids"):
+    for key in ("retrieval_hits", "docs_hits", "tool_calls", "seen_queries", "seen_docs_queries"):
         assert seen[1][key] == seen[2][key]
 
 
@@ -210,7 +213,7 @@ def test_judge_and_repair_checkpoint_survive_rebuilt_runtime(database, monkeypat
             MilvusSettings(_env_file=None, uri="http://unused.invalid"),
             ProcessingSettings(_env_file=None, retrieval_mode="bm25", processing_timeout_seconds=90),
             corpus=SimpleNamespace(evidence=lambda hits: []), milvus_factory=lambda _: SimpleNamespace(close=close),
-            decision_fn=decision, judge_fn=judge)
+            decision_fn=decision, judge_fn=judge, docs_store=FakeDocStore())
     run_node = runtime.AgentExecution.run_node
     interrupted = [False]
     interruption = RuntimeError("synthetic process interruption outside capability")

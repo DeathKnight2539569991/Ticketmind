@@ -152,9 +152,53 @@ def test_m4_runner_wires_both_model_adapters(monkeypatch, tmp_path):
     monkeypatch.setattr(module, "AgentRunner", FakeRunner)
     config = ProcessingSettings(_env_file=None, decision_model="qwen3.8-flash",
                                 judge_model="deepseek-v4.1-flash")
-    runner, decisions, judges = module.build_acceptance_runner(settings("qwen3.7-flash"), config, ledger(tmp_path))
+    factory = object()
+    runner, decisions, judges = module.build_acceptance_runner(settings("qwen3.7-flash"), config, ledger(tmp_path),
+                                                             session_factory=factory)
     assert isinstance(runner, FakeRunner)
     assert observed["decision_fn"] == decisions.decision
     assert observed["judge_fn"] == judges.judge
+    assert observed["session_factory"] is factory
     assert decisions.settings.model == config.decision_model
     assert judges.settings.model == config.judge_model
+
+
+def test_m4_prepare_is_offline_without_runtime_metadata(monkeypatch, tmp_path):
+    scripts = Path(__file__).resolve().parents[1] / "scripts"
+    monkeypatch.syspath_prepend(str(scripts))
+    spec = importlib.util.spec_from_file_location("evaluate_m4_offline", scripts / "evaluate_m4.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    def forbidden(*args, **kwargs):
+        pytest.fail("offline prepare must not construct a runtime or access databases")
+    monkeypatch.setattr(module, "AgentRunner", forbidden)
+    monkeypatch.setattr(module, "isolated_database", forbidden)
+    monkeypatch.setattr(module, "QwenSettings", lambda: settings("qwen3.7-flash"))
+    output = tmp_path / "prepare.json"
+    monkeypatch.setattr(sys, "argv", ["evaluate_m4", "--stage", "prepare", "--output", str(output)])
+    module.main()
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["model_calls"] == 0 and report["external_services_accessed"] is False
+    assert report["decision_protocol"] == module.DECISION_PROTOCOL
+    assert report["judge_protocol"] == module.JUDGE_PROTOCOL
+
+
+def test_cached_evaluation_decisions_can_cite_actual_docs_without_new_calls(tmp_path):
+    from docs_fakes import doc_hit
+    from ticketmind.agent.dev_decision_cache import CachedDecision, DecisionCache, decision_fingerprint
+    from ticketmind.agent.proposals import decision_adapter
+    state, _ = context()
+    state["docs_hits"] = [doc_hit()]
+    value = {"next_step": "propose_resolution", "reason": "product rule", "reply": "请核对配置",
+             "evidence_ids": [doc_hit().source_id]}
+    fp = decision_fingerprint(settings(), state)
+    adapter = AcceptanceAdapters(settings(), tmp_path, ledger(tmp_path))
+    cache = adapter.path("decision", fp)
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text(json.dumps({"request_fingerprint": fp, "response": response(json.dumps(value))}), encoding="utf-8")
+    assert adapter.decision(state, 30, {}).evidence_ids == value["evidence_ids"]
+    path = tmp_path / "legacy-cache.json"
+    path.write_text(DecisionCache(request_fingerprint=fp, proposal=decision_adapter.validate_python(value),
+                                 usage=None).model_dump_json(), encoding="utf-8")
+    previous = CachedDecision(settings(), path)
+    assert previous(state, 30, {}).evidence_ids == value["evidence_ids"] and previous.calls == 0

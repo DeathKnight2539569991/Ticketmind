@@ -1,4 +1,5 @@
 """Explicit recovery over real business PostgreSQL and PostgresSaver, no paid calls."""
+from docs_fakes import FakeDocStore, doc_hit
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
 from types import SimpleNamespace
@@ -32,11 +33,13 @@ class Capabilities:
         self.calls = {"retrieve": 0, "search": 0, "detail": 0, "decision": 0, "judge": 0}
         self.now, self.timeouts, self.callback = 0., [], None
         self.config = ProcessingSettings(_env_file=None, retrieval_mode="bm25")
+        self.docs_store = FakeDocStore(self.config.docs_dataset)
         self.corpus = load_sources(self.config.corpus_path)
         self.case = next(iter(self.corpus.cases.values()))
         self.hit = RetrievalHit(source_id=self.case.source_id, text=build_case_text(self.case), score=.5)
         monkeypatch.setattr(runtime, "monotonic", lambda: self.now)
         monkeypatch.setattr(runtime, "retrieve_cases", self.retrieve)
+        monkeypatch.setattr(runtime, "retrieve_docs", self.detail)
 
     def retrieve(self, *args, **kwargs):
         key = "retrieve" if self.calls["retrieve"] == 0 else "search"
@@ -54,7 +57,7 @@ class Capabilities:
         if self.tool and self.calls["decision"] == 1:
             return {"next_step": self.tool, "reason": "inspect facts", **(
                 {"query": "additional customer facts"} if self.tool == "search_cases" else
-                {"source_id": self.case.source_id})}
+                {"query": "additional customer facts"})}
         if self.calls["decision"] == (2 if self.tool else 1):
             self.now += 2
             raise self.failure or RuntimeError("synthetic interrupted decision")
@@ -66,16 +69,15 @@ class Capabilities:
         return {"violations": []}
 
     def runner(self):
-        corpus = SimpleNamespace(version=self.corpus.version, cases=self.corpus.cases, evidence=self.corpus.evidence,
-            get_case_detail=self.detail)
+        corpus = SimpleNamespace(version=self.corpus.version, cases=self.corpus.cases, evidence=self.corpus.evidence)
         return AgentRunner(QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
             MilvusSettings(_env_file=None, uri="http://unused.invalid"), self.config,
             corpus=corpus, decision_fn=self.decision, judge_fn=self.judge,
-            milvus_factory=lambda _: SimpleNamespace(close=lambda: None))
+            milvus_factory=lambda _: SimpleNamespace(close=lambda: None), docs_store=self.docs_store)
 
-    def detail(self, source_id):
+    def detail(self, query, **kwargs):
         self.calls["detail"] += 1
-        return self.corpus.get_case_detail(source_id)
+        return [doc_hit("approved product rules")]
 
     def app(self):
         return create_app(session_factory=self.factory, runner=self.runner(), auth_settings=AUTH)
@@ -91,7 +93,7 @@ def recover(client, ticket, run, key=None, version=None):
             "Authorization": "Bearer " + "r" * 32, "Idempotency-Key": key or uuid4().hex})
 
 
-@pytest.mark.parametrize("tool", [None, "search_cases", "get_case_detail"])
+@pytest.mark.parametrize("tool", [None, "search_cases", "search_docs"])
 def test_explicit_api_recovery_skips_committed_nodes_and_review_is_exactly_once(database, monkeypatch, tool):
     _, factory, _ = database
     caps = Capabilities(factory, monkeypatch, tool=tool)
@@ -118,7 +120,7 @@ def test_explicit_api_recovery_skips_committed_nodes_and_review_is_exactly_once(
         assert result["run_status"] == "waiting_review" and result["published_message_id"] is None
         assert len(client.get(f'/tickets/{ticket["id"]}').json()["messages"]) == 1
         assert caps.calls == {"retrieve": 1, "search": int(tool == "search_cases"),
-            "detail": int(tool == "get_case_detail"), "decision": 3 if tool else 2, "judge": 1}
+            "detail": int(tool == "search_docs"), "decision": 3 if tool else 2, "judge": 1}
         assert len(result["usage"]["decisions"]) == (2 if tool else 1)
         assert result["usage"]["failed_attempts"][0]["reported_usage"]["decisions"] == [{"total_tokens": 7}]
         assert result["usage"]["failed_attempts"][0]["provider_usage_unknown"] is False
@@ -294,8 +296,8 @@ def test_invalid_checkpoint_refuses_capabilities(database, monkeypatch, damage):
             elif damage == "rounds":
                 values["agent_data"]["search_rounds"] = 10
             else:
-                values["agent_data"]["detail_ids"] = ["unknown-source"]
-                values["agent_data"]["case_details"] = {"unknown-source": {"text": "unknown"}}
+                values["agent_data"]["docs_search_rounds"] = 1
+                values["agent_data"]["docs_hits"] = [doc_hit("unknown").model_dump(mode="json")]
             graph.update_state(config, {"agent_data": values["agent_data"]})
         else:
             with factory() as session, session.begin():
@@ -315,6 +317,99 @@ def discard_observation(client, factory, run):
     workflow.graph().update_state(workflow.config(run["thread_id"]), {"failure_observation": None})
     with factory() as session, session.begin():
         session.get(ProcessingResult, UUID(run["id"])).usage = None
+
+
+@pytest.mark.parametrize("node,time_exhausted", [("repair", False), ("decision", False), ("repair", True)])
+def test_program_budget_fallback_recovery_and_output_save_crash(database, monkeypatch, node, time_exhausted):
+    """Unknown interruption at a pure node costs no fictitious model timeout."""
+    _, factory, _ = database
+    caps = Capabilities(factory, monkeypatch)
+    caps.config = caps.config.model_copy(update={"max_agent_steps": 4 if node == "repair" else 3})
+    bad = {"next_step": "escalate", "reason": "human", "reply": "人工一定会处理"}
+    def decision(state, timeout, usage):
+        caps.calls["decision"] += 1
+        if node == "repair" and caps.calls["decision"] == 1:
+            return {"next_step": "search_docs", "reason": "inspect", "query": "product rules"}
+        return bad if node == "repair" else {"next_step": "search_cases", "reason": "inspect", "query": "customer facts"}
+    def judge(*args):
+        caps.calls["judge"] += 1
+        caps.now = 89.
+        return {"violations": [{"type": "unsupported_commitment", "text": bad["reply"], "reason": "unsupported"}]}
+    caps.decision, caps.judge = decision, judge
+    retrieve_original = caps.retrieve
+    def retrieve(*args, **kwargs):
+        hits = retrieve_original(*args, **kwargs)
+        if caps.calls["search"]:
+            caps.now = 89.
+        return hits
+    monkeypatch.setattr(runtime, "retrieve_cases", retrieve)
+    original = runtime.AgentExecution.run_node
+    class Crash(BaseException): pass
+    def interrupted(execution, current):
+        if current == node and execution.partial.get("agent_steps") == caps.config.max_agent_steps:
+            raise Crash()
+        return original(execution, current)
+    monkeypatch.setattr(runtime.AgentExecution, "run_node", interrupted)
+    with TestClient(caps.app()) as client:
+        client_login(client)
+        ticket = m1.create(client)
+        from ticketmind.api.schemas.runs import RunCreate
+        from ticketmind.tickets.processing import create_run
+        with pytest.raises(Crash):
+            create_run(factory, caps.runner, UUID(ticket["id"]), RunCreate(expected_version=1,
+                       trigger_message_id=UUID(ticket["messages"][-1]["id"])), "operator", uuid4().hex,
+                       workflow=client.app.state.workflow)
+        with factory() as session:
+            saved = session.scalar(select(ProcessingResult).where(ProcessingResult.ticket_id == UUID(ticket["id"])))
+            run = {"id": str(saved.id), "thread_id": saved.thread_id}
+        workflow = client.app.state.workflow
+        checkpoint = workflow.inspect_compute(run["thread_id"])
+        assert checkpoint.next == (node,) and workflow.unknown_timeout(checkpoint) == 0
+        assert checkpoint.values["agent_data"]["compute_elapsed_seconds"] == 89
+        if time_exhausted:
+            data = checkpoint.values["agent_data"]
+            data.update(compute_elapsed_seconds=90., compute_observed_seconds=90.)
+            workflow.graph().update_state(workflow.config(run["thread_id"]), {"agent_data": data})
+    monkeypatch.setattr(runtime.AgentExecution, "run_node", original)
+    count = dict(caps.calls)
+    caps.now += 10000
+    with TestClient(caps.app()) as client:
+        client_login(client)
+        key = uuid4().hex
+        result = recover(client, ticket, run, key)
+        assert result.status_code == 200, result.text
+        result = result.json()
+        assert caps.calls == count
+        if time_exhausted:
+            assert result["run_status"] == "failed" and result["proposal"] is None
+            assert result["error_code"] == "execution_budget_exhausted"
+            return
+        assert result["run_status"] == "waiting_review" and result["proposal"]["next_step"] == "escalate"
+        data = client.app.state.workflow.graph().get_state(workflow.config(run["thread_id"])).values["agent_data"]
+        assert data.get("compute_estimated_seconds", 0) == 0 and not data.get("compute_estimates")
+        assert data["compute_elapsed_seconds"] == 89
+        assert data["repair_attempt"] == 0 and data["step_limit_reached"]
+        assert not {"candidate_proposal", "judge_result", "guardrail_feedback"} & data.keys()
+        assert recover(client, ticket, run, key).json() == result
+    # Durable review/output survives a crash before its business result save.
+    with factory() as session, session.begin():
+        saved = session.get(ProcessingResult, UUID(run["id"]))
+        saved.run_status, saved.proposal, saved.usage = RunStatus.RUNNING, None, None
+        saved.action, saved.retrieval_evidence, saved.tool_calls = None, [], []
+    with TestClient(caps.app()) as client:
+        client_login(client)
+        result = recover(client, ticket, run).json()
+        assert result["run_status"] == "waiting_review" and result["proposal"]["next_step"] == "escalate"
+        assert caps.calls == count
+        headers = {"Authorization": "Bearer " + "r" * 32, "Idempotency-Key": uuid4().hex}
+        path = f'/tickets/{ticket["id"]}/runs/{run["id"]}/review'
+        body = {"decision": "approve", "expected_version": 1}
+        approved = client.post(path, json=body, headers=headers)
+        assert approved.status_code == 201, approved.text
+        assert client.post(path, json=body, headers=headers).json() == approved.json()
+        current = client.get(f'/tickets/{ticket["id"]}').json()
+        assert current["status"] == "escalated" and len(current["messages"]) == 2
+        assert caps.calls == count
 
 
 @pytest.mark.parametrize("crash", [None, "prepared", "started"])
@@ -498,22 +593,23 @@ def test_second_active_run_refuses_recovery_before_capabilities(database, monkey
         assert caps.calls == calls
 
 
-@pytest.mark.parametrize("node", ["retrieve", "search_cases", "get_case_detail"])
+@pytest.mark.parametrize("node", ["bootstrap_retrieve", "search_cases", "search_docs"])
 def test_unknown_compound_call_refuses_without_capability(database, monkeypatch, node):
     _, factory, _ = database
     caps = Capabilities(factory, monkeypatch)
     with TestClient(caps.app()) as client:
         client_login(client)
         ticket = m1.create(client)
-        if node == "retrieve":
+        if node == "bootstrap_retrieve":
             monkeypatch.setattr(runtime, "retrieve_cases", lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("interrupted retrieval")))
         run = m1.run(client, ticket).json()
         workflow = client.app.state.workflow
         graph, config = workflow.graph(), workflow.config(run["thread_id"])
-        if node != "retrieve":
+        if node != "bootstrap_retrieve":
             data = graph.get_state(config).values["agent_data"]
             data["decision_result"] = {"next_step": node, "reason": "inspect facts", **(
-                {"query": "additional customer facts"} if node == "search_cases" else {"source_id": caps.case.source_id})}
+                {"query": "additional customer facts"})}
+            data.update(agent_steps=2, decision_rounds=1)
             graph.update_state(config, {"agent_data": data, "failure_observation": None}, as_node="decision")
             with factory() as session, session.begin():
                 session.get(ProcessingResult, UUID(run["id"])).usage = None
@@ -681,3 +777,65 @@ def test_real_legacy_topology_checkpoint_compatibility(database, monkeypatch, bo
         else:
             assert recover(client, ticket, run).json()["run_status"] == "failed"
         assert caps.calls == count
+
+
+@pytest.mark.parametrize("drift", ["catalog", "docs_mode", "docs_dataset", "docs_limit"])
+def test_docs_frozen_contract_drift_refuses_before_capabilities(database, monkeypatch, drift):
+    _, factory, _ = database
+    caps = Capabilities(factory, monkeypatch, tool="search_docs")
+    with TestClient(caps.app()) as client:
+        client_login(client)
+        ticket = m1.create(client)
+        run = m1.run(client, ticket).json()
+        assert run["run_status"] == "failed"
+        frozen = run["models"]["docs"]
+        assert frozen["docs_version"] == caps.config.docs_dataset
+        count = dict(caps.calls)
+        if drift == "catalog": caps.docs_store.catalog_hash = "changed-doc-content"
+        elif drift == "docs_mode": caps.config = caps.config.model_copy(update={"docs_retrieval_mode": "hybrid"})
+        elif drift == "docs_dataset": caps.config = caps.config.model_copy(update={"docs_dataset": "new-docs-version"})
+        else: caps.config = caps.config.model_copy(update={"max_docs_search_rounds": 1})
+        client.app.state.runner = caps.runner()
+        result = recover(client, ticket, run)
+        assert result.status_code == 409 and result.json()["error_code"] == "recovery_configuration_changed"
+        assert caps.calls == count
+
+
+def test_docs_reference_snapshot_survives_recovery_review_and_replay(database, monkeypatch):
+    _, factory, _ = database
+    caps = Capabilities(factory, monkeypatch, tool="search_docs")
+    original = caps.decision
+    def decide(state, timeout, usage):
+        proposal = original(state, timeout, usage)
+        if proposal["next_step"] == "ask_clarification":
+            assert state["docs_hits"][0].text == "approved product rules"
+            return {"next_step": "propose_resolution", "reason": "documented rule", "reply": "请核对产品配置",
+                    "evidence_ids": [state["docs_hits"][0].source_id]}
+        return proposal
+    caps.decision = decide
+    with TestClient(caps.app()) as client:
+        client_login(client)
+        ticket = m1.create(client)
+        run = m1.run(client, ticket).json()
+        assert run["run_status"] == "failed"
+        result = recover(client, ticket, run).json()
+        assert result["run_status"] == "waiting_review"
+        docs = next(item for item in result["retrieval_evidence"] if item.get("kind") == "docs")
+        assert docs == {"kind": "docs", **doc_hit("approved product rules").model_dump(mode="json")}
+        assert result["proposal"]["evidence_ids"] == [docs["source_id"]]
+        with factory() as session:
+            stored = session.get(ProcessingResult, UUID(run["id"]))
+            assert stored.retrieval_evidence == result["retrieval_evidence"]
+            assert stored.input_snapshot["runtime_contract"]["model_config"]["docs"] == stored.model_config["docs"]
+        caps.docs_store.catalog_hash = "changed after final proposal"
+        calls = dict(caps.calls)
+        key = uuid4().hex
+        headers = {"Authorization": "Bearer " + "r" * 32, "Idempotency-Key": key}
+        path = f'/tickets/{ticket["id"]}/runs/{run["id"]}/review'
+        payload = {"decision": "approve", "expected_version": 1}
+        reviewed = client.post(path, json=payload, headers=headers)
+        assert reviewed.status_code == 201, reviewed.text
+        assert client.post(path, json=payload, headers=headers).json() == reviewed.json()
+        assert caps.calls == calls
+        messages = client.get(f'/tickets/{ticket["id"]}').json()["messages"]
+        assert len(messages) == 2 and messages[-1]["body"] == result["proposal"]["reply"]

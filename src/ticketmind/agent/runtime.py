@@ -18,6 +18,7 @@ from ticketmind.agent.tools import (decision_turn, execute_decision_tool,
                                    normalize_decision, normalize_proposal)
 from ticketmind.core.config import MilvusSettings, ProcessingSettings, QwenSettings
 from ticketmind.knowledge.repository import KnowledgeStore
+from ticketmind.documents.service import DocStore, retrieve_docs
 from ticketmind.retrieval.embeddings import build_embedding_client
 from ticketmind.retrieval.milvus_client import build_milvus_client
 from ticketmind.retrieval.service import retrieve_cases
@@ -49,7 +50,9 @@ def fatal_failure(failure: RunFailure) -> bool:
     deterministic_retrieval = {"embedding_model_mismatch", "corpus_version_mismatch",
         "collection_version_mismatch", "collection_schema_mismatch", "collection_analyzer_mismatch",
         "collection_index_mismatch", "collection_data_incomplete", "knowledge_index_hash_missing",
-        "retrieval_empty_query", "dense_invalid_response", "bm25_invalid_response"}
+        "retrieval_empty_query", "dense_invalid_response", "bm25_invalid_response",
+        "docs_collection_version_mismatch", "docs_collection_schema_mismatch",
+        "docs_collection_analyzer_mismatch", "docs_collection_index_mismatch", "docs_invalid_response"}
     while cause is not None and id(cause) not in seen and len(seen) < 16:
         seen.add(id(cause))
         if isinstance(cause, (GuardrailFailure, ValidationError, ValueError, PermissionError)):
@@ -79,6 +82,7 @@ class AgentRunner:
         milvus_factory=None,
         session_factory=None,
         corpus=None,
+        docs_store=None,
         judge_fn=None,
     ):
         self.qwen, self.milvus, self.config = qwen, milvus, config
@@ -92,6 +96,7 @@ class AgentRunner:
 
             session_factory = SesstionLocal
         self.corpus = corpus if corpus is not None else KnowledgeStore(session_factory, config.knowledge_dataset)
+        self.docs_store = docs_store if docs_store is not None else DocStore(session_factory, config.docs_dataset)
         self.embedding_factory = embedding_factory
         self.decision_fn = decision_fn
         self.milvus_factory = milvus_factory
@@ -102,6 +107,7 @@ class AgentRunner:
         collections = ({"dense": dataset.collection_name,
                         "bm25": dataset.bm25_collection_name or dataset.collection_name}
                        if dataset is not None else None)
+        docs_metadata = self.docs_store.metadata()
         return {
             "agent_version": self.config.agent_version,
             "corpus_version": self.corpus.version,
@@ -114,6 +120,9 @@ class AgentRunner:
                 "max_guardrail_retries": 1,
                 "embedding": self.qwen.embedding_model,
                 "dimension": 1024,
+                "state_version": 2,
+                "docs": docs_metadata,
+                "docs_retrieval_mode": self.config.docs_retrieval_mode,
                 "top_k": self.config.retrieval_top_k,
                 "candidate_k": self.config.retrieval_candidate_k,
                 "rrf_k": self.config.retrieval_rrf_k,
@@ -126,7 +135,7 @@ class AgentRunner:
                 "limits": self.config.model_dump(
                     include={
                         "max_search_rounds",
-                        "max_case_details",
+                        "max_docs_search_rounds",
                         "max_agent_steps",
                         "max_clarification_rounds",
                         "processing_timeout_seconds",
@@ -143,12 +152,13 @@ class AgentRunner:
         return self._workflow.compute(AgentRunInput.model_validate(agent_input), self,
                                       clarification_rounds=clarification_rounds)
 
-    def new_execution(self, agent_input=None, clarification_rounds=0, *, data=None):
-        return AgentExecution(self, agent_input, clarification_rounds, data=data)
+    def new_execution(self, agent_input=None, clarification_rounds=0, *, data=None, trace=None):
+        return AgentExecution(self, agent_input, clarification_rounds, data=data, trace=trace)
 
     @property
     def recovery_contract(self):
         return copy_data({**self.metadata, "knowledge_dataset": self.config.knowledge_dataset,
+            "docs_dataset": self.config.docs_dataset,
             "model_call_timeout_seconds": 30.0,
             "retrieval_timeout_seconds": self.milvus.timeout_seconds,
             "endpoint_identity": hashlib.sha256((self.milvus.uri + "\n" + self.qwen.workspace_id).encode()).hexdigest()})
@@ -197,8 +207,9 @@ class AgentExecution:
     Capability methods never depend on __call__ closures or a database Session.
     """
 
-    def __init__(self, runner, agent_input=None, clarification_rounds=0, *, data=None):
+    def __init__(self, runner, agent_input=None, clarification_rounds=0, *, data=None, trace=None):
         self.runner = runner
+        self.trace = trace
         self.data = durable_state(data) if data is not None else durable_state({
             "subject": agent_input.subject, "messages": agent_input.messages,
             "clarification_rounds": clarification_rounds, "tool_calls": [],
@@ -210,6 +221,30 @@ class AgentExecution:
         self.evidence = copy_data(self.data.get("evidence", []))
         self.stage = "initialization"
         self.client, self.embeddings = None, None
+
+    def trace_event(self, name, node, **kwargs):
+        if self.trace is not None:
+            try:
+                self.trace.event(name, node=node, **kwargs)
+            except Exception:
+                pass
+
+    @staticmethod
+    def model_trace_input(state):
+        """The model-visible facts and evidence, without clients, settings or labels."""
+        try:
+            return {
+                "subject": state["subject"],
+                "messages": [message.model_dump(mode="json") for message in state["messages"]],
+                "cases": [hit.model_dump(mode="json") for hit in state.get("retrieval_hits", [])],
+                "docs": [hit.model_dump(mode="json") for hit in state.get("docs_hits", [])],
+                "tool_calls": [{key: value for key, value in call.items()
+                                if key in {"tool", "parameters", "status", "error"}}
+                               for call in state.get("tool_calls", [])],
+                "guardrail_feedback": state.get("guardrail_feedback"),
+            }
+        except Exception:
+            return {}
 
     def capture(self, state=None):
         if state is not None:
@@ -270,21 +305,54 @@ class AgentExecution:
         query = build_retrieval_query(subject=state["subject"], messages=state["messages"])
         return {"retrieval_query": query, "retrieval_hits": self.search_cases(query, record)}
 
-    def get_case_detail(self, source_id):
-        return self.runner.corpus.get_case_detail(source_id)
+    def search_docs(self, query, record):
+        if self.client is None:
+            # Docs BM25 never initializes embeddings or the Case index.
+            self.client = (self.runner.milvus_factory or build_milvus_client)(
+                self.runner.milvus.model_copy(update={"timeout_seconds": self.retrieval_timeout()}))
+        self.stage = "docs_retrieval"
+        config = self.runner.config
+        return retrieve_docs(query, client=self.client, store=self.runner.docs_store,
+            mode=config.docs_retrieval_mode, top_k=config.retrieval_top_k,
+            candidate_k=config.retrieval_candidate_k, timeout=self.retrieval_timeout, record=record)
+
+    def source_evidence(self, state):
+        docs = state.get("docs_hits", [])
+        if any(hit.docs_version != self.runner.docs_store.version for hit in docs):
+            raise ValueError("Docs 证据版本与本次运行不一致")
+        return self.runner.corpus.evidence(state["retrieval_hits"]) + [
+            {"kind": "docs", **hit.model_dump(mode="json")} for hit in docs]
 
     def decide(self, state):
         self.capture(state)
         self.stage = "source_validation"
-        self.evidence = self.runner.corpus.evidence(state["retrieval_hits"])
+        self.evidence = self.source_evidence(state)
         self.stage = "decision"
-        if self.runner.decision_fn:
-            result = self.runner.decision_fn(state, self.budget.remaining(), self.usage)
-        else:
-            result = decide_ticket(self.runner.decision_settings, state, timeout=self.budget.remaining(),
-                                   usage_callback=self.record_decision_usage)
-        self.budget.remaining()
-        return result
+        node = "repair" if state.get("guardrail_feedback") else "decision"
+        started = monotonic()
+        trace_inputs = {"model": self.runner.decision_settings.model,
+                        "protocol": DECISION_PROTOCOL, "repair": node == "repair",
+                        **self.model_trace_input(state)}
+        try:
+            if self.runner.decision_fn:
+                result = self.runner.decision_fn(state, self.budget.remaining(), self.usage)
+            else:
+                result = decide_ticket(self.runner.decision_settings, state, timeout=self.budget.remaining(),
+                                       usage_callback=self.record_decision_usage)
+            self.budget.remaining()
+            self.trace_event("ticketmind.model.decision", node, run_type="llm",
+                             inputs=trace_inputs,
+                             outputs={"decision": result.model_dump(mode="json") if hasattr(result, "model_dump") else result,
+                                      "duration_ms": round((monotonic() - started) * 1000),
+                                      "usage": self.usage.get("decisions", [])[-1:]})
+            return result
+        except Exception as exc:
+            self.trace_event("ticketmind.model.decision", node, run_type="llm",
+                             inputs=trace_inputs,
+                             outputs={"duration_ms": round((monotonic() - started) * 1000),
+                                      "usage": self.usage.get("decisions", [])[-1:]},
+                             error=type(exc).__name__)
+            raise
 
     def judge(self, state, proposal):
         self.stage = "semantic_judge"
@@ -294,6 +362,8 @@ class AgentExecution:
                   "proposal": proposal.model_dump(), "status": "failed"}
         self.usage["semantic_judge"].append(record)
         started = monotonic()
+        trace_inputs = {"model": runner.judge_settings.model, "protocol": JUDGE_PROTOCOL,
+                        "proposal": proposal.model_dump(mode="json"), **self.model_trace_input(state)}
         try:
             if runner.decision_fn is not None and runner.judge_fn is None:
                 raise ValueError("自定义 Decision 适配器必须显式提供 Judge 适配器")
@@ -306,9 +376,19 @@ class AgentExecution:
             result = validate_judgment(result, proposal)
             self.budget.remaining()
             record.update(status="passed" if result.passed else "rejected", result=result.model_dump())
+            self.trace_event("ticketmind.model.judge", "judge", run_type="llm",
+                             inputs=trace_inputs,
+                             outputs={"judgment": result.model_dump(mode="json"),
+                                      "duration_ms": round((monotonic() - started) * 1000),
+                                      "usage": record.get("usage")})
             return result
         except Exception as exc:
             record["error"] = "semantic_judge_error"
+            self.trace_event("ticketmind.model.judge", "judge", run_type="llm",
+                             inputs=trace_inputs,
+                             outputs={"duration_ms": round((monotonic() - started) * 1000),
+                                      "usage": record.get("usage")},
+                             error=type(exc).__name__)
             raise GuardrailFailure("semantic_judge_error") from exc
         finally:
             record["duration_ms"] = round((monotonic() - started) * 1000)
@@ -333,7 +413,7 @@ class AgentExecution:
         failure = None
         try:
             self.budget.remaining()
-            if node == "retrieve":
+            if node == "bootstrap_retrieve":
                 query = build_retrieval_query(subject=self.partial["subject"], messages=self.partial["messages"])
                 record = {"tool": "search_cases", "parameters": {"query": query},
                           "reason": "首次检索客户明确提供的工单事实", "status": "failed",
@@ -347,14 +427,14 @@ class AgentExecution:
                                   result_source_ids=[hit.source_id for hit in update["retrieval_hits"]],
                                   result_summary=f"返回 {len(update['retrieval_hits'])} 条候选")
                     self.partial.update(update)
-                    self.partial.update(agent_steps=1, search_rounds=1, repair_attempt=0,
-                                        case_details={}, detail_ids=[],
+                    self.partial.update(agent_steps=1, search_rounds=1, repair_attempt=0, decision_rounds=0,
+                                        docs_hits=[], docs_search_rounds=0, seen_docs_queries=[],
                                         seen_queries=[update["retrieval_query"].strip().casefold()],
                                         execution_limits=self.runner.config.model_dump(include={
-                                            "max_search_rounds", "max_case_details", "max_agent_steps",
+                                            "max_search_rounds", "max_docs_search_rounds", "max_agent_steps",
                                             "max_clarification_rounds"}))
                     self.stage = "source_validation"
-                    self.evidence = self.runner.corpus.evidence(update["retrieval_hits"])
+                    self.evidence = self.source_evidence(self.partial)
                 except Exception as exc:
                     record["error"] = "tool_execution_failed"
                     if hasattr(exc, "code"):
@@ -362,22 +442,36 @@ class AgentExecution:
                     raise
                 finally:
                     record["duration_ms"] = round((monotonic() - started) * 1000)
+                    self.trace_event("ticketmind.tool.search_cases", node, run_type="tool",
+                                     inputs={"query": query, "reason": record["reason"]},
+                                     outputs={"record": record,
+                                              "candidates": [hit.model_dump(mode="json") for hit in
+                                                             self.partial.get("retrieval_hits", [])]})
             elif node == "decision":
                 self.stage = "decision"
                 decision_turn(self.partial, decide=self.decide, config=self.runner.config,
                               remaining=self.budget.remaining)
-            elif node in ("search_cases", "get_case_detail"):
+                if self.partial.get("step_limit_reached"):
+                    self.trace_event("ticketmind.budget.fallback", node,
+                                     outputs={"agent_steps": self.partial.get("agent_steps"),
+                                              "proposal": self.partial.get("proposal").model_dump(mode="json")})
+            elif node in ("search_cases", "search_docs"):
                 decision = normalize_decision(self.partial["decision_result"])
                 if decision.next_step != node:
                     raise ValueError("工具节点与 Decision 不一致")
-                self.stage = "retrieval" if node == "search_cases" else "case_detail"
-                rejected = execute_decision_tool(self.partial, decision, corpus=self.runner.corpus,
+                self.stage = "retrieval" if node == "search_cases" else "docs_retrieval"
+                execute_decision_tool(self.partial, decision,
                     config=self.runner.config, remaining=self.budget.remaining,
-                    search_fn=self.search_cases, detail_fn=self.get_case_detail)
-                if rejected is not None:
-                    self.partial["candidate_proposal"] = rejected.model_dump(mode="json")
+                    search_fn=self.search_cases, docs_fn=self.search_docs)
+                record = self.partial["tool_calls"][-1]
+                ids = set(record.get("result_source_ids", []))
+                hits = self.partial["retrieval_hits"] if node == "search_cases" else self.partial.get("docs_hits", [])
+                self.trace_event("ticketmind.tool." + node, node, run_type="tool",
+                                 inputs={"query": decision.query, "reason": decision.reason},
+                                 outputs={"record": record, "candidates": [
+                                     hit.model_dump(mode="json") for hit in hits if hit.source_id in ids]})
                 self.stage = "source_validation"
-                self.evidence = self.runner.corpus.evidence(self.partial["retrieval_hits"])
+                self.evidence = self.source_evidence(self.partial)
             elif node == "judge":
                 self.stage = "decision"
                 proposal = (normalize_proposal(self.partial["candidate_proposal"])
@@ -386,18 +480,28 @@ class AgentExecution:
                                             self.runner.config))
                 proposal, result = judge_candidate(self.partial, proposal, judge=self.judge,
                                                    remaining=self.budget.remaining)
-                self.evidence = self.runner.corpus.evidence(self.partial["retrieval_hits"])
+                self.evidence = self.source_evidence(self.partial)
                 if result.passed:
                     self.partial["proposal"] = proposal
             elif node == "repair":
                 self.stage = "decision"
                 repair_candidate(self.partial, repair=self.repair, config=self.runner.config,
                                  remaining=self.budget.remaining)
+                self.trace_event("ticketmind.repair", node,
+                                 outputs={"proposal": self.partial.get("candidate_proposal"),
+                                          "repair_attempt": self.partial.get("repair_attempt")})
+                if self.partial.get("step_limit_reached"):
+                    self.trace_event("ticketmind.budget.fallback", node,
+                                     outputs={"agent_steps": self.partial.get("agent_steps"),
+                                              "proposal": self.partial["proposal"].model_dump(mode="json")})
             else:
                 raise ValueError("未知 Agent node")
             self.budget.remaining()
         except Exception as exc:
             failure = exc
+            if node in ("search_cases", "search_docs") and self.partial.get("tool_calls"):
+                self.trace_event("ticketmind.tool." + node, node, run_type="tool",
+                                 outputs={"record": self.partial["tool_calls"][-1]}, error=type(exc).__name__)
             self.partial.pop("proposal", None)
             if isinstance(exc, GuardrailFailure):
                 self.stage = "semantic_guardrail"

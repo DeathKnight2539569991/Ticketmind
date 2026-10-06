@@ -1,3 +1,4 @@
+from docs_fakes import doc_hit
 import pytest
 
 from ticketmind.agent.schemas import AgentMessage
@@ -74,7 +75,7 @@ def execute(decisions, *, changes=None, limits=None, tool_error=False):
         record["result_hits"] = [{"source_id": hits[2].source_id}]
         return result
     args = dict(decide=decide, judge=lambda *args: {"passed": True, "violations": []},
-                corpus=corpus, config=config, remaining=lambda: 1.0, audit=audit, search_fn=search)
+                corpus=corpus, config=config, remaining=lambda: 1.0, audit=audit, search_fn=search, docs_fn=lambda query, record: [doc_hit()])
     if tool_error:
         with pytest.raises(RuntimeError):
             run_decision_workflow(state, **args)
@@ -97,38 +98,38 @@ def test_step_budget_counts_only_the_initial_retrieval_before_first_decision():
 def test_tools_execute_and_return_new_evidence_to_decision():
     config = ProcessingSettings(_env_file=None)
     ids = list(load_sources(config.corpus_path).cases)
-    detail = {"next_step": "get_case_detail", "reason": "核对完整案例", "source_id": ids[0]}
+    detail = {"next_step": "search_docs", "reason": "核对产品规则", "query": "product rules"}
     result, evidence, seen, searches, audit = execute([SEARCH, detail, FINAL])
     assert result.next_step == "ask_clarification"
     assert searches == [SEARCH["query"]] and len(evidence) == 3
-    assert seen[-1]["case_details"][ids[0]]["source_id"] == ids[0]
-    assert [r["tool"] for r in audit] == ["search_cases", "get_case_detail"]
+    assert seen[-1]["docs_hits"][0] == doc_hit()
+    assert [r["tool"] for r in audit] == ["search_cases", "search_docs"]
     assert all(r["status"] == "succeeded" and r["duration_ms"] >= 0 for r in audit)
     assert audit[0]["result_hits"] == [{"source_id": evidence[-1].source_id}]
     assert seen[-1]["agent_steps"] <= 8
 
 
 @pytest.mark.parametrize("decision, limits, error", [
-    (SEARCH, {"max_search_rounds": 1}, "search_limit_or_duplicate"),
-    ({**SEARCH, "query": "original"}, {}, "search_limit_or_duplicate"),
+    (SEARCH, {"max_search_rounds": 1}, "search_limit"),
+    ({**SEARCH, "query": "original"}, {}, "duplicate_query"),
     ({**SEARCH, "query": "E_UNKNOWN 9.99"}, {}, "invented_query_facts"),
-    ({"next_step": "get_case_detail", "reason": "probe", "source_id": "invented"}, {}, "unknown_candidate"),
+    ({"next_step": "search_docs", "reason": "probe", "query": "product rules"}, {"max_docs_search_rounds": 0}, "search_limit"),
 ])
 def test_denied_tools_never_call_external_services(decision, limits, error):
     result, _, _, searches, audit = execute([decision], limits=limits)
     assert result.next_step == "escalate" and searches == []
-    assert audit[-1]["error"] == error
+    assert any(call.get("error") == error for call in audit)
 
 
 def test_repeated_search_stops_at_two_total_rounds():
     result, _, seen, searches, audit = execute([SEARCH])
-    assert result.next_step == "escalate" and searches == [SEARCH["query"]] and len(seen) == 2
+    assert result.next_step == "escalate" and searches == [SEARCH["query"]] and len(seen) == 4
 
 
-def test_step_limit_does_not_start_unfinishable_tool():
+def test_last_tool_step_executes_then_routes_fixed_review_proposal():
     result, _, seen, searches, audit = execute([SEARCH], limits={"max_agent_steps": 3})
-    assert result.next_step == "escalate" and searches == []
-    assert audit[-1]["error"] == "agent_step_limit"
+    assert result.next_step == "escalate" and searches == [SEARCH["query"]]
+    assert audit[-1]["status"] == "succeeded"
     assert seen[0]["execution_limits"]["max_agent_steps"] == 3
 
 
@@ -137,12 +138,12 @@ def test_two_clarifications_then_escalate():
     assert result.next_step == "escalate"
 
 
-def test_repeated_details_and_detail_limit():
+def test_repeated_docs_and_docs_limit():
     ids = list(load_sources(ProcessingSettings().corpus_path).cases)
-    detail = {"next_step": "get_case_detail", "reason": "核对", "source_id": ids[0]}
+    detail = {"next_step": "search_docs", "reason": "核对", "query": "product rules"}
     result, _, _, _, audit = execute([detail])
-    assert result.next_step == "escalate" and audit[-1]["error"] == "detail_limit_or_duplicate"
-    result, _, _, _, audit = execute([detail], limits={"max_case_details": 0})
+    assert result.next_step == "escalate" and audit[-1]["error"] == "duplicate_query"
+    result, _, _, _, audit = execute([detail], limits={"max_docs_search_rounds": 0})
     assert result.next_step == "escalate" and audit[-1]["status"] == "rejected"
 
 

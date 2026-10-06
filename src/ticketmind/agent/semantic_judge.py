@@ -6,12 +6,12 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, computed_f
 
 from ticketmind.llm.client import generate_text
 
-JUDGE_PROTOCOL = "semantic-guardrail-v2"
+JUDGE_PROTOCOL = "semantic-guardrail-v3"
 JUDGE_OPTIONS = {"temperature": 0, "max_tokens": 2000, "extra_body": {"enable_thinking": False}}
 CAPABILITIES = {
     "tools": {
         "search_cases": {"effect": "read_only"},
-        "get_case_detail": {"effect": "read_only"},
+        "search_docs": {"effect": "read_only"},
     },
     "approval_required_actions": ["publish_reply", "close_ticket", "apply_escalation"],
     "unavailable_actions": [
@@ -84,6 +84,8 @@ def judge_messages(state, proposal):
     # Allowlist: never serialize the whole state or an evaluation row.
     payload = {"subject": state["subject"], "messages": [message.model_dump() for message in state["messages"]],
                "proposal": proposal.model_dump(),
+               "cases": [hit.model_dump(mode="json") for hit in state.get("retrieval_hits", [])],
+               "docs": [hit.model_dump(mode="json") for hit in state.get("docs_hits", [])],
                "tool_calls": [{key: value for key, value in call.items() if key in {
                    "tool", "parameters", "status", "result_source_ids"}}
                    for call in state.get("tool_calls", [])],

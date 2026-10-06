@@ -1,4 +1,5 @@
 """Real PG + Milvus. Dedicated disposable collection; no provider/model calls."""
+from docs_fakes import FakeDocStore, doc_hit
 import os
 import re
 
@@ -48,21 +49,17 @@ def test_real_publish_three_modes_retire_and_repair(knowledge, monkeypatch):
         # The approved case is immediately usable by a new production Agent run,
         # without loading JSONL or restarting the API. Only model decisions are doubles.
         from ticketmind.agent.runtime import AgentRunner
-        from ticketmind.agent.proposals import Clarification, GetCaseDetail
+        from ticketmind.agent.proposals import Clarification
         def decide(state, timeout, usage):
-            if not state["case_details"]:
-                return GetCaseDetail(next_step="get_case_detail", source_id=case["source_id"], reason="核对已解决会话")
-            detail = state["case_details"][case["source_id"]]
-            assert detail == {"source_id": case["source_id"], "title": case["title"],
-                              "article": case["source"]["article"]}
-            assert "messages" not in detail
-            return Clarification(next_step="ask_clarification", reason="需核对当前环境",
+            assert state["retrieval_hits"][0].source_id == case["source_id"]
+        assert state["retrieval_hits"][0].text == case["content"]
+        return Clarification(next_step="ask_clarification", reason="需核对当前环境",
                                  reply="请提供当前错误。", evidence_ids=[case["source_id"]])
         k.client.app.state.runner = AgentRunner(k.qwen, milvus,
             k.config.model_copy(update={"retrieval_mode": "bm25", "knowledge_dataset": PRODUCTION_DATASET}),
             session_factory=k.factory,
             judge_fn=lambda *args: {"passed": True, "violations": []},
-            decision_fn=decide, milvus_factory=lambda _: GuardedMilvusClient(build_milvus_client(milvus)))
+            decision_fn=decide, milvus_factory=lambda _: GuardedMilvusClient(build_milvus_client(milvus)), docs_store=FakeDocStore())
         ticket = post(k, "/tickets", {"subject": "登录失败", "body": "登录失败", "channel": "web", "requester_role": "user"}).json()
         detail = k.client.get(f"/tickets/{ticket['id']}").json()
         run = post(k, f"/tickets/{ticket['id']}/runs", {"expected_version": 1, "trigger_message_id": detail["messages"][-1]["id"]})

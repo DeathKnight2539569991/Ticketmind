@@ -15,6 +15,7 @@ dependencies = [
     "langchain-community>=0.4.2",
     "langgraph>=1.2.11",
     "langgraph-checkpoint-postgres>=3,<4",
+    "langsmith==0.12.2",
     "openai>=3.10.0",
     "psycopg[binary]>=3.2,<4.0",
     "pydantic-settings>=2.0,<3.0",
@@ -36,4 +37,5 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests"]
 markers = ["integration: opt-in real PostgreSQL tests in temporary isolated schemas"]

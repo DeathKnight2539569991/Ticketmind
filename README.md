@@ -8,13 +8,15 @@ TicketMind 是一个可在本地运行的工单处理系统：接收客户问题
 
 求职展示从[交付说明](docs/internship-handoff.md)开始：[五分钟演示](docs/demo-guide.md)、[RAG 与 Agent 评估](docs/rag-evaluation.md)、[面试讲解](docs/interview-guide.md)。2026-09-28 使用真实 PostgreSQL、Milvus 和确定性模型替身完成 **286 项测试，全部通过**；条件与边界见[本轮验收记录](docs/verification-2026-09-28.md)。
 
+2026-10-06 的最新 Tool / Docs 架构、迁移、预算与验证范围见[本次交付报告](docs/tool-docs-refactor-verification.md)。当前模型动作有五种，检索工具仅为 `search_cases` 与 `search_docs`；本轮使用真实 PostgreSQL 和检索/模型替身，真实 Milvus 与 LangSmith 云端未验收。
+
 ## 核心功能
 
 | 模块 | 能力 |
 | --- | --- |
 | 工单与工作台 | 创建工单、查看消息和运行记录、接收客户补充、人工回复及明确关闭 |
-| Agent 决策 | 基于当前工单和检索结果，选择继续检索、读取案例详情、提出解决方案、追问或建议转人工 |
-| 检索增强 | BM25、Dense 和 Hybrid 检索；Hybrid 通过 RRF 融合排名，检索结果保留来源 ID 与运行审计 |
+| Agent 决策 | 基于当前工单、Cases 和 Docs，选择搜索案例、搜索产品文档、提出解决方案、追问或建议转人工 |
+| 检索增强 | Cases 支持 BM25、Dense 和 Hybrid；独立 Docs chunk 索引首版支持 BM25，Hybrid 显式降级到 BM25 |
 | 提案与审核 | 结构化输出、独立 Semantic Judge、人工批准/编辑/转人工；所有最终提案先进入待审核状态 |
 | 持久化与恢复 | PostgreSQL 工单与审核记录、LangGraph 检查点、幂等写入及版本冲突校验 |
 | 知识沉淀 | 人工批准已解决工单入库；PostgreSQL 保存权威正文，Milvus 建立索引，支持重试索引和停用知识 |
@@ -61,9 +63,18 @@ if (-not (Test-Path .env)) { Copy-Item env.example .env }
 
 ```powershell
 uv run --no-sync python scripts/configure_local_auth.py
+uv run --no-sync alembic upgrade head
 ```
 
 `.env` 仅保存在本地，不提交真实凭据。**v2 数据集需要预先完成 seed 和索引同步，并确认 BM25 就绪、知识状态为 `active`**；Dense 还需要向量缓存和独立索引就绪。新机器的初始化与缓存缺失处理参见[知识库初始化与同步说明](docs/knowledge-writeback.md#初始化与运维命令)。日常启动不会重复导入知识或生成文档 Embedding。
+
+使用 Docs 工具前，准备两篇明确标注 synthetic 的产品文档及独立 BM25 索引；此命令只访问 PostgreSQL/Milvus，不调用模型或 Embedding：
+
+```powershell
+uv run --no-sync python -m ticketmind.documents.cli data/synthetic/docs --version synthetic-product-docs-v1
+```
+
+配置 `TICKETMIND_DOCS_DATASET=synthetic-product-docs-v1`、`TICKETMIND_DOCS_RETRIEVAL_MODE=bm25` 与 `TICKETMIND_AGENT_VERSION=ticketmind-tools-docs-v2`。导入与分块可重复执行；仅执行 `--no-index` 时 Docs 保持未就绪，详见[初始化和版本约束](docs/tool-docs-refactor-verification.md#初始化与使用)。
 
 ### 一键启动（v2 + Flash + BM25）
 
@@ -96,16 +107,22 @@ Judge 模型、数据库和模型凭据等其余配置仍来自现有 `.env`。�
 
 ## 使用流程
 
-1. 在工作台创建工单并发起处理，查看模型提案、历史证据和工具调用记录。
+1. 在工作台创建工单并发起处理，查看模型提案、历史案例/产品文档 chunk 证据和工具调用记录。
 2. 人工审核解决建议、追问或转人工提案；可以编辑回复后批准。生成提案本身不会向客户发送消息或关闭工单。
 3. 客户补充信息后可以对新消息再次处理；确认解决后，由人工明确关闭工单。
 4. 对已解决工单，reviewer 可以检查待入库内容并批准发布到知识库；索引状态为 `active` 后，新工单可以检索到该知识。
 
 当前“发布回复”指保存到系统内部的工单消息；没有接入真实邮件、外部派单或第三方客服平台。
 
+如果中断运行无法恢复并阻塞工单，reviewer 可在运行记录中填写原因，选择“终止中断运行”并确认，随后继续人工回复、接管或关闭。该操作不调用模型，保留检查点和审计记录；仍在执行的请求会被拒绝终止。
+
 当前核心操作支持：编辑审核时同时选择最终动作、独立人工接管、从检查点恢复已结束请求的运行状态，以及发布前人工整理知识正文。每次处理可以选择 BM25 / Hybrid / Dense；BM25 发布不要求文档向量，Hybrid 可通过关键词通道召回尚无向量的知识。知识发布到 `production-v1`，只有检索该数据集的运行才能使用；`active` 表示文本索引就绪，Dense 就绪状态单独展示。
 
-Agent 生产图使用同一 PostgreSQL checkpointer：`retrieve → decision ↔ search_cases/get_case_detail → judge → repair → judge → review`。启动只识别检查点；计算续算需要 reviewer 显式恢复，并核对原配置、版本及累计 active 预算。恢复可能重复当前未完成节点，已持久化成功节点跳过；已有待审核提案与审核重放不调用模型，恢复不发布回复。硬退出耗时未知时，Decision/Judge/Repair 的未完成单模型调用按冻结的 effective timeout（30 秒与原剩余预算的较小值）保守扣减，单独标记 `conservative/estimated`；扣后耗尽直接失败且不调用能力。缺少可靠冻结上限或未完成 retrieve/search/detail 复合调用时拒绝续算。扣减先持久化再经恢复 gate 执行；gate 前崩溃复用扣减，进入调用阶段后再次硬退出按新 attempt 扣减。生产与直接 AgentRunner 调用共用一个显式 workflow 拓扑；Workflow 实例只编译一次，模型/资源通过 invocation context 注入，不进入 checkpoint。直接调用仅计算到 Judge 通过，业务入口仍必须持久化 review interrupt。旧审核 checkpoint 可恢复，旧 compute 不执行。阶段记录见 [重构记录](docs/agent-durable-refactor.md)。
+Agent 生产图使用同一 PostgreSQL checkpointer：`bootstrap_retrieve → decision ↔ search_cases/search_docs → judge → repair → judge → review`。启动只识别检查点；计算续算需要 reviewer 显式恢复，并核对原配置、版本及累计 active 预算。恢复可能重复当前未完成节点，已持久化成功节点跳过；已有待审核提案与审核重放不调用模型，恢复不发布回复。硬退出耗时未知时，Decision/Judge/Repair 的未完成单模型调用按冻结的 effective timeout（30 秒与原剩余预算的较小值）保守扣减，单独标记 `conservative/estimated`；扣后耗尽直接失败且不调用能力。缺少可靠冻结上限或未完成 bootstrap_retrieve/search_cases/search_docs 复合调用时拒绝续算。扣减先持久化再经恢复 gate 执行；gate 前崩溃复用扣减，进入调用阶段后再次硬退出按新 attempt 扣减。生产与直接 AgentRunner 调用共用一个显式 workflow 拓扑；Workflow 实例只编译一次，模型/资源通过 invocation context 注入，不进入 checkpoint。直接调用计算到 Judge 通过，或步数耗尽时的固定转人工提案，业务入口仍必须持久化 review interrupt。旧审核 checkpoint 可恢复，旧 compute 不执行。阶段记录见 [重构记录](docs/agent-durable-refactor.md)。
+
+Cases 与 Docs 分别受 `TICKETMIND_MAX_SEARCH_ROUNDS`、`TICKETMIND_MAX_DOCS_SEARCH_ROUNDS` 限制，共享 `TICKETMIND_MAX_AGENT_STEPS`。首次 Case 检索占一次 Case 配额与一个 step；每次 Decision、工具尝试（含拒绝）和唯一 Repair 消耗 step。重复 query 与额度拒绝返回 Decision，检索成功才消耗对应搜索配额；同一 query 可分别用于 Cases/Docs。步数耗尽生成固定转人工提案并进入审核，跳过 Judge；时间耗尽仍失败。Docs chunk 的正文、版本、hash 与 synthetic 标记保存于运行证据，工作台直接显示该快照。新计算状态版本为 2，旧 compute 不升级，历史等待审核输出仍可审核。
+
+首次 Judge FAIL 后若无 step 执行 Repair，也生成同一固定转人工提案：清除旧候选与旧 Judge 结果，零 Repair 模型/第二 Judge 调用。恢复这种已耗尽 step 的 Decision/Repair 节点时不扣未知模型超时，真实活跃时间耗尽仍失败。
 
 更新代码需要升级数据库。变更细节、使用流程与迁移见[核心代码修改报告](docs/core-fixes-2026-09-22.md)；该报告是历史记录，后续验证以[本轮验收记录](docs/verification-2026-09-28.md)和[真实路径评估](docs/rag-evaluation.md#最新代码的真实路径证据)为准。
 
@@ -114,6 +131,9 @@ Agent 生产图使用同一 PostgreSQL checkpointer：`retrieve → decision ↔
 ```powershell
 # 默认单元测试及不依赖真实数据库的测试，并保存结果
 uv run --no-sync python scripts/verify_project.py
+
+# 本轮真实 PostgreSQL + 检索/模型替身验证方式
+uv run --no-sync python scripts/verify_project.py --db
 
 # 可选：已有本机 PostgreSQL 与 Milvus 可用时执行集成测试
 uv run --no-sync python scripts/verify_project.py --db --milvus
@@ -131,6 +151,7 @@ uv run --no-sync python scripts/verify_project.py --db --milvus
 
 ## 文档
 
+- [最新 Tool / Docs 架构重构与验证（2026-10-06）](docs/tool-docs-refactor-verification.md)
 - [审查优先问题修复与验证（2026-09-24）](docs/audit-fixes-2026-09-24.md)
 - [交付范围与复现入口](docs/internship-handoff.md)
 - [收尾验收（2026-09-28）](docs/verification-2026-09-28.md)
@@ -146,3 +167,13 @@ uv run --no-sync python scripts/verify_project.py --db --milvus
 ## 运行范围
 
 项目当前面向本地、单实例、单 Worker 和合成业务数据；保留人工审核，不自动执行客户环境操作。真实客户渠道集成、多实例部署及生产级运维不属于当前交付范围。
+
+# 可选 LangSmith 追踪
+
+默认关闭。需要查看 Agent 决策链时，在本地环境配置 `LANGSMITH_TRACING=true`、
+`LANGSMITH_API_KEY` 和 `LANGSMITH_PROJECT`。追踪记录 run/attempt、检索候选与工具拒绝、
+Decision/Judge 的输入输出、Repair、预算兜底和审核中断/恢复。事件的 metadata 带业务
+`run_id`、`thread_id`、attempt、checkpoint、模型/协议和证据版本，跨进程可按业务 ID 检索。
+工单文本及检索证据会发送到 LangSmith；启用前应确认团队的数据处理要求。代码会遮蔽常见凭据格式，
+但不要在工单中粘贴密钥。异步队列有界，SDK 或网络故障不影响业务结果；进程突然退出或队列满时，
+可能丢失末尾事件。未配置凭据时不会调用 LangSmith。

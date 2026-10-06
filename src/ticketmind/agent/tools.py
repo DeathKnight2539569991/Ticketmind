@@ -26,7 +26,7 @@ def judge_candidate(state, proposal, *, judge, remaining):
     """Validate one candidate and judge it; only passed candidates become final."""
     remaining()
     proposal = normalize_proposal(proposal)
-    validate_proposal(proposal, {hit.source_id for hit in state["retrieval_hits"]})
+    validate_proposal(proposal, evidence_ids(state))
     state.pop("judge_result", None)
     state["candidate_proposal"] = proposal.model_dump(mode="json")
     result = validate_judgment(judge(typed_state(durable_state(state)), proposal), proposal)
@@ -48,7 +48,7 @@ def repair_candidate(state, *, repair, config, remaining):
     if state["repair_attempt"] != 0:
         raise GuardrailFailure()
     if state["agent_steps"] >= config.max_agent_steps:
-        raise GuardrailFailure("guardrail_step_limit")
+        return step_limit_proposal(state)
     state["agent_steps"] += 1
     state["repair_attempt"] = 1
     # The rejected judgment refers to the old candidate, never the replacement.
@@ -56,7 +56,7 @@ def repair_candidate(state, *, repair, config, remaining):
     try:
         proposal = normalize_proposal(repair(typed_state(durable_state(state))))
         remaining()
-        validate_proposal(proposal, {hit.source_id for hit in state["retrieval_hits"]})
+        validate_proposal(proposal, evidence_ids(state))
         if (proposal.next_step == "ask_clarification" and
                 state.get("clarification_rounds", 0) >= config.max_clarification_rounds):
             raise ValueError("重生成不得绕过澄清轮数限制")
@@ -66,74 +66,79 @@ def repair_candidate(state, *, repair, config, remaining):
     return proposal
 
 
+def evidence_ids(state):
+    return {hit.source_id for hit in state.get("retrieval_hits", []) + state.get("docs_hits", [])}
+
+
+def step_limit_proposal(state):
+    # The program-generated handoff replaces any failed model candidate.
+    for key in ("candidate_proposal", "judge_result", "guardrail_feedback"):
+        state.pop(key, None)
+    proposal = escalation("Agent 执行步数达到上限")
+    state["decision_result"] = normalize_decision(proposal).model_dump(mode="json")
+    state["proposal"] = proposal
+    state["step_limit_reached"] = True
+    return proposal
+
+
 def decision_turn(state, *, decide, config, remaining):
-    """One model turn; tools and final-proposal validation belong to later nodes."""
+    """One model turn; exhaustion is a fixed, reviewable proposal with no Judge."""
     remaining()
     if state["agent_steps"] >= config.max_agent_steps:
-        decision = normalize_decision(escalation("Agent 执行步数达到上限"))
-        state["decision_result"] = decision.model_dump(mode="json")
-        return decision
+        return step_limit_proposal(state)
     state["agent_steps"] += 1
+    state["decision_rounds"] += 1
     decision = normalize_decision(decide(typed_state(durable_state(state))))
     state["decision_result"] = decision.model_dump(mode="json")
+    if state["agent_steps"] >= config.max_agent_steps and decision.next_step in ("search_cases", "search_docs"):
+        return step_limit_proposal(state)
     return decision
 
 
-def execute_decision_tool(state, decision, *, corpus, config, remaining, search_fn, detail_fn=None):
-    """Shared guard/execution boundary. Return a deterministic proposal on rejection."""
-    audit = state["tool_calls"]
-    params = {"query": decision.query} if decision.next_step == "search_cases" else {"source_id": decision.source_id}
-    record = {"tool": decision.next_step, "parameters": params, "reason": decision.reason,
-              "status": "rejected", "duration_ms": 0, "result_source_ids": []}
-    audit.append(record)
-    if state["agent_steps"] >= config.max_agent_steps - 1:
-        record["error"] = "agent_step_limit"
-        return escalation("Agent 执行步数不足以继续查询和决策")
-    if decision.next_step == "search_cases":
-        if state["search_rounds"] >= config.max_search_rounds or decision.query.strip().casefold() in state["seen_queries"]:
-            record["error"] = "search_limit_or_duplicate"
-            return escalation("检索次数已达上限或查询重复")
-        try:
-            validate_query(decision.query, state)
-        except ValueError:
-            record["error"] = "invented_query_facts"
-            return escalation("查询包含客户未提供的错误码或版本")
-    elif decision.source_id not in {hit.source_id for hit in state["retrieval_hits"]}:
-        record["error"] = "unknown_candidate"
-        return escalation("详情查询来源不属于已检索候选")
-    elif decision.source_id in state["detail_ids"] or len(state["detail_ids"]) >= config.max_case_details:
-        record["error"] = "detail_limit_or_duplicate"
-        return escalation("详情读取次数已达上限或来源重复")
+def execute_decision_tool(state, decision, *, config, remaining, search_fn, docs_fn):
+    """Every admitted tool attempt costs a step; guard rejection returns an observation."""
+    remaining()
+    if state["agent_steps"] >= config.max_agent_steps:
+        raise ValueError("工具节点缺少执行步数")
     state["agent_steps"] += 1
+    tool = decision.next_step
+    record = {"tool": tool, "parameters": {"query": decision.query}, "reason": decision.reason,
+              "status": "rejected", "duration_ms": 0, "result_source_ids": []}
+    state["tool_calls"].append(record)
+    rounds, queries, hits_key, limit, fn = (
+        ("search_rounds", "seen_queries", "retrieval_hits", config.max_search_rounds, search_fn)
+        if tool == "search_cases" else
+        ("docs_search_rounds", "seen_docs_queries", "docs_hits", config.max_docs_search_rounds, docs_fn))
+    normalized = decision.query.strip().casefold()
+    if normalized in state[queries]:
+        record["error"] = "duplicate_query"
+        return
+    if state[rounds] >= limit:
+        record["error"] = "search_limit"
+        return
+    try:
+        validate_query(decision.query, state)
+    except ValueError:
+        record["error"] = "invented_query_facts"
+        return
     started = monotonic()
     try:
+        hits = fn(decision.query, record)
         remaining()
-        if decision.next_step == "search_cases":
-            hits = search_fn(decision.query, record)
-            state["seen_queries"].append(decision.query.strip().casefold())
-            state["search_rounds"] += 1
-            merged = {hit.source_id: hit for hit in state["retrieval_hits"]}
-            merged.update({hit.source_id: hit for hit in hits})
-            state["retrieval_hits"] = list(merged.values())
-            record["result_source_ids"] = [hit.source_id for hit in hits]
-            record["result_summary"] = f"返回 {len(hits)} 条候选"
-        else:
-            state["case_details"][decision.source_id] = (detail_fn or corpus.get_case_detail)(decision.source_id)
-            state["detail_ids"].append(decision.source_id)
-            record["result_source_ids"] = [decision.source_id]
-            from ticketmind.knowledge.repository import KnowledgeStore
-            record["result_summary"] = ("读取本次版本的完整案例" if isinstance(corpus, KnowledgeStore)
-                                        else "读取本次版本的完整合成案例")
-        remaining()
-        record["status"] = "succeeded"
+        state[queries].append(normalized)
+        state[rounds] += 1
+        merged = {hit.source_id: hit for hit in state[hits_key]}
+        merged.update({hit.source_id: hit for hit in hits})
+        state[hits_key] = list(merged.values())
+        record.update(status="succeeded", result_source_ids=[hit.source_id for hit in hits],
+                      result_summary=f"返回 {len(hits)} 条候选")
     except Exception as exc:
-        record["status"], record["error"] = "failed", "tool_execution_failed"
+        record.update(status="failed", error="tool_execution_failed")
         if hasattr(exc, "code"):
             record["retrieval_error"] = exc.code
         raise
     finally:
         record["duration_ms"] = round((monotonic() - started) * 1000)
-    return None
 
 
 def final_candidate(state, proposal, config):

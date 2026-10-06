@@ -1,4 +1,5 @@
 """One compiled topology with invocation-scoped resources and failure sinks."""
+from docs_fakes import FakeDocStore, doc_hit
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from types import SimpleNamespace
@@ -22,7 +23,7 @@ def runtime(monkeypatch, decision):
         ProcessingSettings(_env_file=None, retrieval_mode="bm25"),
         corpus=SimpleNamespace(evidence=lambda hits: []),
         milvus_factory=lambda settings: SimpleNamespace(close=lambda: None),
-        decision_fn=decision, judge_fn=lambda *args: {"violations": []})
+        decision_fn=decision, judge_fn=lambda *args: {"violations": []}, docs_store=FakeDocStore())
 
 
 def snapshot(subject):
@@ -82,7 +83,7 @@ def test_direct_runner_reuses_the_same_topology_without_state_leak(monkeypatch):
     assert second.state["proposal"].reply == "second"
     assert calls == ["first", "second"]
     assert "compute" not in graph.nodes
-    assert set(graph.nodes) == {"__start__", "retrieve", "decision", "search_cases", "get_case_detail",
+    assert set(graph.nodes) == {"__start__", "bootstrap_retrieve", "decision", "search_cases", "search_docs",
                                 "judge", "repair", "review", "resume_gate"}
 
 

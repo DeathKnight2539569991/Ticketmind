@@ -1,3 +1,4 @@
+from docs_fakes import FakeDocStore, doc_hit
 import pytest
 
 from ticketmind.agent import runtime
@@ -68,7 +69,7 @@ def test_real_graph_orchestration_and_partial_failure(monkeypatch, settings, fai
 
     runner = AgentRunner(settings, MilvusSettings(_env_file=None, uri="http://unit.invalid"), config,
         embedding_factory=lambda remaining: Embedding(), decision_fn=decide, corpus=corpus,
-        judge_fn=lambda *args: {"passed": True, "violations": []})
+        judge_fn=lambda *args: {"passed": True, "violations": []}, docs_store=FakeDocStore())
     if failure:
         with pytest.raises(RunFailure) as error:
             runner(run_input())
@@ -132,7 +133,7 @@ def test_cleanup_failure_preserves_result_or_original_failure(monkeypatch, setti
 
     runner = AgentRunner(settings, MilvusSettings(_env_file=None, uri="http://unit.invalid"), config,
                          corpus=corpus, milvus_factory=lambda _: Client(), decision_fn=decide,
-                         judge_fn=lambda *args: {"violations": []})
+                         judge_fn=lambda *args: {"violations": []}, docs_store=FakeDocStore())
     if decision_fails:
         with pytest.raises(RunFailure) as caught:
             runner(run_input())

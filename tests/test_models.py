@@ -1,5 +1,6 @@
 from ticketmind.db.base import Base
 import ticketmind.knowledge.models
+import ticketmind.documents.models
 from ticketmind.tickets.models import ProcessingResult, Ticket, TicketMessage
 from sqlalchemy.orm import configure_mappers
 
@@ -14,6 +15,9 @@ def test_ticket_models_are_registered_in_metadata() -> None:
         "knowledge_datasets",
         "knowledge_operations",
         "knowledge_embeddings",
+        "docs_datasets",
+        "documents",
+        "document_chunks",
     }
 
 

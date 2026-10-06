@@ -19,7 +19,7 @@ def ticket_activity(ticket_id, *, recovery=False):
     key = str(ticket_id)
     with _lock:
         if key in _recovering or (recovery and _active.get(key, 0)):
-            raise AppError(409, "execution_in_progress", "该工单仍有执行中的请求，请待请求结束后恢复")
+            raise AppError(409, "execution_in_progress", "该工单仍有执行中的请求，请待请求结束后再操作")
         if recovery:
             _recovering.add(key)
         else:

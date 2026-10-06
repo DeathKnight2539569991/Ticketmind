@@ -43,12 +43,6 @@ def main():
     if embedding.read(query) is None:
         raise RuntimeError("缺少匹配当前结构化输入协议的查询向量缓存，禁止自动补调模型")
     decision = CachedDecision(qwen, args.decision_cache, allow_call=args.allow_decision)
-    runner = AgentRunner(
-        qwen, milvus, config,
-        embedding_factory=lambda remaining: embedding,
-        decision_fn=decision,
-        corpus=load_sources(config.corpus_path),
-    )
     if args.check_only:
         print("配置、语料和查询向量缓存校验通过；未连接数据库/Milvus/模型；决策缓存需实际检索后校验。")
         return
@@ -60,6 +54,8 @@ def main():
     try:
         with isolated_database() as (engine, factory, schema):
             seed_knowledge(factory, config.corpus_path)
+            runner = AgentRunner(qwen, milvus, config, embedding_factory=lambda remaining: embedding,
+                                 decision_fn=decision, corpus=load_sources(config.corpus_path), session_factory=factory)
             application = create_app(session_factory=factory, runner=runner, auth_settings=auth, processing_settings=config)
             server = uvicorn.Server(uvicorn.Config(application, host="127.0.0.1", port=0, log_level="warning", access_log=False))
             with socket.socket() as sock:

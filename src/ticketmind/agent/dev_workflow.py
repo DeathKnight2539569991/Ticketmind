@@ -12,7 +12,7 @@ from ticketmind.core.config import QwenSettings, MilvusSettings
 
 
 def run_decision_workflow(state, *, decide, judge, corpus, config, remaining, audit,
-                          search_fn, state_callback=None, detail_fn=None, repair_fn=None):
+                          search_fn, state_callback=None, docs_fn=None, repair_fn=None):
     seed = typed_state(durable_state(state))
     class Capabilities(AgentExecution):
         def __init__(self, *args, **kwargs):
@@ -29,16 +29,18 @@ def run_decision_workflow(state, *, decide, judge, corpus, config, remaining, au
             return (repair_fn or decide)(current)
         def search_cases(self, query, record):
             return search_fn(query, record)
-        def get_case_detail(self, source_id):
-            return (detail_fn or corpus.get_case_detail)(source_id)
+        def search_docs(self, query, record):
+            if docs_fn is None:
+                raise ValueError("Docs capability must be explicitly supplied")
+            return docs_fn(query, record)
     class CapabilityRunner(AgentRunner):
         def new_execution(self, agent_input=None, clarification_rounds=0, *, data=None):
             return Capabilities(self, agent_input, clarification_rounds, data=data)
-    evidence_corpus = SimpleNamespace(evidence=lambda hits: [{"source_id": hit.source_id} for hit in hits],
-        get_case_detail=getattr(corpus, "get_case_detail", None))
+    evidence_corpus = SimpleNamespace(evidence=lambda hits: [{"source_id": hit.source_id} for hit in hits])
     runner = CapabilityRunner(
         QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
-        MilvusSettings(_env_file=None, uri="http://unused.invalid"), config, corpus=evidence_corpus)
+        MilvusSettings(_env_file=None, uri="http://unused.invalid"), config, corpus=evidence_corpus,
+        docs_store=SimpleNamespace(version=config.docs_dataset))
     try:
         output = runner(AgentRunInput.model_validate({"subject": seed["subject"], "messages": seed["messages"]}),
                         clarification_rounds=seed.get("clarification_rounds", 0))

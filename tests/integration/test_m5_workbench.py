@@ -176,6 +176,39 @@ def test_ui_operator_permissions_and_failed_201(ui):
     assert client.get("/auth/me").status_code == 401
 
 
+def test_ui_cancel_abandoned_run_unblocks_manual_reply(ui):
+    from ticketmind.tickets.models import ProcessingResult
+    from ticketmind.tickets.enums import ProcessingRunStatus
+    at, client, factory, auth = ui
+    login(at, auth.reviewer_token.get_secret_value())
+    ticket_id = create(at, "中断运行终止")
+    process(at)
+    with factory() as session, session.begin():
+        run = session.scalar(select(ProcessingResult).where(ProcessingResult.ticket_id == UUID(ticket_id)))
+        run.run_status = ProcessingRunStatus.RUNNING
+        run.error_code = "explicit_recovery_required"
+    click(at, "刷新当前工单")
+    assert widget(at, "button", "人工接管").disabled
+    click(at, "终止中断运行")
+    assert any("请填写终止原因" in e.value for e in at.error)
+    widget(at, "text_area", "终止中断运行的原因").set_value("检索中断且无法恢复，人工继续处理")
+    click(at, "终止中断运行")
+    assert at.session_state.pending.path.endswith("/cancel")
+    assert at.session_state.pending.payload["expected_version"] == 1
+    click(at, "确认提交 / 原样重试")
+    assert not widget(at, "button", "人工接管").disabled
+    with factory() as session:
+        ticket = session.get(Ticket, UUID(ticket_id))
+        assert ticket.version == 2 and ticket.processing_results[-1].run_status == "cancelled"
+        assert ticket.messages[-1].operation == "cancel_run"
+    widget(at, "selectbox", "消息类型").select("human_reply")
+    widget(at, "text_area", "消息正文").set_value("人工继续处理")
+    click(at, "保存消息")
+    click(at, "确认提交 / 原样重试")
+    with factory() as session:
+        assert session.get(Ticket, UUID(ticket_id)).messages[-1].body == "人工继续处理"
+
+
 def test_ui_stale_request_preserves_viewed_version_and_blocks_review(ui):
     at, client, factory, auth = ui
     login(at, auth.reviewer_token.get_secret_value())
@@ -223,3 +256,25 @@ def test_ui_saved_failed_review_resumes_with_original_key(ui, monkeypatch):
         ticket = session.get(Ticket, UUID(ticket_id))
         assert len(ticket.messages) == 2
         assert session.scalar(select(func.count()).select_from(ProcessingReview).where(ProcessingReview.idempotency_key == key)) == 1
+
+
+
+def test_ui_docs_chunk_snapshot_has_no_case_source_button(ui, monkeypatch):
+    from docs_fakes import doc_hit
+    at, client, factory, auth = ui
+    original = DemoRunner.__call__
+    snapshot = {"kind": "docs", **doc_hit("Frozen document chunk visible to the reviewer").model_dump(mode="json")}
+    def with_docs(self, *args, **kwargs):
+        output = original(self, *args, **kwargs)
+        output.evidence.append(snapshot)
+        output.state["proposal"].evidence_ids.append(snapshot["source_id"])
+        return output
+    monkeypatch.setattr(DemoRunner, "__call__", with_docs)
+    login(at, auth.reviewer_token.get_secret_value())
+    create(at, "文档证据审核展示")
+    process(at)
+    assert any(snapshot["text"] in item.value for item in at.markdown)
+    assert any("合成产品文档" in item.value and snapshot["docs_version"] in item.value for item in at.caption)
+    assert any(button.label == "查看来源 SYN-HIST-V2-007" for button in at.button)
+    assert not any(button.label == "查看来源 " + snapshot["source_id"] for button in at.button)
+    assert not at.exception

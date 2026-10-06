@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, TypeAdapter, field_serializer
 from ticketmind.agent.proposals import Proposal, Text
 
 from ticketmind.tickets.enums import AgentAction, ProcessingRunStatus
@@ -59,6 +59,11 @@ class ReviewRead(BaseModel):
 class RunRecover(BaseModel):
     model_config = ConfigDict(extra="forbid")
     expected_version: int = Field(ge=1)
+
+
+class RunCancel(RunRecover):
+    # Leave room for the run identity in the system audit message.
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=7900)]
 
 
 class RunRead(BaseModel):

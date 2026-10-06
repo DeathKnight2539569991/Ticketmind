@@ -1,4 +1,5 @@
 """Real PostgreSQL/HTTP; deterministic external doubles, zero provider calls."""
+from docs_fakes import FakeDocStore, doc_hit
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -11,7 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import event, func, select
 from sqlalchemy.exc import IntegrityError
 
-from ticketmind.agent.proposals import Clarification, GetCaseDetail
+from ticketmind.agent.proposals import Clarification
 from ticketmind.agent.runtime import AgentRunner
 from ticketmind.agent.schemas import AgentMessage, AgentRunInput
 from ticketmind.core.auth import Actor
@@ -492,16 +493,14 @@ def test_runtime_and_detail_use_pg_without_jsonl(knowledge, monkeypatch):
     client = SimpleNamespace(search=lambda **kw: [[{"entity": {"source_id": case["source_id"], "corpus_version": PRODUCTION_DATASET,
         "content_hash": case["content_hash"]}, "distance": 1.0}]], close=lambda: None)
     def decision(state, timeout, usage):
-        if not state["case_details"]:
-            return GetCaseDetail(next_step="get_case_detail", source_id=case["source_id"], reason="核对会话")
-        assert state["case_details"][case["source_id"]] == {
-            "source_id": case["source_id"], "title": case["title"], "article": ARTICLE}
+        assert state["retrieval_hits"][0].source_id == case["source_id"]
+        assert state["retrieval_hits"][0].text == case["content"]
         return Clarification(next_step="ask_clarification", reason="缺少现状", reply="请提供当前错误。")
     runner = AgentRunner(k.qwen, MilvusSettings(_env_file=None, uri="http://unused"),
         k.config.model_copy(update={"corpus_path": Path("does-not-exist"), "retrieval_mode": "bm25",
                                     "knowledge_dataset": PRODUCTION_DATASET}),
         session_factory=k.factory, milvus_factory=lambda _: client, decision_fn=decision,
-        judge_fn=lambda *args: {"passed": True, "violations": []})
+        judge_fn=lambda *args: {"passed": True, "violations": []}, docs_store=FakeDocStore())
     assert not hasattr(runner.corpus, "cases")
     output = runner(AgentRunInput(
         subject="登录",

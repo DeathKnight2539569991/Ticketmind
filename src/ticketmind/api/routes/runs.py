@@ -6,7 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ticketmind.api.dependencies import IdempotencyKey, get_runner, get_session
-from ticketmind.api.schemas.runs import RunCreate, RunRead, ReviewCreate, RunRecover
+from ticketmind.api.schemas.runs import RunCreate, RunRead, ReviewCreate, RunRecover, RunCancel
+from ticketmind.tickets.cancellation import cancel_interrupted_run
 from ticketmind.tickets.recovery import recover_run
 from ticketmind.core.auth import ActorDependency, ReviewerDependency
 from ticketmind.tickets.reviews import review_run
@@ -59,3 +60,9 @@ def recover_endpoint(ticket_id: UUID, run_id: UUID, payload: RunRecover, actor: 
     return recover_run(request.app.state.session_factory, request.app.state.workflow,
                        ticket_id, run_id, payload, actor, key,
                        runner_factory=lambda mode: get_runner(request, retrieval_mode=mode))
+
+
+@router.post("/{run_id}/cancel", response_model=RunRead)
+def cancel_endpoint(ticket_id: UUID, run_id: UUID, payload: RunCancel, actor: ReviewerDependency,
+                    key: IdempotencyKey, request: Request):
+    return cancel_interrupted_run(request.app.state.session_factory, ticket_id, run_id, payload, actor, key)

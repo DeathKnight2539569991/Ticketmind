@@ -97,16 +97,16 @@ def execute_case(case, qwen, config, ledger, directory, review=None):
         legacy_directory=LEGACY if case["id"] == "clarification" else None)
     decisions_adapter = AcceptanceAdapters(qwen.model_copy(update={"model": config.decision_model}), directory, ledger)
     judges = AcceptanceAdapters(qwen.model_copy(update={"model": config.judge_model}), directory, ledger)
-    runner = AgentRunner(qwen, MilvusSettings(), config,
-                         embedding_factory=adapters.embeddings, decision_fn=decisions_adapter.decision,
-                         judge_fn=judges.judge,
-                         corpus=load_sources(config.corpus_path))
     auth = AuthSettings(_env_file=None, operator_token=secrets.token_urlsafe(32), reviewer_token=secrets.token_urlsafe(32))
     report = {"case": case, "verification": "asgi_http_real_postgresql_checkpointer_milvus_model_or_exact_cache",
               "model_quality": "pending_human_review", "business_review": "not_executed"}
     try:
         with isolated_database(os.getenv("TICKETMIND_TEST_DATABASE_URL")) as (_, factory, schema):
             seed_knowledge(factory, config.corpus_path)
+            runner = AgentRunner(qwen, MilvusSettings(), config,
+                                 embedding_factory=adapters.embeddings, decision_fn=decisions_adapter.decision,
+                                 judge_fn=judges.judge,
+                                 corpus=load_sources(config.corpus_path), session_factory=factory)
             report["temporary_schema"] = schema
             app = create_app(session_factory=factory, runner=runner, auth_settings=auth, processing_settings=config)
             with TestClient(app) as client:

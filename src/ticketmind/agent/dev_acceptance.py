@@ -172,8 +172,9 @@ class AcceptanceAdapters:
                            for e in exc.errors(include_input=False, include_context=False, include_url=False)]}
             raise
         try:
-            if result.next_step not in ("search_cases", "get_case_detail"):
-                validate_proposal(result, {hit.source_id for hit in state["retrieval_hits"]})
+            if result.next_step not in ("search_cases", "search_docs"):
+                validate_proposal(result, {hit.source_id for hit in
+                    state.get("retrieval_hits", []) + state.get("docs_hits", [])})
         except ValueError:
             diagnostic["validation"] = {"status": "rejected", "stage": "proposal_policy"}
             raise

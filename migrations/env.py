@@ -7,6 +7,7 @@ from ticketmind.core.config import get_settings
 from ticketmind.db.base import Base
 import ticketmind.tickets.models
 import ticketmind.knowledge.models
+import ticketmind.documents.models
 
 config = context.config
 

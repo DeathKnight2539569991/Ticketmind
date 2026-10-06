@@ -13,6 +13,8 @@ from fastapi.testclient import TestClient
 from ticketmind.agent.dev_acceptance import AcceptanceAdapters, AttemptLedger, M4_CATEGORIES, acceptance_lock, write_json
 from ticketmind.agent.run_cache import QueryVectorCache, load_cache, query_fingerprint
 from ticketmind.agent.runtime import AgentRunner
+from ticketmind.agent.decide import DECISION_PROTOCOL
+from ticketmind.agent.semantic_judge import JUDGE_PROTOCOL
 from ticketmind.core.config import AuthSettings, MilvusSettings, ProcessingSettings, QwenSettings
 from ticketmind.db.testing import isolated_database
 from ticketmind.evaluation.dataset import digest, load_dataset, read_jsonl, retrieval_queries, load_development_labels
@@ -91,20 +93,20 @@ def run_retrieval(queries, qwen, config, corpus, modes):
             "embedding_source": "exact_cache_or_not_run"}
 
 
-def build_acceptance_runner(qwen, config, ledger):
+def build_acceptance_runner(qwen, config, ledger, *, session_factory):
     """Use separate bounded adapters for both model roles in the current protocol."""
     embeddings = AcceptanceAdapters(qwen, CACHE, ledger)
     decisions = AcceptanceAdapters(qwen.model_copy(update={"model": config.decision_model}), CACHE, ledger)
     judges = AcceptanceAdapters(qwen.model_copy(update={"model": config.judge_model}), CACHE, ledger)
     runner = AgentRunner(qwen, MilvusSettings(), config,
                          embedding_factory=embeddings.embeddings, decision_fn=decisions.decision,
-                         judge_fn=judges.judge, corpus=load_sources(config.corpus_path))
+                         judge_fn=judges.judge, corpus=load_sources(config.corpus_path),
+                         session_factory=session_factory)
     return runner, decisions, judges
 
 
 def execute_agent(case, qwen, config, ledger):
     # Only customer input enters HTTP / Agent. No label or rule sheet is supplied.
-    runner, decisions, judges = build_acceptance_runner(qwen, config, ledger)
     class EvaluationRunner:
         @property
         def metadata(self):
@@ -118,6 +120,7 @@ def execute_agent(case, qwen, config, ledger):
               "business_review": "not_executed", "status": "failed"}
     try:
         with isolated_database(os.getenv("TICKETMIND_TEST_DATABASE_URL")) as (_, factory, schema):
+            runner, decisions, judges = build_acceptance_runner(qwen, config, ledger, session_factory=factory)
             app = create_app(session_factory=factory, runner=EvaluationRunner(), auth_settings=auth, processing_settings=config)
             with TestClient(app) as client:
                 client.headers["Authorization"] = "Bearer " + auth.operator_token.get_secret_value()
@@ -217,8 +220,8 @@ def main():
         "manifest": manifest_for(corpus), "config": config.model_dump(mode="json"),
         "decision_model": config.decision_model, "judge_model": config.judge_model,
         "embedding_model": qwen.embedding_model,
-        "decision_protocol": AgentRunner(qwen, MilvusSettings(), config, corpus=corpus).metadata["model_config"]["decision_protocol"],
-        "judge_protocol": AgentRunner(qwen, MilvusSettings(), config, corpus=corpus).metadata["model_config"]["judge_protocol"],
+        "decision_protocol": DECISION_PROTOCOL,
+        "judge_protocol": JUDGE_PROTOCOL,
         "new_call_ceilings": ceilings, "price": None, "price_status": "not_available", "rows": []}
     output = args.output or CACHE / "reports" / f"{args.stage}-{uuid4().hex}.json"
     try:

@@ -2,6 +2,7 @@
 
 No provider receives a request. Existing shared services are never interrupted.
 """
+from docs_fakes import FakeDocStore, doc_hit
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 from time import sleep, monotonic
@@ -65,7 +66,7 @@ def test_real_model_transport_fails_once_and_preserves_ticket(setup, monkeypatch
     milvus = UnusedMilvus()
     runner = AgentRunner(QwenSettings(_env_file=None, DASHSCOPE_API_KEY="synthetic-local-only", DASHSCOPE_WORKSPACE_ID="unused"),
         MilvusSettings(_env_file=None, uri="http://unused.invalid"), ProcessingSettings(retrieval_mode="bm25"),
-        milvus_factory=lambda _: milvus, session_factory=factory)
+        milvus_factory=lambda _: milvus, session_factory=factory, docs_store=FakeDocStore())
     client.app.state.runner = runner
     try:
         ticket, key = m1.create(client), uuid4().hex

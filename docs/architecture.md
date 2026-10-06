@@ -30,7 +30,7 @@ flowchart LR
 
 - `workbench` 仅持有当前会话凭据，通过 HTTP 读取和写入，不访问业务数据库或模型。
 - `api` 校验身份和输入；`tickets` 管理版本、事务、幂等和状态。
-- `agent` 接收最小业务输入 `subject + messages[{role, content}]`，执行检索、有界工具循环、Decision 与独立 Semantic Judge；模型只可选择 `search_cases`、`get_case_detail` 两个只读工具。
+- `agent` 接收最小业务输入 `subject + messages[{role, content}]`，执行检索、有界工具循环、Decision 与独立 Semantic Judge；模型只可选择 `search_cases`、`search_docs` 两个只读工具。
 - `retrieval` 只从 Milvus 取来源身份和分数，再经 `knowledge` 批量读取 PostgreSQL 正文；JSONL 仅作为 seed/evaluation。生产知识和固定合成版本分别登记集合。
 - 持久化 snapshot 只用于审计、恢复与重放；进入 Agent 前投影为最小 `AgentRunInput`，不会把运行元数据直接塞进模型业务输入。
 - 模型调用发生在数据库事务外。审核记录不可变，恢复执行后原子写入发布消息、工单状态和已应用标记。
@@ -66,6 +66,7 @@ flowchart LR
 | POST /tickets/{id}/close | reviewer 明确确认解决 |
 | POST /tickets/{id}/escalate | reviewer 独立人工接管，不要求 Agent 已生成提案 |
 | POST /tickets/{id}/runs/{run}/recover | reviewer 显式恢复检查点；计算续算可能调用模型，已有提案/审核重放不调用模型，恢复不发布回复 |
+| POST /tickets/{id}/runs/{run}/cancel | reviewer 终止请求已结束的遗留 running 运行，保存原因与审计；不读检查点、不调用模型 |
 | GET /sources/{id}?corpus_version=... | 对应版本合成来源，版本不可用则保留运行快照供查看 |
 | GET /tickets/{id}/knowledge | 已解决工单候选全文或知识状态 |
 | POST /tickets/{id}/knowledge/approve | reviewer 显式批准，expected_version 绑定工单 |
@@ -74,4 +75,21 @@ flowchart LR
 
 错误返回 error_code、message、request_id。401 身份无效；403 权限不足；409 版本、状态或幂等冲突；422 输入无效。HTTP 201 后仍需看 run_status；页面明确展示 failed。
 
+检索硬退出、检查点损坏或冻结配置无法核对导致恢复被拒绝时，reviewer 可在运行记录填写原因并选择“终止中断运行”，确认后再人工回复、接管或关闭。cancel 请求包含 `expected_version` 与 `reason`（最多 7900 字符），使用 `Idempotency-Key`；服务端通过同一单实例执行保护器拒绝终止活跃计算、审核和恢复。运行变为 cancelled，系统审计消息与工单版本递增在同一事务提交，原检查点、提案和审核保留。旧运行不能再恢复或审核；如需重新自动处理，先追加客户消息，使用新版本和最新客户消息创建新运行。
+
 知识由人工整理正文后批准，原始会话保留审计。批准先提交 PG，BM25 正文索引强一致读回成功后可 active，Dense 就绪状态独立记录；缺向量不阻止 BM25 发布或通过 Hybrid 的关键词通道召回。检索过滤 inactive、missing、hash 不一致及 Dense 未就绪来源，保留诊断。知识正文发布后仍不可原地编辑。新表字段和操作见[核心代码修改报告](core-fixes-2026-09-22.md)，历史实现见[知识交付报告](knowledge-writeback.md)。
+
+
+## Tool / Docs 执行与恢复
+
+当前单图入口为 `bootstrap_retrieve`，随后 `decision` 路由到 `search_cases` / `search_docs` 或 `judge`。每个工具成功或业务拒绝后都回到 Decision；首次 Judge 拒绝进入唯一 final-only Repair，再次拒绝安全失败。共享 step 耗尽时使用代码生成的固定转人工提案直接进入 review，不调用 Judge；active time 耗尽保持失败。
+
+若首次 Judge FAIL 后已无 step 执行 Repair，该节点改为程序固定转人工，清除 `candidate_proposal` / `judge_result` / `guardrail_feedback`，不增加 `repair_attempt`，不调用 Repair 模型或第二 Judge。此固定提案从 repair 直接进入 review（standalone 为 END）。恢复已达 step 上限的 Decision/Repair 时识别为纯代码步骤，不创建未知模型耗时估算；原累计活跃时间仍生效。
+
+Cases/Docs 保留独立检索配额、去重 query 与正文证据，首次检索计 Case1 / step1。Docs BM25 不初始化 embedding；hybrid 明确跳过未就绪 dense。Decision 与 Judge 都接收本次实际 Cases/Docs 正文；来源校验覆盖两种来源。业务审核运行保存 Docs chunk 快照，工作台直接展示，不向 Case `/sources` API 请求 Docs 来源。
+
+新 state_version=2，Decision/Judge protocol=v3；metadata 与 recovery contract 冻结 Docs 版本、状态、catalog_hash、collection、检索模式及额度。显式恢复先检查版本、审计/计数/来源不变量和配置漂移，再执行未完成节点。旧 compute 状态与旧 retrieve 节点拒绝升级；历史等待审核只读取原 output，审核恢复与重放仍不调用模型。成功逻辑步骤与工具审计不会重复，失败 attempt 用量和 observed/estimated 时间仍单独保留。
+
+Docs 集合名为 `docs_bm25_<manifest hash>`，与 Cases 分离；`docs:<doc_id>:<section>:<chunk>` 来源只由 Docs PostgreSQL 表 hydration。导入文件的标准化 hash、标题/章节/正文 chunk hash 与索引读回 hash 用于过滤旧结果；文档版本和 catalog_hash 变化会使旧计算契约漂移。Docs 集合版本/schema/analyzer/index 或返回协议不一致属于 terminal failure，临时连接失败保持可恢复。新增迁移 `e4ad82c7f321` 创建三张文档表。
+
+LangSmith 默认关闭，缺 key 不发送。自定义能力事件经 256 项有界队列异步发送，单次 SDK HTTP timeout 为 1000 ms，队列压力或 SDK 故障会丢弃追踪而不改变业务。业务 ID/thread/attempt/checkpoint 关联跨恢复事件，追踪对象不进入 durable state 或冻结契约。完整命令、最终测试结果与实连限制见[本次交付报告](tool-docs-refactor-verification.md)；先前 durable 阶段记录仍见[历史重构报告](agent-durable-refactor.md)。

@@ -1,3 +1,4 @@
+from docs_fakes import FakeDocStore, doc_hit
 from copy import deepcopy
 import json
 from types import SimpleNamespace
@@ -34,9 +35,9 @@ def state():
                          synthetic=False, metadata={"owner": {"team": ["support"]}}),
 ])
 def test_durable_roundtrip_preserves_types_payloads_and_independent_values(hit):
-    original = {**state(), "retrieval_hits": [hit], "case_details": {"a": {"steps": ["check"]}},
+    original = {**state(), "retrieval_hits": [hit], "docs_hits": [doc_hit()],
                 "agent_steps": 4, "search_rounds": 1, "seen_queries": ["original"],
-                "detail_ids": ["a"], "repair_attempt": 0,
+                "seen_docs_queries": ["docs query"], "docs_search_rounds": 1, "repair_attempt": 0,
                 "usage": {"decisions": [{"total_tokens": 3}]}, "compute_elapsed_seconds": 2.5,
                 "evidence": [{"source_id": "a", "metadata": {"x": [1]}}]}
     proposal = proposal_adapter.validate_python({"next_step": "ask_clarification", "reason": "missing",
@@ -54,19 +55,19 @@ def test_durable_roundtrip_preserves_types_payloads_and_independent_values(hit):
     assert decision_fingerprint(settings, restored) == decision_fingerprint(settings, original)
     assert judge_fingerprint(settings, restored, proposal) == judge_fingerprint(settings, original, proposal)
     restored["messages"][0].content = "mutated"
-    restored["case_details"]["a"]["steps"].append("mutated")
+    restored["docs_hits"][0].text = "mutated"
     restored["usage"]["decisions"][0]["total_tokens"] = 99
     assert original["messages"][0].content == "Python 3.12，E_TIMEOUT"
-    assert original["case_details"]["a"]["steps"] == ["check"]
+    assert original["docs_hits"][0].text == "product documentation"
     assert data["usage"]["decisions"][0]["total_tokens"] == 3
 
 
 @pytest.mark.parametrize("extra", [
     {"client": object()}, {"timer": lambda: 1}, {"seen_queries": {"q"}},
     {"compute_elapsed_seconds": float("nan")}, {"compute_elapsed_seconds": -1},
-    {"compute_elapsed_seconds": True}, {"state_version": True}, {"state_version": 2},
+    {"compute_elapsed_seconds": True}, {"state_version": True}, {"state_version": 1},
     {"agent_steps": -1}, {"search_rounds": "1"}, {"repair_attempt": 2},
-    {"detail_ids": ["a", "a"]}, {"usage": {"tokens": float("inf")}},
+    {"seen_docs_queries": ["a", "a"]}, {"usage": {"tokens": float("inf")}},
 ])
 def test_durable_state_rejects_resources_and_invalid_control_data(extra):
     with pytest.raises(ValueError):
@@ -80,7 +81,7 @@ def test_loop_exports_control_state_and_audit_without_mutating_input(failure):
     audit, snapshots, calls = [], [], []
     decisions = [
         {"next_step": "search_cases", "reason": "search", "query": "E_TIMEOUT Python 3.12"},
-        {"next_step": "get_case_detail", "reason": "detail", "source_id": "a"},
+        {"next_step": "search_docs", "reason": "docs", "query": "product rules"},
         {"next_step": "ask_clarification", "reason": "missing", "reply": "当前代理配置是什么？"},
     ]
     def decide(current):
@@ -92,10 +93,10 @@ def test_loop_exports_control_state_and_audit_without_mutating_input(failure):
         if failure:
             raise RuntimeError("synthetic tool failure")
         return [RetrievalHit(source_id="b", text="second", score=0.6)]
-    corpus = SimpleNamespace(get_case_detail=lambda source: {"source_id": source, "steps": ["check"]})
+    corpus = SimpleNamespace()
     kwargs = dict(decide=decide, judge=lambda *args: {"violations": []}, corpus=corpus,
                   config=ProcessingSettings(_env_file=None), remaining=lambda: 1,
-                  audit=audit, search_fn=search, state_callback=snapshots.append)
+                  audit=audit, search_fn=search, docs_fn=lambda query, record: [doc_hit()], state_callback=snapshots.append)
     if failure:
         with pytest.raises(RuntimeError, match="synthetic tool"):
             run_decision_workflow(original, **kwargs)
@@ -108,7 +109,8 @@ def test_loop_exports_control_state_and_audit_without_mutating_input(failure):
     assert snapshot["tool_calls"] == audit
     assert snapshot["agent_steps"] == (3 if failure else 6)
     assert snapshot["search_rounds"] == (1 if failure else 2)
-    assert snapshot["detail_ids"] == ([] if failure else ["a"])
+    assert snapshot["seen_docs_queries"] == ([] if failure else ["product rules"])
+    assert snapshot["docs_search_rounds"] == (0 if failure else 1)
     assert snapshot["seen_queries"] == (["original"] if failure else ["original", "e_timeout python 3.12"])
     assert audit[0]["status"] == ("failed" if failure else "succeeded")
     assert all(call["messages"][0]["content"] == before["messages"][0].content for call in calls)
@@ -173,7 +175,7 @@ def test_real_runner_path_exports_pure_control_and_usage_state(monkeypatch, guar
         QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
         MilvusSettings(_env_file=None, uri="http://unused.invalid"), config,
         corpus=SimpleNamespace(evidence=lambda hits: []), milvus_factory=lambda settings: client,
-        decision_fn=decision, judge_fn=judge)
+        decision_fn=decision, judge_fn=judge, docs_store=FakeDocStore())
     supplied = AgentRunInput(subject="s", messages=[AgentMessage(role="customer", content="original")])
     if guardrail_failure:
         with pytest.raises(RunFailure) as caught:

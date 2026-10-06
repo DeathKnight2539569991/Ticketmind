@@ -61,7 +61,7 @@ def load_case(number):
             continue
         if raw == proposal:
             original = json.loads(response["user_prompt"])
-            allowed = ("subject", "case_details", "tool_calls", "search_rounds", "agent_steps",
+            allowed = ("subject", "docs_hits", "tool_calls", "search_rounds", "agent_steps",
                        "execution_limits", "clarification_rounds")
             state = {key: original[key] for key in allowed if key in original}
             # Frozen M4 requests predate structured messages. Their body is migrated
@@ -221,7 +221,7 @@ def main():
                     break
                 attempt = {"decision": proposal.model_dump()}
                 row["attempts"].append(attempt)
-                if proposal.next_step in ("search_cases", "get_case_detail"):
+                if proposal.next_step in ("search_cases", "search_docs"):
                     row["status"] = "tool_requested_not_executed"
                     break
                 try:

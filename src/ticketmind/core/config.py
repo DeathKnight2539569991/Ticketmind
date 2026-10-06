@@ -46,6 +46,15 @@ class MilvusSettings(BaseSettings):
     timeout_seconds:float=Field(default=10.0,gt=0.0)
 
 
+class TraceSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8",
+                                      env_prefix="LANGSMITH_", extra="ignore",
+                                      populate_by_name=True)
+    enabled: bool = Field(default=False, validation_alias="LANGSMITH_TRACING")
+    api_key: SecretStr | None = Field(default=None, validation_alias="LANGSMITH_API_KEY")
+    project: str = Field(default="ticketmind", validation_alias="LANGSMITH_PROJECT")
+
+
 class AuthSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8",
                                       env_prefix="TICKETMIND_", extra="ignore")
@@ -69,7 +78,7 @@ class AuthSettings(BaseSettings):
 class ProcessingSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8",
                                       env_prefix="TICKETMIND_", extra="ignore")
-    agent_version: str = "ticketmind-m3"
+    agent_version: str = "ticketmind-tools-docs-v2"
     decision_model: str = Field(default="glm-5.3", min_length=1)
     judge_model: str = Field(default="deepseek-v4.1-flash", min_length=1)
 
@@ -89,8 +98,10 @@ class ProcessingSettings(BaseSettings):
     retrieval_rrf_k: int = Field(default=60, ge=1, le=1000)
     processing_timeout_seconds: float = Field(default=90, gt=0, le=300)
     max_search_rounds: int = Field(default=2, ge=1, le=2)
-    max_case_details: int = Field(default=2, ge=0, le=2)
+    max_docs_search_rounds: int = Field(default=2, ge=0, le=2)
     max_agent_steps: int = Field(default=8, ge=3, le=8)
     max_clarification_rounds: int = Field(default=2, ge=0, le=2)
     corpus_path: Path = Path(__file__).resolve().parents[3] / "data/synthetic/v2/historical_cases.jsonl"
     knowledge_dataset: str = Field(default="production-v1", min_length=1, max_length=128)
+    docs_dataset: str = Field(default="synthetic-product-docs-v1", min_length=1, max_length=128)
+    docs_retrieval_mode: Literal["dense", "bm25", "hybrid"] = "bm25"

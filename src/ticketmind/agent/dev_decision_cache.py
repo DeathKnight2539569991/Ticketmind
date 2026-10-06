@@ -36,8 +36,9 @@ class CachedDecision:
             cache = DecisionCache.model_validate_json(self.path.read_text(encoding="utf-8"))
             if cache.request_fingerprint != fingerprint:
                 raise ValueError("决策缓存输入、证据或模型配置不匹配")
-            if cache.proposal.next_step not in ("search_cases", "get_case_detail"):
-                validate_proposal(cache.proposal, {hit.source_id for hit in state["retrieval_hits"]})
+            if cache.proposal.next_step not in ("search_cases", "search_docs"):
+                validate_proposal(cache.proposal, {hit.source_id for hit in
+                    state.get("retrieval_hits", []) + state.get("docs_hits", [])})
             self.cache_hits += 1
             usage["decision_cache_replay"] = True
             usage["cached_decision_usage"] = cache.usage

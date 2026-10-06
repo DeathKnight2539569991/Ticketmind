@@ -5,12 +5,12 @@ from ticketmind.agent.proposals import Proposal, decision_adapter, proposal_adap
 from ticketmind.agent.schemas import AgentMessage
 from ticketmind.agent.semantic_judge import validate_judgment
 from ticketmind.retrieval.dense import RetrievalHit
-from ticketmind.retrieval.schemas import EvidenceHit, KnowledgeEvidenceHit
+from ticketmind.retrieval.schemas import DocEvidenceHit, EvidenceHit, KnowledgeEvidenceHit
 
 
 class ExecutionLimits(TypedDict):
     max_search_rounds: int
-    max_case_details: int
+    max_docs_search_rounds: int
     max_agent_steps: int
     max_clarification_rounds: int
 
@@ -43,13 +43,16 @@ class TicketAgentState(TypedDict):
     proposal: NotRequired[Proposal]
     retrieval_query: NotRequired[str]
     retrieval_hits: NotRequired[list[RetrievalHit | EvidenceHit]]
-    case_details: NotRequired[dict[str, dict[str, Any]]]
+    docs_hits: NotRequired[list[DocEvidenceHit]]
+    docs_search_rounds: NotRequired[int]
     search_rounds: NotRequired[int]
     agent_steps: NotRequired[int]
+    decision_rounds: NotRequired[int]
+    step_limit_reached: NotRequired[bool]
     execution_limits: NotRequired[ExecutionLimits]
     guardrail_feedback: NotRequired[dict[str, Any]]
     seen_queries: NotRequired[list[str]]
-    detail_ids: NotRequired[list[str]]
+    seen_docs_queries: NotRequired[list[str]]
     repair_attempt: NotRequired[int]
     decision_result: NotRequired[dict[str, Any]]
     candidate_proposal: NotRequired[dict[str, Any]]
@@ -74,12 +77,15 @@ class DurableAgentState(TypedDict, total=False):
     tool_calls: list[dict[str, Any]]
     retrieval_query: str
     retrieval_hits: list[dict[str, Any]]
-    case_details: dict[str, dict[str, Any]]
+    docs_hits: list[dict[str, Any]]
+    docs_search_rounds: int
     search_rounds: int
     agent_steps: int
+    decision_rounds: int
+    step_limit_reached: bool
     execution_limits: ExecutionLimits
     seen_queries: list[str]
-    detail_ids: list[str]
+    seen_docs_queries: list[str]
     repair_attempt: int
     decision_result: dict[str, Any]
     candidate_proposal: dict[str, Any]
@@ -118,10 +124,10 @@ def durable_state(state: dict) -> DurableAgentState:
     mutable values with its caller. Runtime clients/timers never enter this boundary.
     """
     values = dict(state)
-    values.setdefault("state_version", 1)
-    if type(values["state_version"]) is not int or values["state_version"] != 1:
+    values.setdefault("state_version", 2)
+    if type(values["state_version"]) is not int or values["state_version"] != 2:
         raise ValueError("不支持的 Agent state version")
-    for key in ("messages", "retrieval_hits"):
+    for key in ("messages", "retrieval_hits", "docs_hits"):
         if key in values:
             values[key] = [item.model_dump(mode="json") if hasattr(item, "model_dump") else item
                            for item in values[key]]
@@ -137,9 +143,11 @@ def durable_state(state: dict) -> DurableAgentState:
 def typed_state(data: dict) -> TicketAgentState:
     """Create a temporary validated projection, preserving knowledge hit extensions."""
     values = copy_data(data)
-    if type(values.get("state_version", 1)) is not int or values.get("state_version", 1) != 1:
+    if {"case_details", "detail_ids"} & set(values):
+        raise ValueError("旧详情状态不属于 Agent v2")
+    if type(values.get("state_version", 2)) is not int or values.get("state_version", 2) != 2:
         raise ValueError("不支持的 Agent state version")
-    for key in ("clarification_rounds", "search_rounds", "agent_steps", "repair_attempt"):
+    for key in ("clarification_rounds", "search_rounds", "docs_search_rounds", "decision_rounds", "agent_steps", "repair_attempt"):
         if key in values and (type(values[key]) is not int or values[key] < 0):
             raise ValueError(f"{key} 必须是非负整数")
     if "repair_attempt" in values and values["repair_attempt"] > 1:
@@ -155,7 +163,7 @@ def typed_state(data: dict) -> TicketAgentState:
         if "compute_estimated_seconds" in values and not math.isclose(elapsed,
                 values.get("compute_observed_seconds", 0) + values["compute_estimated_seconds"]):
             raise ValueError("预算分类与累计耗时不一致")
-    for key in ("seen_queries", "detail_ids"):
+    for key in ("seen_queries", "seen_docs_queries"):
         if key in values and (type(values[key]) is not list or
                               any(type(item) is not str for item in values[key]) or
                               len(values[key]) != len(set(values[key]))):
@@ -167,6 +175,10 @@ def typed_state(data: dict) -> TicketAgentState:
              EvidenceHit if "retrieval_mode" in item else RetrievalHit).model_validate(item)
             for item in values["retrieval_hits"]
         ]
+    if "docs_hits" in values:
+        values["docs_hits"] = [DocEvidenceHit.model_validate(item) for item in values["docs_hits"]]
+        if any(hit.source_id != "docs:" + hit.chunk_id for hit in values["docs_hits"]):
+            raise ValueError("Docs 来源与 chunk 不一致")
     if "proposal" in values:
         values["proposal"] = proposal_adapter.validate_python(values["proposal"])
     if "candidate_proposal" in values:

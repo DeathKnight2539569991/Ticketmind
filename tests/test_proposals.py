@@ -91,6 +91,17 @@ def test_final_actions_expose_only_their_own_fields(data):
     with pytest.raises(ValidationError):
         decision_adapter.validate_python(data)
 
+
+def test_decision_exposes_only_supported_search_actions():
+    search = decision_adapter.validate_python({"next_step": "search_docs", "reason": "核对接口约定",
+                                               "query": "时区边界 start_time end_time"})
+    assert search.next_step == "search_docs"
+    assert set(decision_adapter.json_schema()["discriminator"]["mapping"]) == {
+        "search_cases", "search_docs", "propose_resolution", "ask_clarification", "escalate"
+    }
+    with pytest.raises(ValidationError):
+        decision_adapter.validate_python({"next_step": "get_case_detail", "reason": "详情", "source_id": "case-1"})
+
 def test_all_business_routes_require_auth_before_db():
     def forbidden():
         raise AssertionError("unauthenticated request opened DB")

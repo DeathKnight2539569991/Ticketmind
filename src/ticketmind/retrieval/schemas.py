@@ -28,6 +28,25 @@ class KnowledgeEvidenceHit(EvidenceHit):
     metadata: dict
 
 
+class DocEvidenceHit(BaseModel):
+    """A ranked, source-preserving chunk from the versioned product-docs corpus."""
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    source_id: str = Field(min_length=1, max_length=128)
+    doc_id: str = Field(min_length=1)
+    chunk_id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    section: str = ""
+    text: str = Field(min_length=1)
+    score: float
+    docs_version: str = Field(min_length=1)
+    content_hash: str = Field(min_length=1)
+    synthetic: bool
+    mode: RetrievalMode
+    rank: int = Field(ge=1)
+
+
 class IndexHit(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     source_id: str = Field(min_length=1)

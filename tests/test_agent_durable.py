@@ -1,4 +1,5 @@
 """Fail closed before any resource or model call on invalid continuation."""
+from docs_fakes import FakeDocStore, doc_hit
 from types import SimpleNamespace
 
 import pytest
@@ -16,7 +17,7 @@ def runner():
         QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
         MilvusSettings(_env_file=None, uri="http://unused.invalid"),
         ProcessingSettings(_env_file=None, retrieval_mode="bm25"),
-        corpus=SimpleNamespace(evidence=forbidden), milvus_factory=forbidden, decision_fn=forbidden)
+        corpus=SimpleNamespace(evidence=forbidden), milvus_factory=forbidden, decision_fn=forbidden, docs_store=FakeDocStore())
 
 
 @pytest.mark.parametrize("invalid", ["missing", "legacy_compute", "missing_data", "negative_budget", "changed_input"])
@@ -25,7 +26,7 @@ def test_compute_continuation_rejects_invalid_checkpoint_without_new_run(invalid
     graph, config = workflow.graph(), workflow.config("same-thread")
     snapshot = {"run_id": "run", "subject": "s", "clarification_rounds": 0,
                 "messages": [{"author_type": "customer", "body": "b"}]}
-    data = {"state_version": 1, "subject": "s", "messages": [{"role": "customer", "content": "b"}],
+    data = {"state_version": 2, "subject": "s", "messages": [{"role": "customer", "content": "b"}],
             "clarification_rounds": 0, "retrieval_query": "s b", "retrieval_hits": [],
             "tool_calls": [{"tool": "search_cases", "status": "succeeded"}],
             "agent_steps": 1, "search_rounds": 1, "repair_attempt": 0, "seen_queries": ["s b"],
@@ -46,14 +47,14 @@ def test_compute_continuation_rejects_invalid_checkpoint_without_new_run(invalid
         values = {"snapshot": snapshot}
         if invalid != "missing_data":
             values["agent_data"] = data
-        graph.update_state(config, values, as_node="retrieve")
+        graph.update_state(config, values, as_node="bootstrap_retrieve")
     with pytest.raises((RuntimeError, ValueError, KeyError)):
         workflow.continue_compute("same-thread", runtime)
 
 
 FINAL = {"next_step": "ask_clarification", "reason": "missing facts", "reply": "请补充配置"}
 SEARCH = {"next_step": "search_cases", "reason": "inspect facts", "query": "E_TIMEOUT Python 3.12"}
-DETAIL = {"next_step": "get_case_detail", "reason": "inspect case", "source_id": "case-1"}
+DETAIL = {"next_step": "search_docs", "reason": "inspect case", "query": "产品规则"}
 
 
 @pytest.mark.parametrize("invalid_usage", [SimpleNamespace(client="runtime-only"), float("nan")])
@@ -107,7 +108,8 @@ def test_invalid_adapter_usage_still_persists_terminal_failure(monkeypatch, inva
     assert calls == ["decision"]
 
 
-def run_durable(monkeypatch, decisions, *, limits=None, clarification_rounds=0, tool_error=False, judgments=None):
+def run_durable(monkeypatch, decisions, *, limits=None, clarification_rounds=0, tool_error=False, judgments=None,
+                standalone=False):
     from ticketmind.agent import runtime
     from ticketmind.agent.runtime import RunFailure
     from ticketmind.retrieval.dense import RetrievalHit
@@ -120,9 +122,10 @@ def run_durable(monkeypatch, decisions, *, limits=None, clarification_rounds=0, 
             raise RuntimeError("tool failed")
         return [RetrievalHit(source_id="case-1", text="case", score=0.5)]
     monkeypatch.setattr(runtime, "retrieve_cases", search)
-    def detail(source_id):
+    def detail(query, **kwargs):
         calls["detail"] += 1
-        return {"source_id": source_id, "text": "case detail"}
+        return [doc_hit("case detail")]
+    monkeypatch.setattr(runtime, "retrieve_docs", detail)
     def decide(state, timeout, usage):
         seen.append(state)
         calls["decision"] += 1
@@ -140,37 +143,61 @@ def run_durable(monkeypatch, decisions, *, limits=None, clarification_rounds=0, 
         QwenSettings(_env_file=None, DASHSCOPE_API_KEY="unused", DASHSCOPE_WORKSPACE_ID="unused"),
         MilvusSettings(_env_file=None, uri="http://unused.invalid"),
         ProcessingSettings(_env_file=None, retrieval_mode="bm25", **(limits or {})),
-        corpus=SimpleNamespace(evidence=lambda hits: [{"source_id": h.source_id} for h in hits], get_case_detail=detail),
-        milvus_factory=lambda _: SimpleNamespace(close=close), decision_fn=decide, judge_fn=judge)
-    workflow = ReviewWorkflow(InMemorySaver())
+        corpus=SimpleNamespace(evidence=lambda hits: [{"source_id": h.source_id} for h in hits]),
+        milvus_factory=lambda _: SimpleNamespace(close=close), decision_fn=decide, judge_fn=judge, docs_store=FakeDocStore())
+    workflow = ReviewWorkflow(None if standalone else InMemorySaver())
     snapshot = {"run_id": "run", "subject": "API 超时", "clarification_rounds": clarification_rounds,
                 "messages": [{"author_type": "customer", "body": "Python 3.12，E_TIMEOUT"}]}
     try:
-        output = workflow.start(snapshot, "guard-thread", runtime_runner)
+        if standalone:
+            from ticketmind.agent.review import agent_input_from_snapshot
+            output = workflow.compute(agent_input_from_snapshot(snapshot), runtime_runner,
+                                      clarification_rounds=clarification_rounds)
+        else:
+            output = workflow.start(snapshot, "guard-thread", runtime_runner)
     except RunFailure as exc:
         output = exc
     return output, calls, seen, workflow
 
 
+def test_repair_budget_fallback_standalone_ends_without_second_judge(monkeypatch):
+    from ticketmind.agent.policy import escalation
+    bad = {"next_step": "escalate", "reason": "human", "reply": "人工一定会处理"}
+    rejected = {"violations": [{"type": "unsupported_commitment", "text": bad["reply"], "reason": "unsupported"}]}
+    output, calls, _, _ = run_durable(monkeypatch, [DETAIL, bad], limits={"max_agent_steps": 4},
+                                     judgments=[rejected], standalone=True)
+    assert output.state["proposal"] == escalation("Agent 执行步数达到上限")
+    assert output.state["repair_attempt"] == 0 and output.state["step_limit_reached"]
+    assert not {"candidate_proposal", "judge_result", "guardrail_feedback"} & output.state.keys()
+    assert calls["decision"] == 2 and calls["judge"] == 1
+
+
 @pytest.mark.parametrize("decisions,limits,error", [
-    ([SEARCH], {"max_agent_steps": 3}, "agent_step_limit"),
-    ([SEARCH], {"max_search_rounds": 1}, "search_limit_or_duplicate"),
-    ([SEARCH, SEARCH], {}, "search_limit_or_duplicate"),
-    ([{**SEARCH, "query": "标题：API 超时\n\n客户问题：Python 3.12，E_TIMEOUT"}], {}, "search_limit_or_duplicate"),
+    ([SEARCH], {"max_search_rounds": 1}, "search_limit"),
+    ([SEARCH, SEARCH], {}, "duplicate_query"),
+    ([{**SEARCH, "query": "标题：API 超时\n\n客户问题：Python 3.12，E_TIMEOUT"}], {}, "duplicate_query"),
     ([{**SEARCH, "query": "E_UNKNOWN 9.99"}], {}, "invented_query_facts"),
-    ([{**DETAIL, "source_id": "unknown"}], {}, "unknown_candidate"),
-    ([DETAIL], {"max_case_details": 0}, "detail_limit_or_duplicate"),
-    ([DETAIL, DETAIL], {}, "detail_limit_or_duplicate"),
+    ([DETAIL], {"max_docs_search_rounds": 0}, "search_limit"),
+    ([DETAIL, DETAIL], {}, "duplicate_query"),
 ])
-def test_durable_graph_rejects_tools_and_still_runs_judge_review(monkeypatch, decisions, limits, error):
-    output, calls, seen, workflow = run_durable(monkeypatch, decisions, limits=limits)
-    assert output.state["proposal"].next_step == "escalate"
-    assert output.state["tool_calls"][-1]["status"] == "rejected"
-    assert output.state["tool_calls"][-1]["error"] == error
-    assert calls["judge"] == 1 and calls["decision"] == len(decisions)
+def test_durable_tool_rejection_returns_observation_to_decision(monkeypatch, decisions, limits, error):
+    output, calls, seen, workflow = run_durable(monkeypatch, decisions + [FINAL], limits=limits)
+    assert output.state["proposal"].next_step == "ask_clarification"
+    rejected = output.state["tool_calls"][-1]
+    assert rejected["status"] == "rejected" and rejected["error"] == error
+    assert seen[-1]["tool_calls"][-1] == rejected
+    assert calls["judge"] == 1 and calls["decision"] == len(decisions) + 1
     assert calls["retrieval"] == (2 if len(decisions) == 2 and decisions[0] == SEARCH else 1)
     assert calls["detail"] == int(len(decisions) == 2 and decisions[0] == DETAIL)
     assert seen[0]["agent_steps"] == 2
+    assert workflow.pending_output("guard-thread") is not None
+
+
+def test_step_exhaustion_skips_judge_and_reviews_fixed_proposal(monkeypatch):
+    output, calls, _, workflow = run_durable(monkeypatch, [SEARCH], limits={"max_agent_steps": 3})
+    assert output.state["proposal"].next_step == "escalate"
+    assert calls["decision"] == 1 and calls["retrieval"] == 2 and calls["judge"] == 0
+    assert len(output.state["tool_calls"]) == 2
     assert workflow.pending_output("guard-thread") is not None
 
 
@@ -229,6 +256,18 @@ def test_durable_judge_repair_safety_boundaries(monkeypatch, mode):
         limits={"max_agent_steps": 4} if mode == "step_limit" else {},
         clarification_rounds=2 if mode == "repair_clarification" else 0,
         judgments=[original] if mode == "judge_error" else [rejected])
+    if mode == "step_limit":
+        from ticketmind.agent.policy import escalation
+        assert output.state["proposal"] == escalation("Agent 执行步数达到上限")
+        assert calls == {"retrieval": 1, "detail": 1, "decision": 2, "judge": 1, "close": 2}
+        data = workflow.graph().get_state(workflow.config("guard-thread")).values["agent_data"]
+        assert data["agent_steps"] == 4 and data["repair_attempt"] == 0 and data["step_limit_reached"]
+        assert not {"candidate_proposal", "judge_result", "guardrail_feedback"} & data.keys()
+        assert workflow.pending_output("guard-thread") is not None
+        review = {"decision": "approve"}
+        assert workflow.resume("guard-thread", review) == workflow.resume("guard-thread", review)
+        assert calls["decision"] == 2 and calls["judge"] == 1
+        return
     assert isinstance(output, RunFailure) and "proposal" not in output.partial
     assert output.stage == "semantic_guardrail" and workflow.pending_output("guard-thread") is None
     code = {"second_reject": "semantic_guardrail_failure", "step_limit": "guardrail_step_limit",
@@ -237,7 +276,7 @@ def test_durable_judge_repair_safety_boundaries(monkeypatch, mode):
     assert output.__cause__.code == code
     assert calls["decision"] == (1 if mode == "judge_error" else 2)
     assert calls["judge"] == (2 if mode == "second_reject" else 1)
-    assert calls["retrieval"] == calls["close"] == 1 and calls["detail"] == int(mode == "step_limit")
+    assert calls["retrieval"] == 1 and calls["close"] == (2 if mode == "step_limit" else 1) and calls["detail"] == int(mode == "step_limit")
     if mode == "step_limit":
         assert output.partial["agent_steps"] == 4 and output.partial["repair_attempt"] == 0
     elif len(seen) == 2:
@@ -261,7 +300,7 @@ def test_continuation_rejects_invalid_judge_repair_positions(monkeypatch, corrup
     data.pop("guardrail_feedback", None)
     as_node = "repair"  # next judge
     if corruption == "repair_on_decision":
-        as_node = "retrieve"
+        as_node = "bootstrap_retrieve"
         data["repair_attempt"] = 1
     elif corruption == "repair_without_rejection":
         as_node = "judge"

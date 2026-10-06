@@ -128,7 +128,9 @@ def run_view(api, ticket, run, reviewer):
     if run["run_status"] == "failed":
         st.error(f"{run.get('error_code')}：{run.get('error_summary')}")
     elif run["run_status"] == "cancelled":
-        st.warning("此提案已失效，不能用于审核发布。")
+        st.warning("此运行已取消或提案已失效，不能用于审核发布。")
+        if run.get("error_summary"):
+            st.text(run["error_summary"])
     elif run["run_status"] == "waiting_review":
         st.info("草稿尚未发布。请核对事实、引用及状态承诺。")
     if reviewer and run["run_status"] in ("running", "failed"):
@@ -136,6 +138,17 @@ def run_view(api, ticket, run, reviewer):
         if st.button("恢复运行状态", key=f"recover-{run['id']}"):
             queue(f"/tickets/{ticket['id']}/runs/{run['id']}/recover",
                   {"expected_version": ticket["version"]}, "显式恢复检查点，可能继续调用模型；不发布回复")
+        if run["run_status"] == "running":
+            with st.form(f"cancel-run-{run['id']}-{ticket['version']}"):
+                st.caption("无法恢复的中断运行可终止后继续人工处理。仍在执行的请求会被服务端拒绝终止。")
+                reason = st.text_area("终止中断运行的原因", max_chars=7900)
+                if st.form_submit_button("终止中断运行"):
+                    if reason.strip():
+                        queue(f"/tickets/{ticket['id']}/runs/{run['id']}/cancel",
+                              {"expected_version": ticket["version"], "reason": reason},
+                              "终止中断运行，保存原因并解除工单写入阻塞；不调用模型")
+                    else:
+                        st.error("请填写终止原因。")
     proposal = run.get("proposal") or {}
     st.write(ACTION.get(proposal.get("next_step"), proposal.get("next_step") or "尚无提案"))
     st.text(proposal.get("reason") or "")
@@ -147,6 +160,10 @@ def run_view(api, ticket, run, reviewer):
         for index, evidence in enumerate(run.get("retrieval_evidence", [])):
             st.json(evidence)
             source_id = evidence.get("source_id")
+            if evidence.get("kind") == "docs" or "docs_version" in evidence:
+                st.caption(f"合成产品文档 · {evidence.get('docs_version', '')} · {evidence.get('section', '')}")
+                st.write(evidence.get("text", ""))
+                continue
             if source_id and st.button(f"查看来源 {source_id}", key=f"source-{run['id']}-{index}"):
                 try:
                     st.json(api.get("/sources/" + quote(source_id, safe=""), corpus_version=run["corpus_version"]))

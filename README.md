@@ -6,9 +6,9 @@ TicketMind 是一个可在本地运行的工单处理系统：接收客户问题
 
 项目面向**合成 SaaS 业务场景与个人工程实践**，包含 FastAPI 服务、Streamlit 工作台、PostgreSQL 持久化、Milvus 检索及模型调用链路。它不是已接入真实客户渠道的线上客服服务。
 
-求职展示从[交付说明](docs/internship-handoff.md)开始：[五分钟演示](docs/demo-guide.md)、[RAG 与 Agent 评估](docs/rag-evaluation.md)、[面试讲解](docs/interview-guide.md)。2026-09-28 使用真实 PostgreSQL、Milvus 和确定性模型替身完成 **286 项测试，全部通过**；条件与边界见[本轮验收记录](docs/verification-2026-09-28.md)。
+求职展示从[交付说明](docs/internship-handoff.md)开始：[五分钟演示](docs/demo-guide.md)、[RAG 与 Agent 评估](../log/app-docs/rag-evaluation.md)、[面试讲解](docs/interview-guide.md)。2026-09-28 使用真实 PostgreSQL、Milvus 和确定性模型替身完成 **286 项测试，全部通过**；条件与边界见[本轮验收记录](../log/app-docs/verification-2026-09-28.md)。
 
-2026-10-06 的最新 Tool / Docs 架构、迁移、预算与验证范围见[本次交付报告](docs/tool-docs-refactor-verification.md)。当前模型动作有五种，检索工具仅为 `search_cases` 与 `search_docs`；本轮使用真实 PostgreSQL 和检索/模型替身，真实 Milvus 与 LangSmith 云端未验收。
+2026-10-06 的最新 Tool / Docs 架构、迁移、预算与验证范围见[本次交付报告](../log/app-docs/tool-docs-refactor-verification.md)。当前模型动作有五种，检索工具仅为 `search_cases` 与 `search_docs`；本轮使用真实 PostgreSQL 和检索/模型替身，真实 Milvus 与 LangSmith 云端未验收。
 
 ## 核心功能
 
@@ -74,7 +74,7 @@ uv run --no-sync alembic upgrade head
 uv run --no-sync python -m ticketmind.documents.cli data/synthetic/docs --version synthetic-product-docs-v1
 ```
 
-配置 `TICKETMIND_DOCS_DATASET=synthetic-product-docs-v1`、`TICKETMIND_DOCS_RETRIEVAL_MODE=bm25` 与 `TICKETMIND_AGENT_VERSION=ticketmind-tools-docs-v2`。导入与分块可重复执行；仅执行 `--no-index` 时 Docs 保持未就绪，详见[初始化和版本约束](docs/tool-docs-refactor-verification.md#初始化与使用)。
+配置 `TICKETMIND_DOCS_DATASET=synthetic-product-docs-v1`、`TICKETMIND_DOCS_RETRIEVAL_MODE=bm25` 与 `TICKETMIND_AGENT_VERSION=ticketmind-tools-docs-v2`。导入与分块可重复执行；仅执行 `--no-index` 时 Docs 保持未就绪，详见[初始化和版本约束](../log/app-docs/tool-docs-refactor-verification.md#初始化与使用)。
 
 ### 一键启动（v2 + Flash + BM25）
 
@@ -118,13 +118,15 @@ Judge 模型、数据库和模型凭据等其余配置仍来自现有 `.env`。�
 
 当前核心操作支持：编辑审核时同时选择最终动作、独立人工接管、从检查点恢复已结束请求的运行状态，以及发布前人工整理知识正文。每次处理可以选择 BM25 / Hybrid / Dense；BM25 发布不要求文档向量，Hybrid 可通过关键词通道召回尚无向量的知识。知识发布到 `production-v1`，只有检索该数据集的运行才能使用；`active` 表示文本索引就绪，Dense 就绪状态单独展示。
 
-Agent 生产图使用同一 PostgreSQL checkpointer：`bootstrap_retrieve → decision ↔ search_cases/search_docs → judge → repair → judge → review`。启动只识别检查点；计算续算需要 reviewer 显式恢复，并核对原配置、版本及累计 active 预算。恢复可能重复当前未完成节点，已持久化成功节点跳过；已有待审核提案与审核重放不调用模型，恢复不发布回复。硬退出耗时未知时，Decision/Judge/Repair 的未完成单模型调用按冻结的 effective timeout（30 秒与原剩余预算的较小值）保守扣减，单独标记 `conservative/estimated`；扣后耗尽直接失败且不调用能力。缺少可靠冻结上限或未完成 bootstrap_retrieve/search_cases/search_docs 复合调用时拒绝续算。扣减先持久化再经恢复 gate 执行；gate 前崩溃复用扣减，进入调用阶段后再次硬退出按新 attempt 扣减。生产与直接 AgentRunner 调用共用一个显式 workflow 拓扑；Workflow 实例只编译一次，模型/资源通过 invocation context 注入，不进入 checkpoint。直接调用计算到 Judge 通过，或步数耗尽时的固定转人工提案，业务入口仍必须持久化 review interrupt。旧审核 checkpoint 可恢复，旧 compute 不执行。阶段记录见 [重构记录](docs/agent-durable-refactor.md)。
+Agent 生产图使用同一 PostgreSQL checkpointer：`bootstrap_retrieve → decision ↔ search_cases/search_docs → judge → repair → judge → review`。启动只识别检查点；计算续算需要 reviewer 显式恢复，并核对原配置、版本及累计 active 预算。恢复可能重复当前未完成节点，已持久化成功节点跳过；已有待审核提案与审核重放不调用模型，恢复不发布回复。硬退出耗时未知时，Decision/Judge/Repair 的未完成单模型调用按冻结的 effective timeout（30 秒与原剩余预算的较小值）保守扣减，单独标记 `conservative/estimated`；扣后耗尽直接失败且不调用能力。缺少可靠冻结上限或未完成 bootstrap_retrieve/search_cases/search_docs 复合调用时拒绝续算。扣减先持久化再经恢复 gate 执行；gate 前崩溃复用扣减，进入调用阶段后再次硬退出按新 attempt 扣减。生产与直接 AgentRunner 调用共用一个显式 workflow 拓扑；Workflow 实例只编译一次，模型/资源通过 invocation context 注入，不进入 checkpoint。直接调用计算到 Judge 通过，或步数耗尽时的固定转人工提案，业务入口仍必须持久化 review interrupt。旧审核 checkpoint 可恢复，旧 compute 不执行。阶段记录见 [重构记录](../log/app-docs/agent-durable-refactor.md)。
 
 Cases 与 Docs 分别受 `TICKETMIND_MAX_SEARCH_ROUNDS`、`TICKETMIND_MAX_DOCS_SEARCH_ROUNDS` 限制，共享 `TICKETMIND_MAX_AGENT_STEPS`。首次 Case 检索占一次 Case 配额与一个 step；每次 Decision、工具尝试（含拒绝）和唯一 Repair 消耗 step。重复 query 与额度拒绝返回 Decision，检索成功才消耗对应搜索配额；同一 query 可分别用于 Cases/Docs。步数耗尽生成固定转人工提案并进入审核，跳过 Judge；时间耗尽仍失败。Docs chunk 的正文、版本、hash 与 synthetic 标记保存于运行证据，工作台直接显示该快照。新计算状态版本为 2，旧 compute 不升级，历史等待审核输出仍可审核。
 
 首次 Judge FAIL 后若无 step 执行 Repair，也生成同一固定转人工提案：清除旧候选与旧 Judge 结果，零 Repair 模型/第二 Judge 调用。恢复这种已耗尽 step 的 Decision/Repair 节点时不扣未知模型超时，真实活跃时间耗尽仍失败。
 
-更新代码需要升级数据库。变更细节、使用流程与迁移见[核心代码修改报告](docs/core-fixes-2026-09-22.md)；该报告是历史记录，后续验证以[本轮验收记录](docs/verification-2026-09-28.md)和[真实路径评估](docs/rag-evaluation.md#最新代码的真实路径证据)为准。
+更新代码需要升级数据库。变更细节、使用流程与迁移见[核心代码修改报告](../log/app-docs/core-fixes-2026-09-22.md)；该报告是历史记录，后续验证以[本轮验收记录](../log/app-docs/verification-2026-09-28.md)和[真实路径评估](../log/app-docs/rag-evaluation.md#最新代码的真实路径证据)为准。
+
+阶段 7 的独立版本数据位于 `data/synthetic/phase7_v1/`：8 篇 synthetic Docs、120 条历史 Cases、48 条 test 工单及独立 Agent 复核标签。未切换日常知识库，未测量真实检索或模型效果；生成、审批检查与后续三模式比较准备见[阶段 7 交付报告](../log/app-docs/phase7-data-verification.md)。
 
 ## 测试
 
@@ -151,18 +153,15 @@ uv run --no-sync python scripts/verify_project.py --db --milvus
 
 ## 文档
 
-- [最新 Tool / Docs 架构重构与验证（2026-10-06）](docs/tool-docs-refactor-verification.md)
-- [审查优先问题修复与验证（2026-09-24）](docs/audit-fixes-2026-09-24.md)
+- [项目资料索引](docs/README.md)
 - [交付范围与复现入口](docs/internship-handoff.md)
-- [收尾验收（2026-09-28）](docs/verification-2026-09-28.md)
 - [架构、业务状态与 API](docs/architecture.md)
 - [工作台操作与演示](docs/demo-guide.md)
 - [知识存储、入库和索引同步](docs/knowledge-writeback.md)
-- [BM25、Hybrid 检索实现与验证](docs/m3-retrieval.md)
-- [RAG / Agent 评估与历史证据](docs/rag-evaluation.md)
 - [简历与面试讲解](docs/interview-guide.md)
 - [来源、复用与项目贡献](docs/sources-and-contributions.md)
-- [历史 README：开发过程、旧配置与阶段验收](docs/README-archive.md)
+- [阶段 7 合成数据说明](data/synthetic/phase7_v1/README.md)
+- [历史验收、测试产物与日志归档](../log/app-docs/INDEX.md)
 
 ## 运行范围
 

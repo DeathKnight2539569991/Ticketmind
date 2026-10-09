@@ -33,7 +33,10 @@ LEGACY = ROOT / "data/cache/graph/api_timeout"
 
 
 def load_cases():
-    return json.loads((ROOT / "docs/m2-acceptance-cases.json").read_text(encoding="utf-8"))["cases"]
+    path = ROOT.parent / "log/app-docs/m2-acceptance-cases.json"
+    if not path.is_file():
+        raise FileNotFoundError(f"历史验收输入已归档，请准备该文件：{path}")
+    return json.loads(path.read_text(encoding="utf-8"))["cases"]
 
 
 def preflight(settings, cases):

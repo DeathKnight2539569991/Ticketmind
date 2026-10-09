@@ -1,8 +1,8 @@
 # Knowledge 存储重构与 Write-back
 
-本文记录 2026-09-17 的历史实现。2026-09-22 起，知识需人工整理后发布，BM25 与 Dense 独立就绪；当前行为和迁移要求以[核心代码修改报告](core-fixes-2026-09-22.md)为准。
+本文记录 2026-09-17 的历史实现。2026-09-22 起，知识需人工整理后发布，BM25 与 Dense 独立就绪；当前行为和迁移要求以[核心代码修改报告](../../log/app-docs/core-fixes-2026-09-22.md)为准。
 
-当前使用要点（2026-09-28 核对）：人工发布前填写问题、适用条件、步骤、验证结果；正文保存在 PG。`active` 表示文本索引就绪，缺向量时仍可用 BM25，Dense 状态另行展示。本文早期“缺向量即 index_failed”等描述属于历史行为。最新测试与演示入口见[收尾验收](verification-2026-09-28.md)和[演示指南](demo-guide.md)。
+当前使用要点（2026-09-28 核对）：人工发布前填写问题、适用条件、步骤、验证结果；正文保存在 PG。`active` 表示文本索引就绪，缺向量时仍可用 BM25，Dense 状态另行展示。本文早期“缺向量即 index_failed”等描述属于历史行为。最新测试与演示入口见[收尾验收](../../log/app-docs/verification-2026-09-28.md)和[演示指南](demo-guide.md)。
 
 日期：2026-09-17。沿用单 Agent、模块化单体和既有依赖；没有新增模型调用、reranker、后台队列或分布式事务。
 
@@ -123,7 +123,7 @@ uv run --no-sync python scripts/knowledge.py reconcile --dataset production-v1 -
 
 ## 验证与限制
 
-最终 **199 passed，0 failed / error / skipped**：原回归 **161** 项，新增 **38** 项；**112** 项逻辑/替身与 **87** 项真实 PostgreSQL。新增部分为知识 PG/API 32、真实 Milvus 2、工作台 HTTP/PG 3、超时预算逻辑 1；保留两条既有依赖弃用警告。逐项数量和本机证据见 [knowledge-verification.json](knowledge-verification.json)，原始 JUnit 在忽略提交的 `data/cache/knowledge/regression.xml`。
+最终 **199 passed，0 failed / error / skipped**：原回归 **161** 项，新增 **38** 项；**112** 项逻辑/替身与 **87** 项真实 PostgreSQL。新增部分为知识 PG/API 32、真实 Milvus 2、工作台 HTTP/PG 3、超时预算逻辑 1；保留两条既有依赖弃用警告。逐项数量和本机证据见 [knowledge-verification.json](../../log/app-docs/knowledge-verification.json)，原始 JUnit 在忽略提交的 `data/cache/knowledge/regression.xml`。
 
 额外执行原 M3 **8/8** 真实 HTTP/PG/Milvus 场景，旧集合文本和向量 hash 核对未变；M4 离线预检、M0 图缓存预检、旧 versioned 导入命令均通过。当前 development 数据库已迁移到 b812ce904a61；首次 seed 12、再次新增 0，精确缓存重复导入后无重复向量记录，12 条冻结合成知识 active，生产空集合已初始化。未改写既有工单/运行/审核。
 

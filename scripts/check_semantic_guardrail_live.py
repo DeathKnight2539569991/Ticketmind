@@ -23,8 +23,8 @@ from ticketmind.llm.client import generate_text
 from ticketmind.retrieval.schemas import EvidenceHit
 
 ROOT = Path(__file__).resolve().parents[1]
-FROZEN = ROOT / "docs/m4-agent-frozen-2026-09-17"
-OUTPUT = ROOT / "docs/semantic-guardrail-runs/2026-09-18-glm53-deepseek41-v1"
+FROZEN = ROOT.parent / "log/app-docs/m4-agent-frozen-2026-09-17"
+OUTPUT = ROOT.parent / "log/app-docs/semantic-guardrail-runs/2026-09-18-glm53-deepseek41-v1"
 CASES = ("005", "008", "016", "020", "026", "034", "036")
 CEILINGS = {"decision": 7, "judge": 19}
 DECISION_DIAGNOSTIC_TIMEOUT = 90

@@ -1,8 +1,8 @@
 """Export allowlisted synthetic evaluation evidence, without credentials or new calls.
 
-Run from app: python scripts/export_review_evidence.py --evidence-root ..
-The repository contains the resulting portable snapshot; original paid runs are
-not required to read it. Regeneration requires the original local run archives.
+Run from app: python scripts/export_review_evidence.py --evidence-root ../log
+The external log/app-docs directory contains the resulting snapshot.
+Regeneration requires the original local run archives.
 """
 import argparse
 import hashlib
@@ -23,7 +23,7 @@ def sha(path):
 def export(evidence_root):
     history = evidence_root / "eval_runs/ticketmind_qwen_bm25_20260919"
     loop = evidence_root / "eval_runs/loop_paths_20260926"
-    review_path = ROOT / "docs/m4-reviewed-retrieval-results.json"
+    review_path = ROOT.parent / "log/app-docs/m4-reviewed-retrieval-results.json"
     retrieval = read(review_path)
     records = []
     provenance = {}
@@ -63,7 +63,7 @@ def export(evidence_root):
             "adjudications": adjudications},
         "paths_20260926": {"summary": loop_summary, "cleanup_all_clean": read(loop / "cleanup-check.json")["all_clean"]},
         "original_file_sha256": provenance}
-    destination = ROOT / "docs/evaluation/evidence-summary.json"
+    destination = ROOT.parent / "log/app-docs/evaluation/evidence-summary.json"
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(destination), "comparison_runs": len(records), "new_model_calls": 0}))

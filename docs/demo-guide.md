@@ -1,6 +1,6 @@
 # 五分钟演示：工单 Agent 与人工审核
 
-推荐现场使用明确标记的零付费演示，再展示真实评测证据。演示替身保证流程可重复，不用于宣称真实模型效果；模型实测记录见[RAG 评估](rag-evaluation.md)。
+推荐现场使用明确标记的零付费演示，再展示真实评测证据。演示替身保证流程可重复，不用于宣称真实模型效果；模型实测记录见[RAG 评估](../../log/app-docs/rag-evaluation.md)。
 
 ## 启动
 
@@ -36,6 +36,6 @@ uv run --no-sync python scripts/start_local.py --demo
 
 已有冻结知识和本机 PG/Milvus 时使用 `start_v2_flash.cmd --skip-infra`；工作台 8501、API 8000。Decision 为 qwen3.8-flash，Judge 读取 `.env` 的 deepseek-v4.1-flash 配置，处理会产生真实费用。本次收尾没有授权额外真实调用。
 
-新知识发布到 production-v1；日常 v2 启动入口仍检索 synthetic-v2，不会自动看到新发布文章。要演示真实“发布后可检索”，需明确选择 production-v1 的服务配置与已经就绪的索引。已有[真实验收记录](rag-evaluation.md#最新代码的真实路径证据)使用独立测试集合完成，不在现场临时重建共享索引。
+新知识发布到 production-v1；日常 v2 启动入口仍检索 synthetic-v2，不会自动看到新发布文章。要演示真实“发布后可检索”，需明确选择 production-v1 的服务配置与已经就绪的索引。已有[真实验收记录](../../log/app-docs/rag-evaluation.md#最新代码的真实路径证据)使用独立测试集合完成，不在现场临时重建共享索引。
 
 演示出现问题时：先确认页面是否仍是演示模式、当前角色和工单状态；查看运行错误与历史记录。未修复时展示保存的证据，明确说是历史实测，不把录像或替身当作本次现场模型执行。

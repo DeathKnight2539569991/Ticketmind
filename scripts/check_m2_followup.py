@@ -41,7 +41,10 @@ GLM_COMPARISON_CEILINGS = dict(zip(CATEGORIES, (3, 1, 14)))  # 17 attempts + <=4
 
 
 def load_case():
-    return json.loads((ROOT / "docs/m2-followup-case.json").read_text(encoding="utf-8"))
+    path = ROOT.parent / "log/app-docs/m2-followup-case.json"
+    if not path.is_file():
+        raise FileNotFoundError(f"历史验收输入已归档，请准备该文件：{path}")
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 class FirstSearchMiss:

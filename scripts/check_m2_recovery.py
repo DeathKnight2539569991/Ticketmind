@@ -28,6 +28,10 @@ from ticketmind.main import create_app
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def output_directory():
+    return Path(os.getenv("TICKETMIND_RECOVERY_TEST_OUTPUT_DIR", str(ROOT / "data/cache/m2")))
+
+
 def mark_boundary(path):
     path.write_text("fault boundary reached", encoding="utf-8")
     Event().wait(120)  # Parent terminates only this test-owned process.
@@ -40,7 +44,7 @@ def serve(args):
     url = os.getenv("TICKETMIND_TEST_DATABASE_URL") or Settings().database_url.unicode_string()
     engine = create_engine(url, connect_args={"options": f"-csearch_path={args.schema}", "connect_timeout": 5})
     factory = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
-    boundary = ROOT / "data/cache/m2" / f"{args.schema}.boundary"
+    boundary = output_directory() / f"{args.schema}.boundary"
 
     class SyntheticRunner:
         metadata = {"agent_version": "m2-process-recovery-synthetic", "corpus_version": "synthetic-no-retrieval",
@@ -114,7 +118,7 @@ def stop(process, client):
 
 def verify_phase(phase, environment):
     with isolated_database(os.getenv("TICKETMIND_TEST_DATABASE_URL")) as (engine, _, schema):
-        boundary = ROOT / "data/cache/m2" / f"{schema}.boundary"
+        boundary = output_directory() / f"{schema}.boundary"
         process, client = start(schema, phase, environment)
         key, run_id = uuid4().hex, None
         headers = {"Authorization": "Bearer " + environment["TICKETMIND_REVIEWER_TOKEN"], "Idempotency-Key": key}
@@ -139,7 +143,14 @@ def verify_phase(phase, environment):
                         f"/tickets/{ticket_id}/runs/{run_id}/review", json=review_payload, headers=headers)
                 try:
                     if phase != "waiting":
-                        wait_until(boundary.exists, "fault boundary was not reached")
+                        def reached():
+                            if boundary.exists():
+                                return True
+                            if pending is not None and pending.done():
+                                response = pending.result()
+                                raise RuntimeError(f"request ended before fault boundary: HTTP {response.status_code}: {response.text}")
+                            return False
+                        wait_until(reached, "fault boundary was not reached")
                     run_id = client.get(f"/tickets/{ticket_id}/runs").json()[0]["id"]
                 finally:
                     process.kill()
@@ -185,17 +196,21 @@ def main():
     parser.add_argument("--schema", help=argparse.SUPPRESS)
     parser.add_argument("--port", type=int, help=argparse.SUPPRESS)
     parser.add_argument("--phase", default="normal", help=argparse.SUPPRESS)
+    parser.add_argument("--only-phase", choices=["waiting", "compute_interrupted", "review_saved", "graph_finished"])
+    parser.add_argument("--output-dir", type=Path, help="Writable directory for boundary markers and results")
     args = parser.parse_args()
     if args.serve:
         serve(args)
         return
-    report_dir = ROOT / "data/cache/m2"
+    report_dir = args.output_dir.resolve() if args.output_dir else ROOT / "data/cache/m2"
     report_dir.mkdir(parents=True, exist_ok=True)
     environment = dict(os.environ, TICKETMIND_OPERATOR_TOKEN=secrets.token_urlsafe(32),
                        TICKETMIND_REVIEWER_TOKEN=secrets.token_urlsafe(32),
                        TICKETMIND_OPERATOR_ID="operator", TICKETMIND_REVIEWER_ID="reviewer")
+    environment["TICKETMIND_RECOVERY_TEST_OUTPUT_DIR"] = str(report_dir)
+    os.environ["TICKETMIND_RECOVERY_TEST_OUTPUT_DIR"] = str(report_dir)
     results = []
-    for phase in ("waiting", "compute_interrupted", "review_saved", "graph_finished"):
+    for phase in ([args.only_phase] if args.only_phase else ("waiting", "compute_interrupted", "review_saved", "graph_finished")):
         result = verify_phase(phase, environment)
         results.append(result)
         print(json.dumps(result, ensure_ascii=False), flush=True)

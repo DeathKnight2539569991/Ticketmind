@@ -1,6 +1,6 @@
 # TicketMind 架构与接口
 
-2026-09-22 核心更新：新增独立人工接管、显式运行恢复、审核最终动作、人工整理知识及独立 BM25 就绪状态。增量与迁移要求见[核心代码修改报告](core-fixes-2026-09-22.md)。
+2026-09-22 核心更新：新增独立人工接管、显式运行恢复、审核最终动作、人工整理知识及独立 BM25 就绪状态。增量与迁移要求见[核心代码修改报告](../../log/app-docs/core-fixes-2026-09-22.md)。
 
 ## 请求如何走完
 
@@ -77,7 +77,7 @@ flowchart LR
 
 检索硬退出、检查点损坏或冻结配置无法核对导致恢复被拒绝时，reviewer 可在运行记录填写原因并选择“终止中断运行”，确认后再人工回复、接管或关闭。cancel 请求包含 `expected_version` 与 `reason`（最多 7900 字符），使用 `Idempotency-Key`；服务端通过同一单实例执行保护器拒绝终止活跃计算、审核和恢复。运行变为 cancelled，系统审计消息与工单版本递增在同一事务提交，原检查点、提案和审核保留。旧运行不能再恢复或审核；如需重新自动处理，先追加客户消息，使用新版本和最新客户消息创建新运行。
 
-知识由人工整理正文后批准，原始会话保留审计。批准先提交 PG，BM25 正文索引强一致读回成功后可 active，Dense 就绪状态独立记录；缺向量不阻止 BM25 发布或通过 Hybrid 的关键词通道召回。检索过滤 inactive、missing、hash 不一致及 Dense 未就绪来源，保留诊断。知识正文发布后仍不可原地编辑。新表字段和操作见[核心代码修改报告](core-fixes-2026-09-22.md)，历史实现见[知识交付报告](knowledge-writeback.md)。
+知识由人工整理正文后批准，原始会话保留审计。批准先提交 PG，BM25 正文索引强一致读回成功后可 active，Dense 就绪状态独立记录；缺向量不阻止 BM25 发布或通过 Hybrid 的关键词通道召回。检索过滤 inactive、missing、hash 不一致及 Dense 未就绪来源，保留诊断。知识正文发布后仍不可原地编辑。新表字段和操作见[核心代码修改报告](../../log/app-docs/core-fixes-2026-09-22.md)，历史实现见[知识交付报告](knowledge-writeback.md)。
 
 
 ## Tool / Docs 执行与恢复
@@ -92,4 +92,4 @@ Cases/Docs 保留独立检索配额、去重 query 与正文证据，首次检�
 
 Docs 集合名为 `docs_bm25_<manifest hash>`，与 Cases 分离；`docs:<doc_id>:<section>:<chunk>` 来源只由 Docs PostgreSQL 表 hydration。导入文件的标准化 hash、标题/章节/正文 chunk hash 与索引读回 hash 用于过滤旧结果；文档版本和 catalog_hash 变化会使旧计算契约漂移。Docs 集合版本/schema/analyzer/index 或返回协议不一致属于 terminal failure，临时连接失败保持可恢复。新增迁移 `e4ad82c7f321` 创建三张文档表。
 
-LangSmith 默认关闭，缺 key 不发送。自定义能力事件经 256 项有界队列异步发送，单次 SDK HTTP timeout 为 1000 ms，队列压力或 SDK 故障会丢弃追踪而不改变业务。业务 ID/thread/attempt/checkpoint 关联跨恢复事件，追踪对象不进入 durable state 或冻结契约。完整命令、最终测试结果与实连限制见[本次交付报告](tool-docs-refactor-verification.md)；先前 durable 阶段记录仍见[历史重构报告](agent-durable-refactor.md)。
+LangSmith 默认关闭，缺 key 不发送。自定义能力事件经 256 项有界队列异步发送，单次 SDK HTTP timeout 为 1000 ms，队列压力或 SDK 故障会丢弃追踪而不改变业务。业务 ID/thread/attempt/checkpoint 关联跨恢复事件，追踪对象不进入 durable state 或冻结契约。完整命令、最终测试结果与实连限制见[本次交付报告](../../log/app-docs/tool-docs-refactor-verification.md)；先前 durable 阶段记录仍见[历史重构报告](../../log/app-docs/agent-durable-refactor.md)。

@@ -1,0 +1,228 @@
+{
+  "report_type": "offline_static_validation",
+  "test_only": true,
+  "snapshot_hash": "5a1e053c9402826257ab229f0b71cd8d55be77409525c5dfe573df55d7eb6469",
+  "case_corpus_version": "synthetic-v2-9c0552c76c338a73e05990c3c0d7a588149d7b8471a3b0c9a8a648b8d06b488a",
+  "docs_version": "synthetic-phase7-docs-v1",
+  "counts": {
+    "documents": 8,
+    "document_chunks": 24,
+    "historical_cases": 120,
+    "tickets": 48,
+    "labels": 48,
+    "case_annotations": 120,
+    "evaluation_annotations": 48,
+    "actions": {
+      "propose_resolution": 16,
+      "escalate": 16,
+      "ask_clarification": 16
+    }
+  },
+  "review_status": "candidate_unreviewed",
+  "duplicate_audit": {
+    "normalized_exact_duplicates": [
+      {
+        "id": "legacy/live_e2e_v2/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-002",
+        "matches": [
+          "legacy/live_e2e_v1/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-002"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-003",
+        "matches": [
+          "legacy/live_e2e_v1/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-003"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-004",
+        "matches": [
+          "legacy/live_e2e_v1/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-004"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-005",
+        "matches": [
+          "legacy/live_e2e_v1/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-005"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-006",
+        "matches": [
+          "legacy/live_e2e_v1/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-006"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-007",
+        "matches": [
+          "legacy/live_e2e_v1/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-007"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-008",
+        "matches": [
+          "legacy/live_e2e_v1/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-008"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-009",
+        "matches": [
+          "legacy/live_e2e_v1/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-009"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-010",
+        "matches": [
+          "legacy/live_e2e_v1/historical_cases.jsonl/SYN-LIVE-E2E-2026-09-010"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-02",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-02"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-03",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-03"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-04",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-04"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-05",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-05"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-06",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-06"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-07",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-07"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-08",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-08"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-09",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-09"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-10",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-10"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-11",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-11"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-12",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-12"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-13",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-13"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-14",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-14"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-15",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-15"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-16",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-16"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-18",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-18"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-19",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-19"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-20",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-20"
+        ],
+        "kind": "normalized_exact"
+      },
+      {
+        "id": "legacy/live_e2e_v2/test_tickets.jsonl/SYN-LIVE-TEST-21",
+        "matches": [
+          "legacy/live_e2e_v1/test_tickets.jsonl/SYN-LIVE-TEST-21"
+        ],
+        "kind": "normalized_exact"
+      }
+    ],
+    "approximate_text_pairs_for_review": [],
+    "method": "NFKC + casefold and remove punctuation/whitespace; character 3-gram Jaccard >= 0.62 and >=15 shared grams. Near matches require human review and do not automatically indicate duplication."
+  },
+  "limitations": [
+    "未验证检索排名、模型行为或系统效果；近似重复项仅供人工审阅。",
+    "48条公开合成test数据不构成独立盲测。"
+  ]
+}
